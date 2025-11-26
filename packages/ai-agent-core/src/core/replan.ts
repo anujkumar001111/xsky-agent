@@ -11,6 +11,11 @@ import {
 } from "../types";
 import Log from "../common/log";
 
+/**
+ * Checks if a task needs to be replanned.
+ * @param agentContext - The context for the agent.
+ * @returns A promise that resolves to whether the task needs to be replanned.
+ */
 export async function checkTaskReplan(
   agentContext: AgentContext
 ): Promise<boolean> {
@@ -90,6 +95,10 @@ If after executing some subtasks it is found that the previous plan has issues o
   }
 }
 
+/**
+ * Replans a workflow.
+ * @param agentContext - The context for the agent.
+ */
 export async function replanWorkflow(agentContext: AgentContext) {
   let currentIndex = 0;
   const currentAgentId = agentContext.agentChain.agent.id;
@@ -146,6 +155,12 @@ Please do not output nodes that have already been executed. The new plan is an i
   workflow.modified = true;
 }
 
+/**
+ * Merges a new workflow into an existing workflow.
+ * @param workflow - The existing workflow.
+ * @param newWorkflow - The new workflow.
+ * @param currentIndex - The index of the current agent.
+ */
 function mergeWorkflow(
   workflow: Workflow,
   newWorkflow: Workflow,
@@ -177,6 +192,11 @@ function mergeWorkflow(
   workflow.xml = newWorkflow.xml;
 }
 
+/**
+ * Gets the execution prompt for an agent.
+ * @param currentAgentContext - The context for the current agent.
+ * @returns The execution prompt for the agent.
+ */
 function getAgentExecutionPrompt(currentAgentContext: AgentContext) {
   let prompt = "";
   const agentMap: Record<string, AgentChain> = {};
@@ -212,6 +232,11 @@ function getAgentExecutionPrompt(currentAgentContext: AgentContext) {
   return prompt.trim();
 }
 
+/**
+ * Gets the execution messages from a list of messages.
+ * @param messages - The list of messages to get the execution messages from.
+ * @returns The execution messages.
+ */
 function getExecutionMessages(messages: LanguageModelV2Prompt): string[] {
   const messagesContents: string[] = [];
   for (let i = 0; i < messages.length; i++) {

@@ -10,6 +10,14 @@ import {
 } from "../types/core.types";
 import { buildAgentTree } from "./tree";
 
+/**
+ * Parses a workflow from an XML string.
+ * @param taskId - The ID of the task.
+ * @param xml - The XML string to parse.
+ * @param done - Whether the workflow is done.
+ * @param thinking - The thinking process of the agent.
+ * @returns The parsed workflow, or null if the XML is invalid.
+ */
 export function parseWorkflow(
   taskId: string,
   xml: string,
@@ -169,6 +177,13 @@ function parseWorkflowNodes(
   }
 }
 
+/**
+ * Builds the root XML for an agent.
+ * @param agentXml - The XML of the agent.
+ * @param mainTaskPrompt - The main task prompt.
+ * @param nodeCallback - A callback to call for each node.
+ * @returns The root XML for the agent.
+ */
 export function buildAgentRootXml(
   agentXml: string,
   mainTaskPrompt: string,
@@ -200,6 +215,12 @@ export function buildAgentRootXml(
   return xmlPrompt.replace(/      /g, "  ").replace("    </root>", "</root>");
 }
 
+/**
+ * Extracts a node from an agent's XML.
+ * @param agentXml - The XML of the agent.
+ * @param nodeId - The ID of the node to extract.
+ * @returns The extracted node, or null if the node is not found.
+ */
 export function extractAgentXmlNode(
   agentXml: string,
   nodeId: number
@@ -226,6 +247,11 @@ export function extractAgentXmlNode(
   return null;
 }
 
+/**
+ * Gets the inner XML of a node.
+ * @param node - The node to get the inner XML of.
+ * @returns The inner XML of the node.
+ */
 export function getInnerXML(node: Element): string {
   let result = "";
   const serializer = new XMLSerializer();
@@ -235,11 +261,21 @@ export function getInnerXML(node: Element): string {
   return result;
 }
 
+/**
+ * Gets the outer XML of a node.
+ * @param node - The node to get the outer XML of.
+ * @returns The outer XML of the node.
+ */
 export function getOuterXML(node: Element): string {
   const serializer = new XMLSerializer();
   return serializer.serializeToString(node);
 }
 
+/**
+ * Builds a simple agent workflow.
+ * @param options - The options for building the workflow.
+ * @returns The built workflow.
+ */
 export function buildSimpleAgentWorkflow({
   taskId,
   name,
@@ -284,6 +320,10 @@ export function buildSimpleAgentWorkflow({
   return workflow;
 }
 
+/**
+ * Resets the XML of a workflow.
+ * @param workflow - The workflow to reset the XML of.
+ */
 export function resetWorkflowXml(workflow: Workflow) {
   const agents: string[] = [];
   for (let i = 0; i < workflow.agents.length; i++) {

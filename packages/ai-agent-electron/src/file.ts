@@ -5,18 +5,33 @@ import { AgentContext, BaseFileAgent } from "@xsky/ai-agent-core";
 import { Tool } from "@xsky/ai-agent-core/types";
 import { WebContentsView, app } from "electron";
 
+/**
+ * A file agent that runs in an Electron environment.
+ */
 export default class FileAgent extends BaseFileAgent {
 
   private detailView: WebContentsView;
   private customPrompt?: string;
 
+  /**
+   * Creates an instance of the FileAgent.
+   * @param detailView - The Electron WebContentsView to use.
+   * @param work_path - The working path for the agent.
+   * @param mcpClient - The MCP client to use.
+   * @param customPrompt - A custom prompt to use.
+   */
   constructor(detailView: WebContentsView, work_path?: string, mcpClient?: any, customPrompt?: string) {
     super(work_path, ['default'], [], mcpClient);
     this.detailView = detailView;
     this.customPrompt = customPrompt;
   }
 
-  // Override extSysPrompt to support custom prompt
+  /**
+   * Overrides the extended system prompt to support a custom prompt.
+   * @param agentContext - The context for the agent.
+   * @param tools - The tools available to the agent.
+   * @returns A promise that resolves to the custom prompt.
+   */
   protected async extSysPrompt(
     agentContext: AgentContext,
     tools: Tool[]
@@ -24,6 +39,12 @@ export default class FileAgent extends BaseFileAgent {
     return this.customPrompt || "";
   }
 
+  /**
+   * Lists the files in a directory.
+   * @param agentContext - The context for the agent.
+   * @param directoryPath - The path to the directory.
+   * @returns A promise that resolves to a list of files.
+   */
   protected async file_list(
     agentContext: AgentContext,
     directoryPath: string
@@ -53,6 +74,12 @@ export default class FileAgent extends BaseFileAgent {
     return fileDetails;
   }
 
+  /**
+   * Reads a file.
+   * @param agentContext - The context for the agent.
+   * @param filePath - The path to the file.
+   * @returns A promise that resolves to the content of the file.
+   */
   protected async file_read(
     agentContext: AgentContext,
     filePath: string
@@ -60,6 +87,14 @@ export default class FileAgent extends BaseFileAgent {
     return await fs.readFile(filePath, "utf-8");
   }
 
+  /**
+   * Writes a file.
+   * @param agentContext - The context for the agent.
+   * @param filePath - The path to the file.
+   * @param content - The content to write to the file.
+   * @param append - Whether to append to the file.
+   * @returns A promise that resolves when the file has been written.
+   */
   protected async file_write(
     agentContext: AgentContext,
     filePath: string,
@@ -92,6 +127,13 @@ export default class FileAgent extends BaseFileAgent {
     };
   }
 
+  /**
+   * Replaces a string in a file.
+   * @param agentContext - The context for the agent.
+   * @param filePath - The path to the file.
+   * @param oldStr - The string to replace.
+   * @param newStr - The string to replace it with.
+   */
   protected async file_str_replace(
     agentContext: AgentContext,
     filePath: string,
@@ -107,6 +149,13 @@ export default class FileAgent extends BaseFileAgent {
     await fs.writeFile(filePath, content, "utf-8");
   }
 
+  /**
+   * Finds files by name.
+   * @param agentContext - The context for the agent.
+   * @param directoryPath - The path to the directory to search in.
+   * @param globPattern - The glob pattern to search for.
+   * @returns A promise that resolves to a list of files.
+   */
   protected async file_find_by_name(
     agentContext: AgentContext,
     directoryPath: string,
@@ -137,6 +186,11 @@ export default class FileAgent extends BaseFileAgent {
     return fileDetails;
   }
 
+  /**
+   * Formats a file size.
+   * @param size - The size in bytes.
+   * @returns The formatted file size.
+   */
   protected formatFileSize(size: number): string {
     if (size < 1024) {
       return size + " B";

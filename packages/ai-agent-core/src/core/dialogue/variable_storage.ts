@@ -4,12 +4,19 @@ import { DialogueTool, ToolResult } from "../../types";
 
 export const TOOL_NAME = "taskVariableStorage";
 
+/**
+ * A tool for storing and retrieving variables.
+ */
 export default class TaskVariableStorageTool implements DialogueTool {
   readonly name: string = TOOL_NAME;
   readonly description: string;
   readonly parameters: JSONSchema7;
   private ekoDialogue: EkoDialogue;
 
+  /**
+   * Creates an instance of the TaskVariableStorageTool.
+   * @param ekoDialogue - The EkoDialogue instance to use.
+   */
   constructor(ekoDialogue: EkoDialogue) {
     this.description = `Used for storing, reading, and retrieving variable data, and maintaining input/output variables in task nodes.`;
     this.parameters = {
@@ -35,6 +42,11 @@ export default class TaskVariableStorageTool implements DialogueTool {
     this.ekoDialogue = ekoDialogue;
   }
 
+  /**
+   * Executes the tool.
+   * @param args - The arguments for the tool.
+   * @returns A promise that resolves to the result of the tool.
+   */
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
     let operation = args.operation as string;
     let resultText = "";

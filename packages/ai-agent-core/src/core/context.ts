@@ -8,6 +8,9 @@ import {
   WorkflowAgent,
 } from "../types";
 
+/**
+ * The context for a task.
+ */
 export default class Context {
   taskId: string;
   config: EkoConfig;
@@ -20,6 +23,13 @@ export default class Context {
   private pauseStatus: 0 | 1 | 2 = 0;
   readonly currentStepControllers: Set<AbortController> = new Set();
 
+  /**
+   * Creates an instance of the Context.
+   * @param taskId - The ID of the task.
+   * @param config - The configuration for the task.
+   * @param agents - The agents available for the task.
+   * @param chain - The chain of execution for the task.
+   */
   constructor(
     taskId: string,
     config: EkoConfig,
@@ -34,6 +44,10 @@ export default class Context {
     this.controller = new AbortController();
   }
 
+  /**
+   * Checks if the task has been aborted.
+   * @param noCheckPause - Whether to skip checking for a pause.
+   */
   async checkAborted(noCheckPause?: boolean): Promise<void> {
     if (this.controller.signal.aborted) {
       const error = new Error("Operation was interrupted");
@@ -56,6 +70,10 @@ export default class Context {
     }
   }
 
+  /**
+   * Gets the current agent.
+   * @returns The current agent, or null if there is no current agent.
+   */
   currentAgent(): [Agent, WorkflowAgent, AgentContext] | null {
     const agentNode = this.chain.agents[this.chain.agents.length - 1];
     if (!agentNode) {
@@ -71,10 +89,18 @@ export default class Context {
     return [agent, agentNode.agent, agentContext];
   }
 
+  /**
+   * Whether the task is paused.
+   */
   get pause() {
     return this.pauseStatus > 0;
   }
 
+  /**
+   * Sets the pause status of the task.
+   * @param pause - Whether to pause the task.
+   * @param abortCurrentStep - Whether to abort the current step.
+   */
   setPause(pause: boolean, abortCurrentStep?: boolean) {
     this.pauseStatus = pause ? (abortCurrentStep ? 2 : 1) : 0;
     if (this.pauseStatus == 2) {
@@ -85,6 +111,9 @@ export default class Context {
     }
   }
 
+  /**
+   * Resets the context.
+   */
   reset() {
     this.pauseStatus = 0;
     if (!this.controller.signal.aborted) {
@@ -98,6 +127,9 @@ export default class Context {
   }
 }
 
+/**
+ * The context for an agent.
+ */
 export class AgentContext {
   agent: Agent;
   context: Context;
@@ -106,6 +138,12 @@ export class AgentContext {
   consecutiveErrorNum: number;
   messages?: LanguageModelV2Prompt;
 
+  /**
+   * Creates an instance of the AgentContext.
+   * @param context - The context for the task.
+   * @param agent - The agent.
+   * @param agentChain - The agent chain.
+   */
   constructor(context: Context, agent: Agent, agentChain: AgentChain) {
     this.context = context;
     this.agent = agent;

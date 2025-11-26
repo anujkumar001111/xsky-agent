@@ -10,7 +10,16 @@ import {
 import { Tool, ToolResult, IMcpClient } from "../../types";
 import { mergeTools, sleep, toImage } from "../../common/utils";
 
+/**
+ * An agent that can interact with a web browser using labeled elements.
+ */
 export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
+  /**
+   * Creates an instance of the BaseBrowserLabelsAgent.
+   * @param llms - A list of language models to use.
+   * @param ext_tools - A list of external tools to add to the agent.
+   * @param mcpClient - The MCP client to use.
+   */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
     let description = `You are a browser operation agent, use structured commands to interact with the browser.
 * This is a browser GUI interface where you need to analyze webpages by taking screenshot and page element structures, and specify action sequences to complete designated tasks.
@@ -63,6 +72,13 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     init_tools.forEach((tool) => _tools_.push(tool));
   }
 
+  /**
+   * Inputs text into a labeled element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the element to input text into.
+   * @param text - The text to input.
+   * @param enter - Whether to press enter after inputting the text.
+   */
   protected async input_text(
     agentContext: AgentContext,
     index: number,
@@ -75,6 +91,13 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     }
   }
 
+  /**
+   * Clicks a labeled element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the element to click.
+   * @param num_clicks - The number of times to click the element.
+   * @param button - The mouse button to use for the click.
+   */
   protected async click_element(
     agentContext: AgentContext,
     index: number,
@@ -86,6 +109,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     ]);
   }
 
+  /**
+   * Scrolls to a labeled element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the element to scroll to.
+   */
   protected async scroll_to_element(
     agentContext: AgentContext,
     index: number
@@ -102,6 +130,12 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     await sleep(200);
   }
 
+  /**
+   * Scrolls the mouse wheel.
+   * @param agentContext - The context for the agent to run in.
+   * @param amount - The amount to scroll.
+   * @param extract_page_content - Whether to extract the page content after scrolling.
+   */
   protected async scroll_mouse_wheel(
     agentContext: AgentContext,
     amount: number,
@@ -140,6 +174,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     }
   }
 
+  /**
+   * Hovers over a labeled element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the element to hover over.
+   */
   protected async hover_to_element(
     agentContext: AgentContext,
     index: number
@@ -147,6 +186,12 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     await this.execute_script(agentContext, hover_to, [{ index }]);
   }
 
+  /**
+   * Gets the options from a select element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the select element.
+   * @returns A promise that resolves to the options of the select element.
+   */
   protected async get_select_options(
     agentContext: AgentContext,
     index: number
@@ -156,6 +201,13 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     ]);
   }
 
+  /**
+   * Selects an option from a select element.
+   * @param agentContext - The context for the agent to run in.
+   * @param index - The index of the select element.
+   * @param option - The option to select.
+   * @returns A promise that resolves when the option has been selected.
+   */
   protected async select_option(
     agentContext: AgentContext,
     index: number,
@@ -166,6 +218,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     ]);
   }
 
+  /**
+   * Takes a screenshot of the current page and returns the screenshot and the pseudo HTML of the page.
+   * @param agentContext - The context for the agent to run in.
+   * @returns A promise that resolves to the screenshot and the pseudo HTML of the page.
+   */
   protected async screenshot_and_html(agentContext: AgentContext): Promise<{
     imageBase64: string;
     imageType: "image/jpeg" | "image/png";
@@ -210,10 +267,20 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     }
   }
 
+  /**
+   * Gets the script to get a labeled element.
+   * @param index - The index of the element.
+   * @returns The script to get the element.
+   */
   protected get_element_script(index: number): string {
     return `window.get_highlight_element(${index});`;
   }
 
+  /**
+   * Determines whether the agent can handle parallel tool calls.
+   * @param toolCalls - The tool calls to check.
+   * @returns Whether the agent can handle parallel tool calls.
+   */
   public canParallelToolCalls(toolCalls?: LanguageModelV2ToolCallPart[]): boolean {
     if (toolCalls) {
       for (let i = 0; i < toolCalls.length; i++) {
@@ -231,6 +298,10 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     return super.canParallelToolCalls(toolCalls);
   }
 
+  /**
+   * Builds the initial set of tools for the agent.
+   * @returns A list of tools.
+   */
   private buildInitTools(): Tool[] {
     return [
       {
@@ -558,6 +629,13 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     ];
   }
 
+  /**
+   * Determines whether to take two screenshots.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The messages in the current conversation.
+   * @param tools - The available tools.
+   * @returns A promise that resolves to whether to take two screenshots.
+   */
   protected async double_screenshots(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -566,6 +644,12 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     return true;
   }
 
+  /**
+   * Handles messages in the agent's context, including taking screenshots and extracting pseudo HTML.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param tools - The tools available to the agent.
+   */
   protected async handleMessages(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -613,6 +697,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     this.handlePseudoHtmlText(messages, pseudoHtmlDescription);
   }
 
+  /**
+   * Handles the pseudo HTML text in the messages.
+   * @param messages - The messages to handle.
+   * @param pseudoHtmlDescription - The description of the pseudo HTML.
+   */
   private handlePseudoHtmlText(
     messages: LanguageModelV2Prompt,
     pseudoHtmlDescription: string
@@ -647,6 +736,12 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     }
   }
 
+  /**
+   * Removes attributes from the pseudo HTML.
+   * @param pseudoHtml - The pseudo HTML to remove attributes from.
+   * @param remove_attrs - The attributes to remove.
+   * @returns The pseudo HTML with the attributes removed.
+   */
   private removePseudoHtmlAttr(
     pseudoHtml: string,
     remove_attrs: string[]

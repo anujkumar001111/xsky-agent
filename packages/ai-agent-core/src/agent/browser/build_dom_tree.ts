@@ -1,9 +1,14 @@
 // @ts-nocheck
+/**
+ * Runs the DOM tree builder.
+ */
 export function run_build_dom_tree() {
   var computedStyleCache = new WeakMap();
 
   /**
    * Gets the cached computed style for an element.
+   * @param element - The element to get the style for.
+   * @returns The computed style of the element.
    */
   function getCachedComputedStyle(element) {
     if (!element) return null;
@@ -24,9 +29,9 @@ export function run_build_dom_tree() {
   /**
    * Get clickable elements on the page
    *
-   * @param {*} doHighlightElements Is highlighted
-   * @param {*} includeAttributes [attr_names...]
-   * @returns { element_str, selector_map }
+   * @param doHighlightElements - Whether to highlight the elements.
+   * @param includeAttributes - A list of attributes to include in the element string.
+   * @returns An object containing the element string and a map of selectors.
    */
   function get_clickable_elements(doHighlightElements = true, includeAttributes) {
     window.clickable_elements = {};
@@ -39,11 +44,19 @@ export function run_build_dom_tree() {
     return { element_str, selector_map };
   }
 
+  /**
+   * Gets the highlighted element with the given index.
+   * @param highlightIndex - The index of the highlighted element to get.
+   * @returns The highlighted element.
+   */
   function get_highlight_element(highlightIndex) {
     let element = document.querySelector(`[eko-user-highlight-id="eko-highlight-${highlightIndex}"]`);
     return element || window.clickable_elements[highlightIndex];
   }
 
+  /**
+   * Removes the highlight from the page.
+   */
   function remove_highlight() {
     let highlight = document.getElementById('eko-highlight-container');
     if (highlight) {

@@ -22,6 +22,9 @@ import {
 import Context, { AgentContext } from "../core/context";
 import { defaultLLMProviderOptions } from "../agent/llm";
 
+/**
+ * A language model that retries on failure.
+ */
 export class RetryLanguageModel {
   private llms: LLMs;
   private names: string[];
@@ -30,6 +33,14 @@ export class RetryLanguageModel {
   private context?: Context;
   private agentContext?: AgentContext;
 
+  /**
+   * Creates an instance of the RetryLanguageModel.
+   * @param llms - The language models to use.
+   * @param names - The names of the language models to use.
+   * @param stream_first_timeout - The timeout for the first token in a stream.
+   * @param stream_token_timeout - The timeout for subsequent tokens in a stream.
+   * @param context - The context to use.
+   */
   constructor(
     llms: LLMs,
     names?: string[],
@@ -47,6 +58,10 @@ export class RetryLanguageModel {
     }
   }
 
+  /**
+   * Sets the context for the language model.
+   * @param context - The context to set.
+   */
   setContext(context?: Context | AgentContext) {
     if (!context) {
       this.context = undefined;
@@ -57,6 +72,11 @@ export class RetryLanguageModel {
     this.agentContext = context instanceof AgentContext ? context : undefined;
   }
 
+  /**
+   * Calls the language model.
+   * @param request - The request to send to the language model.
+   * @returns A promise that resolves to the result of the call.
+   */
   async call(request: LLMRequest): Promise<GenerateResult> {
     return await this.doGenerate({
       prompt: request.messages,
@@ -71,6 +91,11 @@ export class RetryLanguageModel {
     });
   }
 
+  /**
+   * Generates a response from the language model.
+   * @param options - The options for the generation.
+   * @returns A promise that resolves to the result of the generation.
+   */
   async doGenerate(
     options: LanguageModelV2CallOptions
   ): Promise<GenerateResult> {
@@ -128,6 +153,11 @@ export class RetryLanguageModel {
     );
   }
 
+  /**
+   * Calls the language model with a stream.
+   * @param request - The request to send to the language model.
+   * @returns A promise that resolves to the result of the call.
+   */
   async callStream(request: LLMRequest): Promise<StreamResult> {
     return await this.doStream({
       prompt: request.messages,
@@ -142,6 +172,11 @@ export class RetryLanguageModel {
     });
   }
 
+  /**
+   * Generates a stream from the language model.
+   * @param options - The options for the generation.
+   * @returns A promise that resolves to the result of the generation.
+   */
   async doStream(options: LanguageModelV2CallOptions): Promise<StreamResult> {
     const maxTokens = options.maxOutputTokens;
     const providerOptions = options.providerOptions;

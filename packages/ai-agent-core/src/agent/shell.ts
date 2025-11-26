@@ -5,7 +5,17 @@ import { Tool, ToolResult, IMcpClient } from "../types";
 
 export const AGENT_NAME = "Shell";
 
+/**
+ * An agent that can execute shell commands.
+ */
 export default abstract class BaseShellAgent extends Agent {
+  /**
+   * Creates an instance of the BaseShellAgent.
+   * @param llms - A list of language models to use.
+   * @param ext_tools - A list of external tools to add to the agent.
+   * @param mcpClient - The MCP client to use.
+   * @param planDescription - A description of the agent's plan.
+   */
   constructor(
     llms?: string[],
     ext_tools?: Tool[],
@@ -31,6 +41,12 @@ export default abstract class BaseShellAgent extends Agent {
     init_tools.forEach((tool) => _tools_.push(tool));
   }
 
+  /**
+   * Creates a new shell session.
+   * @param agentContext - The context for the agent to run in.
+   * @param exec_dir - The working directory for the session.
+   * @returns A promise that resolves to the session ID.
+   */
   protected abstract create_session(
     agentContext: AgentContext,
     exec_dir: string
@@ -38,17 +54,33 @@ export default abstract class BaseShellAgent extends Agent {
     session_id: string;
   }>;
 
+  /**
+   * Executes a command in a shell session.
+   * @param agentContext - The context for the agent to run in.
+   * @param session_id - The ID of the session to execute the command in.
+   * @param command - The command to execute.
+   * @returns A promise that resolves to the output of the command.
+   */
   protected abstract shell_exec(
     agentContext: AgentContext,
     session_id: string,
     command: string
   ): Promise<string>;
 
+  /**
+   * Closes a shell session.
+   * @param agentContext - The context for the agent to run in.
+   * @param session_id - The ID of the session to close.
+   */
   protected abstract close_session(
     agentContext: AgentContext,
     session_id: string
   ): Promise<void>;
 
+  /**
+   * Builds the initial set of tools for the agent.
+   * @returns A list of tools.
+   */
   private buildInitTools(): Tool[] {
     return [
       {

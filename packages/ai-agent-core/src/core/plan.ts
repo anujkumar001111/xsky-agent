@@ -12,17 +12,31 @@ import {
   LanguageModelV2TextPart,
 } from "@ai-sdk/provider";
 
+/**
+ * A class for planning and replanning tasks.
+ */
 export class Planner {
   private taskId: string;
   private context: Context;
   private callback?: StreamCallback;
 
+  /**
+   * Creates an instance of the Planner.
+   * @param context - The context for the planner.
+   * @param callback - A callback to call with progress updates.
+   */
   constructor(context: Context, callback?: StreamCallback) {
     this.context = context;
     this.taskId = context.taskId;
     this.callback = callback || context.config.callback;
   }
 
+  /**
+   * Plans a task.
+   * @param taskPrompt - The prompt for the task.
+   * @param saveHistory - Whether to save the plan to the history.
+   * @returns A promise that resolves to the planned workflow.
+   */
   async plan(
     taskPrompt: string | LanguageModelV2TextPart,
     saveHistory: boolean = true
@@ -56,6 +70,12 @@ export class Planner {
     return await this.doPlan(taskPromptStr, messages, saveHistory);
   }
 
+  /**
+   * Replans a task.
+   * @param taskPrompt - The new prompt for the task.
+   * @param saveHistory - Whether to save the plan to the history.
+   * @returns A promise that resolves to the replanned workflow.
+   */
   async replan(
     taskPrompt: string,
     saveHistory: boolean = true
@@ -79,6 +99,14 @@ export class Planner {
     }
   }
 
+  /**
+   * Executes a plan.
+   * @param taskPrompt - The prompt for the task.
+   * @param messages - The messages to use for the plan.
+   * @param saveHistory - Whether to save the plan to the history.
+   * @param retryNum - The number of times to retry the plan.
+   * @returns A promise that resolves to the planned workflow.
+   */
   async doPlan(
     taskPrompt: string,
     messages: LanguageModelV2Prompt,

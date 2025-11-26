@@ -2,10 +2,19 @@ import { Agent } from "../agent";
 import { Tool, ToolSchema } from "../types/tools.types";
 import { LanguageModelV2FunctionTool } from "@ai-sdk/provider";
 
+/**
+ * Sleeps for a specified amount of time.
+ * @param time - The time to sleep in milliseconds.
+ * @returns A promise that resolves when the time has passed.
+ */
 export function sleep(time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(() => resolve(), time));
 }
 
+/**
+ * Generates a UUID v4.
+ * @returns A UUID v4.
+ */
 export function uuidv4(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
@@ -14,6 +23,13 @@ export function uuidv4(): string {
   });
 }
 
+/**
+ * Calls a function with a timeout.
+ * @param fun - The function to call.
+ * @param timeout - The timeout in milliseconds.
+ * @param error_callback - A callback to call if the function times out.
+ * @returns A promise that resolves with the result of the function or rejects if the function times out.
+ */
 export function call_timeout<R extends Promise<any>>(
   fun: () => R,
   timeout: number,
@@ -36,6 +52,11 @@ export function call_timeout<R extends Promise<any>>(
   });
 }
 
+/**
+ * Converts a tool schema to a language model function tool.
+ * @param tool - The tool schema to convert.
+ * @returns The converted language model function tool.
+ */
 export function convertToolSchema(
   tool: ToolSchema
 ): LanguageModelV2FunctionTool {
@@ -70,10 +91,21 @@ export function convertToolSchema(
   }
 }
 
+/**
+ * Converts a media data string to an image.
+ * @param mediaData - The media data to convert.
+ * @returns The converted image.
+ */
 export function toImage(mediaData: string): Uint8Array | string | URL {
   return toFile(mediaData);
 }
 
+/**
+ * Converts a media data string to a file.
+ * @param mediaData - The media data to convert.
+ * @param type - The type of the media data.
+ * @returns The converted file.
+ */
 export function toFile(mediaData: string, type: "base64|url" | "binary|url" = "base64|url"): Uint8Array | string | URL {
   if (mediaData.startsWith("http://") || mediaData.startsWith("https://")) {
     return new URL(mediaData);
@@ -102,6 +134,11 @@ export function toFile(mediaData: string, type: "base64|url" | "binary|url" = "b
   }
 }
 
+/**
+ * Gets the MIME type of a data string.
+ * @param data - The data string to get the MIME type of.
+ * @returns The MIME type of the data string.
+ */
 export function getMimeType(data: string): string {
   let mediaType = "image/png";
   if (data.startsWith("data:")) {
@@ -134,6 +171,12 @@ export function getMimeType(data: string): string {
   return mediaType;
 }
 
+/**
+ * Merges two lists of tools.
+ * @param tools1 - The first list of tools.
+ * @param tools2 - The second list of tools.
+ * @returns The merged list of tools.
+ */
 export function mergeTools<T extends Tool | LanguageModelV2FunctionTool>(tools1: T[], tools2: T[]): T[] {
   let tools: T[] = [];
   let toolMap2 = tools2.reduce((map, tool) => {
@@ -161,6 +204,12 @@ export function mergeTools<T extends Tool | LanguageModelV2FunctionTool>(tools1:
   return tools;
 }
 
+/**
+ * Merges two lists of agents.
+ * @param agents1 - The first list of agents.
+ * @param agents2 - The second list of agents.
+ * @returns The merged list of agents.
+ */
 export function mergeAgents(agents1: Agent[], agents2: Agent[]): Agent[] {
   let agents: Agent[] = [];
   let agentMap2 = agents2.reduce((map, agent) => {
@@ -186,6 +235,13 @@ export function mergeAgents(agents1: Agent[], agents2: Agent[]): Agent[] {
   return agents;
 }
 
+/**
+ * Substrings a string to a maximum length.
+ * @param str - The string to substring.
+ * @param maxLength - The maximum length of the string.
+ * @param appendPoint - Whether to append "..." to the end of the string if it is too long.
+ * @returns The substringed string.
+ */
 export function sub(
   str: string,
   maxLength: number,
@@ -201,6 +257,11 @@ export function sub(
   return str;
 }
 
+/**
+ * Fixes a JSON string.
+ * @param code - The JSON string to fix.
+ * @returns The fixed JSON object.
+ */
 export function fixJson(code: string) {
   if (!code) {
     return {};
@@ -242,6 +303,11 @@ export function fixJson(code: string) {
   }
 }
 
+/**
+ * Fixes an XML tag.
+ * @param code - The XML tag to fix.
+ * @returns The fixed XML tag.
+ */
 export function fixXmlTag(code: string) {
   code = code.trim();
   if (code.endsWith("<")) {
