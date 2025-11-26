@@ -1,5 +1,5 @@
 import { JSONSchema7 } from "json-schema";
-import { ToolResult } from "../types/tools.types";
+import { ToolResult } from "./tools.types";
 
 export type McpListToolParam = {
   environment: "browser" | "windows" | "mac" | "linux";

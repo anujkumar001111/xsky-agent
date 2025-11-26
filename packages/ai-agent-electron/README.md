@@ -2,7 +2,7 @@
 
 
 <h1 align="center">
-   <a href="https://github.com/xsky/ai-agent" target="_blank">
+   <a href="https://github.com/anujkumar001111/xsky-agent" target="_blank">
      <img src="https://github.com/user-attachments/assets/55dbdd6c-2b08-4e5f-a841-8fea7c2a0b92" alt="xsky-logo" width="200" height="200">
    </a>
    <br>
@@ -11,7 +11,7 @@
 
 
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://example.com/build-status) [![Version](https://img.shields.io/github/package-json/v/xsky/ai-agent?color=yellow)](https://xsky.ai/docs/release/versions/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://example.com/build-status) [![Version](https://img.shields.io/github/package-json/v/anujkumar001111/xsky-agent?color=yellow)](https://xsky.ai/docs/release/versions/)
 
 XSky AI Agent (pronounced like 'sky') is a production-ready JavaScript framework that enables developers to create reliable agents, **from simple commands to complex workflows**. It provides a unified interface for running agents in both **computer and browser environments**.
 
@@ -193,9 +193,9 @@ XSky AI Agent can be used in multiple environments:
 
 ## Community and Support
 
-- Report issues on [GitHub Issues](https://github.com/xsky/ai-agent/issues)
+- Report issues on [GitHub Issues](https://github.com/anujkumar001111/xsky-agent/issues)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=xsky/ai-agent&type=Date)](https://star-history.com/#xsky/ai-agent&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=anujkumar001111/xsky-agent&type=Date)](https://star-history.com/#anujkumar001111/xsky-agent&Date)
 
 
 ## Community Spotlight

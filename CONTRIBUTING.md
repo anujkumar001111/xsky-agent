@@ -25,8 +25,8 @@ This project uses pnpm as its package manager. Please ensure you have it install
 2. Clone your fork:
 
    ```bash
-   git clone https://github.com/xsky/ai-agent.git
-    cd ai-agent
+   git clone https://github.com/anujkumar001111/xsky-agent.git
+    cd xsky-agent
    ```
 
 3. Install dependencies:
