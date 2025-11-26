@@ -1,3 +1,6 @@
+/**
+ * The global configuration for the AI agent.
+ */
 type GlobalConfig = {
   name: string; // product name
   platform: "windows" | "mac" | "linux";

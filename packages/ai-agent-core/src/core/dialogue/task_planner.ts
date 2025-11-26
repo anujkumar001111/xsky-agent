@@ -5,6 +5,9 @@ import { DialogueParams, DialogueTool, ToolResult } from "../../types";
 
 export const TOOL_NAME = "taskPlanner";
 
+/**
+ * A tool for planning tasks.
+ */
 export default class TaskPlannerTool implements DialogueTool {
   readonly name: string = TOOL_NAME;
   readonly description: string;
@@ -12,6 +15,11 @@ export default class TaskPlannerTool implements DialogueTool {
   private ekoDialogue: EkoDialogue;
   private params: DialogueParams;
 
+  /**
+   * Creates an instance of the TaskPlannerTool.
+   * @param ekoDialogue - The EkoDialogue instance to use.
+   * @param params - The parameters for the dialogue.
+   */
   constructor(ekoDialogue: EkoDialogue, params: DialogueParams) {
     const agents = ekoDialogue.getConfig().agents || [];
     const agentNames = agents.map((agent) => agent.Name).join(", ");
@@ -36,6 +44,11 @@ export default class TaskPlannerTool implements DialogueTool {
     this.ekoDialogue = ekoDialogue;
   }
 
+  /**
+   * Executes the tool.
+   * @param args - The arguments for the tool.
+   * @returns A promise that resolves to the result of the tool.
+   */
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
     const taskDescription = args.taskDescription as string;
     const oldTaskId = args.oldTaskId as string;

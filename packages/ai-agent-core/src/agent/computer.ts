@@ -7,8 +7,18 @@ import { mergeTools, sleep, toImage } from "../common/utils";
 
 export const AGENT_NAME = "Computer";
 
+/**
+ * An agent that interacts with a computer using the mouse and keyboard.
+ */
 export default abstract class BaseComputerAgent extends Agent {
 
+  /**
+   * Creates an instance of the BaseComputerAgent.
+   * @param llms - A list of language models to use.
+   * @param ext_tools - A list of external tools to add to the agent.
+   * @param mcpClient - The MCP client to use.
+   * @param keyboardKeys - A list of keyboard keys to support.
+   */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient, keyboardKeys?: string[]) {
     const _tools_ = [] as Tool[];
     super({
@@ -57,16 +67,34 @@ This is a computer GUI interface, observe the execution through screenshots, and
     init_tools.forEach((tool) => _tools_.push(tool));
   }
 
+  /**
+   * Takes a screenshot of the computer screen.
+   * @param agentContext - The context for the agent to run in.
+   * @returns A promise that resolves to the screenshot image.
+   */
   protected abstract screenshot(agentContext: AgentContext): Promise<{
     imageBase64: string;
     imageType: "image/jpeg" | "image/png";
   }>;
 
+  /**
+   * Simulates keyboard typing.
+   * @param agentContext - The context for the agent to run in.
+   * @param text - The text to type.
+   */
   protected abstract typing(
     agentContext: AgentContext,
     text: string
   ): Promise<void>;
 
+  /**
+   * Simulates a mouse click.
+   * @param agentContext - The context for the agent to run in.
+   * @param x - The x-coordinate to click at.
+   * @param y - The y-coordinate to click at.
+   * @param num_clicks - The number of times to click.
+   * @param button_type - The mouse button to click.
+   */
   protected abstract click(
     agentContext: AgentContext,
     x: number,
@@ -75,27 +103,53 @@ This is a computer GUI interface, observe the execution through screenshots, and
     button_type: "left" | "right" | "middle"
   ): Promise<void>;
 
+  /**
+   * Simulates scrolling the mouse wheel.
+   * @param agentContext - The context for the agent to run in.
+   * @param amount - The amount to scroll.
+   */
   protected abstract scroll(
     agentContext: AgentContext,
     amount: number
   ): Promise<void>;
 
+  /**
+   * Moves the mouse to a specific position.
+   * @param agentContext - The context for the agent to run in.
+   * @param x - The x-coordinate to move to.
+   * @param y - The y-coordinate to move to.
+   */
   protected abstract move_to(
     agentContext: AgentContext,
     x: number,
     y: number
   ): Promise<void>;
 
+  /**
+   * Simulates pressing a key.
+   * @param agentContext - The context for the agent to run in.
+   * @param key - The key to press.
+   */
   protected abstract press(
     agentContext: AgentContext,
     key: string
   ): Promise<void>;
 
+  /**
+   * Simulates pressing a hotkey.
+   * @param agentContext - The context for the agent to run in.
+   * @param keys - The hotkey to press.
+   */
   protected abstract hotkey(
     agentContext: AgentContext,
     keys: string
   ): Promise<void>;
 
+  /**
+   * Simulates a drag-and-drop operation.
+   * @param agentContext - The context for the agent to run in.
+   * @param x1 - The starting x-coordinate.
+   */
   protected abstract drag_and_drop(
     agentContext: AgentContext,
     x1: number,
@@ -104,6 +158,11 @@ This is a computer GUI interface, observe the execution through screenshots, and
     y2: number
   ): Promise<void>;
 
+  /**
+   * Builds the initial set of tools for the agent.
+   * @param keyboardKeys - A list of keyboard keys to support.
+   * @returns A list of tools.
+   */
   private buildInitTools(keyboardKeys: string[]): Tool[] {
     return [
       {
@@ -345,6 +404,12 @@ This is a computer GUI interface, observe the execution through screenshots, and
     ];
   }
 
+  /**
+   * Handles messages in the agent's context, including taking screenshots after tool calls.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param tools - The tools available to the agent.
+   */
   protected async handleMessages(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,

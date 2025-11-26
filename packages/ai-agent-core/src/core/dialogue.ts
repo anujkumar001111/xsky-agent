@@ -29,6 +29,9 @@ import { getDialogueSystemPrompt } from "../prompt/dialogue";
 import TaskVariableStorageTool from "./dialogue/variable_storage";
 import { convertTools, getTool, convertToolResult } from "../agent/llm";
 
+/**
+ * A dialogue manager for Eko.
+ */
 export class EkoDialogue {
   protected memory: EkoMemory;
   protected tools: DialogueTool[];
@@ -36,6 +39,12 @@ export class EkoDialogue {
   protected ekoMap: Map<string, Eko>;
   protected globalContext: Map<string, any>;
 
+  /**
+   * Creates an instance of the EkoDialogue.
+   * @param config - The configuration for the dialogue.
+   * @param memory - The memory to use.
+   * @param tools - The tools to use.
+   */
   constructor(
     config: EkoDialogueConfig,
     memory?: EkoMemory,
@@ -48,10 +57,20 @@ export class EkoDialogue {
     this.memory = memory ?? new EkoMemory(getDialogueSystemPrompt());
   }
 
+  /**
+   * Starts a chat with the user.
+   * @param params - The parameters for the chat.
+   * @returns A promise that resolves to the result of the chat.
+   */
   public async chat(params: DialogueParams): Promise<string> {
     return this.doChat(params, false);
   }
 
+  /**
+   * Executes a segmented task.
+   * @param params - The parameters for the task.
+   * @returns A promise that resolves to the result of the task.
+   */
   public async segmentedExecution(
     params: Omit<DialogueParams, "user">
   ): Promise<string> {
@@ -142,22 +161,47 @@ export class EkoDialogue {
     ];
   }
 
+  /**
+   * Adds an Eko instance to the dialogue.
+   * @param taskId - The ID of the task.
+   * @param eko - The Eko instance to add.
+   */
   public addEko(taskId: string, eko: Eko): void {
     this.ekoMap.set(taskId, eko);
   }
 
+  /**
+   * Gets an Eko instance from the dialogue.
+   * @param taskId - The ID of the task.
+   * @returns The Eko instance, or undefined if not found.
+   */
   public getEko(taskId: string): Eko | undefined {
     return this.ekoMap.get(taskId);
   }
 
+  /**
+   * Gets the global context of the dialogue.
+   * @returns The global context.
+   */
   public getGlobalContext(): Map<string, any> {
     return this.globalContext;
   }
 
+  /**
+   * Gets the configuration of the dialogue.
+   * @returns The configuration.
+   */
   public getConfig(): EkoDialogueConfig {
     return this.config;
   }
 
+  /**
+   * Handles the result of a chat call.
+   * @param chatTools - The tools available to the chat.
+   * @param results - The results of the chat call.
+   * @param dialogueCallback - A callback to call with the results.
+   * @returns A promise that resolves to the final result of the chat, or null if the chat should continue.
+   */
   protected async handleCallResult(
     chatTools: DialogueTool[],
     results: Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>,

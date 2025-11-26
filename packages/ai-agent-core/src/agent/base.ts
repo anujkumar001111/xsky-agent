@@ -52,6 +52,9 @@ export type AgentParams = {
   requestHandler?: (request: LLMRequest) => void;
 };
 
+/**
+ * Represents an AI agent that can run tasks, interact with tools, and communicate with language models.
+ */
 export class Agent {
   protected name: string;
   protected description: string;
@@ -63,6 +66,10 @@ export class Agent {
   protected callback?: StreamCallback & HumanCallback;
   protected agentContext?: AgentContext;
 
+  /**
+   * Creates an instance of the Agent.
+   * @param params - The parameters for creating the agent.
+   */
   constructor(params: AgentParams) {
     this.name = params.name;
     this.description = params.description;
@@ -73,6 +80,12 @@ export class Agent {
     this.requestHandler = params.requestHandler;
   }
 
+  /**
+   * Runs the agent with the given context and agent chain.
+   * @param context - The context for the agent to run in.
+   * @param agentChain - The agent chain to run.
+   * @returns A promise that resolves to the result of the agent's run.
+   */
   public async run(context: Context, agentChain: AgentChain): Promise<string> {
     const mcpClient = this.mcpClient || context.config.defaultMcpClient;
     const agentContext = new AgentContext(context, this, agentChain);
@@ -91,6 +104,14 @@ export class Agent {
     }
   }
 
+  /**
+   * Runs the agent with the given context and optional MCP client.
+   * @param agentContext - The context for the agent to run in.
+   * @param mcpClient - The MCP client to use.
+   * @param maxReactNum - The maximum number of reactions to perform.
+   * @param historyMessages - The history of messages to start with.
+   * @returns A promise that resolves to the result of the agent's run.
+   */
   public async runWithContext(
     agentContext: AgentContext,
     mcpClient?: IMcpClient,
@@ -189,6 +210,14 @@ export class Agent {
     return "Unfinished";
   }
 
+  /**
+   * Handles the result of a language model call, processing tool calls and text responses.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param agentTools - The tools available to the agent.
+   * @param results - The results from the language model call.
+   * @returns A promise that resolves to the final result of the agent's run, or null if the run should continue.
+   */
   protected async handleCallResult(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -251,6 +280,14 @@ export class Agent {
     }
   }
 
+  /**
+   * Calls a tool with the given arguments and context.
+   * @param agentContext - The context for the agent to run in.
+   * @param agentTools - The tools available to the agent.
+   * @param result - The tool call to execute.
+   * @param user_messages - The user messages to append to.
+   * @returns A promise that resolves to the result of the tool call.
+   */
   protected async callToolCall(
     agentContext: AgentContext,
     agentTools: Tool[],
@@ -312,6 +349,11 @@ export class Agent {
     return convertToolResult(result, toolResult, user_messages);
   }
 
+  /**
+   * Returns a list of system tools that are automatically added to the agent.
+   * @param agentNode - The workflow agent node.
+   * @returns A list of system tools.
+   */
   protected system_auto_tools(agentNode: WorkflowAgent): Tool[] {
     let tools: Tool[] = [];
     let agentNodeXml = agentNode.xml;
@@ -334,6 +376,12 @@ export class Agent {
     return tools.filter((tool) => toolNames.indexOf(tool.name) == -1);
   }
 
+  /**
+   * Builds the system prompt for the agent.
+   * @param agentContext - The context for the agent to run in.
+   * @param tools - The tools available to the agent.
+   * @returns A promise that resolves to the system prompt.
+   */
   protected async buildSystemPrompt(
     agentContext: AgentContext,
     tools: Tool[]
@@ -347,6 +395,12 @@ export class Agent {
     );
   }
 
+  /**
+   * Builds the user prompt for the agent.
+   * @param agentContext - The context for the agent to run in.
+   * @param tools - The tools available to the agent.
+   * @returns A promise that resolves to the user prompt.
+   */
   protected async buildUserPrompt(
     agentContext: AgentContext,
     tools: Tool[]
@@ -364,6 +418,12 @@ export class Agent {
     ];
   }
 
+  /**
+   * Returns an extended system prompt for the agent.
+   * @param agentContext - The context for the agent to run in.
+   * @param tools - The tools available to the agent.
+   * @returns A promise that resolves to the extended system prompt.
+   */
   protected async extSysPrompt(
     agentContext: AgentContext,
     tools: Tool[]
@@ -407,6 +467,13 @@ export class Agent {
     }
   }
 
+  /**
+   * Controls the MCP tools.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param loopNum - The current loop number.
+   * @returns A promise that resolves to an object indicating whether to use MCP tools and any additional parameters.
+   */
   protected async controlMcpTools(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -420,6 +487,12 @@ export class Agent {
     };
   }
 
+  /**
+   * Returns a tool executer for the given MCP client and tool name.
+   * @param mcpClient - The MCP client to use.
+   * @param name - The name of the tool.
+   * @returns A tool executer.
+   */
   protected toolExecuter(mcpClient: IMcpClient, name: string): ToolExecuter {
     return {
       execute: async function (args, agentContext): Promise<ToolResult> {
@@ -440,6 +513,12 @@ export class Agent {
     };
   }
 
+  /**
+   * Handles the messages in the agent's context, including memory management.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param tools - The tools available to the agent.
+   */
   protected async handleMessages(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -449,6 +528,11 @@ export class Agent {
     memory.handleLargeContextMessages(messages);
   }
 
+  /**
+   * Calls an inner tool and returns the result as a ToolResult.
+   * @param fun - The function to call.
+   * @returns A promise that resolves to the tool result.
+   */
   protected async callInnerTool(fun: () => Promise<any>): Promise<ToolResult> {
     let result = await fun();
     return {
@@ -465,6 +549,11 @@ export class Agent {
     };
   }
 
+  /**
+   * Loads the tools for the agent.
+   * @param context - The context for the agent to run in.
+   * @returns A promise that resolves to a list of tools.
+   */
   public async loadTools(context: Context): Promise<Tool[]> {
     if (this.mcpClient) {
       let mcpTools = await this.listTools(context, this.mcpClient);
@@ -475,10 +564,19 @@ export class Agent {
     return this.tools;
   }
 
+  /**
+   * Adds a tool to the agent.
+   * @param tool - The tool to add.
+   */
   public addTool(tool: Tool) {
     this.tools.push(tool);
   }
 
+  /**
+   * Handles the task status changes.
+   * @param status - The new status of the task.
+   * @param reason - The reason for the status change.
+   */
   protected async onTaskStatus(
     status: "pause" | "abort" | "resume-pause",
     reason?: string
@@ -488,36 +586,62 @@ export class Agent {
     }
   }
 
+  /**
+   * Returns whether the agent can handle parallel tool calls.
+   * @param toolCalls - The tool calls to check.
+   * @returns Whether the agent can handle parallel tool calls.
+   */
   public canParallelToolCalls(
     toolCalls?: LanguageModelV2ToolCallPart[]
   ): boolean {
     return config.parallelToolCalls;
   }
 
+  /**
+   * The language models used by the agent.
+   */
   get Llms(): string[] | undefined {
     return this.llms;
   }
 
+  /**
+   * The name of the agent.
+   */
   get Name(): string {
     return this.name;
   }
 
+  /**
+   * The description of the agent.
+   */
   get Description(): string {
     return this.description;
   }
 
+  /**
+   * The tools used by the agent.
+   */
   get Tools(): Tool[] {
     return this.tools;
   }
 
+  /**
+   * The description of the agent's plan.
+   */
   get PlanDescription() {
     return this.planDescription;
   }
 
+  /**
+   * The MCP client used by the agent.
+   */
   get McpClient() {
     return this.mcpClient;
   }
 
+  /**
+   * The context of the agent.
+   */
   get AgentContext(): AgentContext | undefined {
     return this.agentContext;
   }

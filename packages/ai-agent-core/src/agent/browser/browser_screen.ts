@@ -4,7 +4,16 @@ import { LanguageModelV2Prompt } from "@ai-sdk/provider";
 import { Tool, ToolResult, IMcpClient } from "../../types";
 import { mergeTools, sleep, toImage } from "../../common/utils";
 
+/**
+ * An agent that can interact with a web browser using screen coordinates.
+ */
 export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
+  /**
+   * Creates an instance of the BaseBrowserScreenAgent.
+   * @param llms - A list of language models to use.
+   * @param ext_tools - A list of external tools to add to the agent.
+   * @param mcpClient - The MCP client to use.
+   */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
     const description = `You are a browser operation agent, use a mouse and keyboard to interact with a browser.
 * This is a browser GUI interface, observe the webpage execution through screenshots, and specify action sequences to complete designated tasks.
@@ -34,11 +43,24 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
     init_tools.forEach((tool) => _tools_.push(tool));
   }
 
+  /**
+   * Types text into the browser.
+   * @param agentContext - The context for the agent to run in.
+   * @param text - The text to type.
+   */
   protected abstract typing(
     agentContext: AgentContext,
     text: string
   ): Promise<void>;
 
+  /**
+   * Clicks at a specific position in the browser.
+   * @param agentContext - The context for the agent to run in.
+   * @param x - The x-coordinate to click at.
+   * @param y - The y-coordinate to click at.
+   * @param num_clicks - The number of times to click.
+   * @param button_type - The mouse button to use for the click.
+   */
   protected abstract click(
     agentContext: AgentContext,
     x: number,
@@ -47,22 +69,43 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
     button_type: "left" | "right" | "middle"
   ): Promise<void>;
 
+  /**
+   * Scrolls the mouse wheel.
+   * @param agentContext - The context for the agent to run in.
+   * @param amount - The amount to scroll.
+   */
   protected abstract scroll(
     agentContext: AgentContext,
     amount: number
   ): Promise<void>;
 
+  /**
+   * Moves the mouse to a specific position.
+   * @param agentContext - The context for the agent to run in.
+   * @param x - The x-coordinate to move to.
+   * @param y - The y-coordinate to move to.
+   */
   protected abstract move_to(
     agentContext: AgentContext,
     x: number,
     y: number
   ): Promise<void>;
 
+  /**
+   * Presses a key.
+   * @param agentContext - The context for the agent to run in.
+   * @param key - The key to press.
+   */
   protected abstract press(
     agentContext: AgentContext,
     key: "enter" | "tab" | "space" | "backspace" | "delete"
   ): Promise<void>;
 
+  /**
+   * Drags and drops an element from one position to another.
+   * @param agentContext - The context for the agent to run in.
+   * @param x1 - The starting x-coordinate.
+   */
   protected abstract drag_and_drop(
     agentContext: AgentContext,
     x1: number,
@@ -71,6 +114,10 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
     y2: number
   ): Promise<void>;
 
+  /**
+   * Builds the initial set of tools for the agent.
+   * @returns A list of tools.
+   */
   private buildInitTools(): Tool[] {
     return [
       {
@@ -397,6 +444,12 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
     ];
   }
 
+  /**
+   * Handles messages in the agent's context, including taking screenshots after tool calls.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The history of messages.
+   * @param tools - The tools available to the agent.
+   */
   protected async handleMessages(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,

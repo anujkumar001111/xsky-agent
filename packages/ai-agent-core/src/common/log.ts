@@ -1,3 +1,6 @@
+/**
+ * The log level.
+ */
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -7,6 +10,9 @@ export enum LogLevel {
   OFF = 5
 }
 
+/**
+ * The options for the logger.
+ */
 export interface LoggerOptions {
   level?: LogLevel;
   prefix?: string;
@@ -14,10 +20,16 @@ export interface LoggerOptions {
   transport?: Transport[];
 }
 
+/**
+ * The transport for the logger.
+ */
 export interface Transport {
   log(level: LogLevel, message: string): void;
 }
 
+/**
+ * A transport that logs to the console.
+ */
 export class ConsoleTransport implements Transport {
   log(level: LogLevel, message: string): void {
     const methods = {
@@ -33,12 +45,19 @@ export class ConsoleTransport implements Transport {
   }
 }
 
+/**
+ * A logger that can log to multiple transports.
+ */
 export class Logger {
   protected level: LogLevel;
   protected prefix: string;
   protected dateFormat: boolean;
   protected transports: Transport[];
 
+  /**
+   * Creates an instance of the Logger.
+   * @param options - The options for the logger.
+   */
   constructor(options: LoggerOptions = {}) {
     this.level = options.level ?? LogLevel.INFO;
     this.prefix = options.prefix ?? '';
@@ -46,21 +65,42 @@ export class Logger {
     this.transports = options.transport ?? [new ConsoleTransport()];
   }
 
+  /**
+   * Sets the log level.
+   * @param level - The new log level.
+   * @returns The logger instance.
+   */
   public setLevel(level: LogLevel): this {
     this.level = level;
     return this;
   }
 
+  /**
+   * Sets the prefix for log messages.
+   * @param prefix - The new prefix.
+   * @returns The logger instance.
+   */
   public setPrefix(prefix: string): this {
     this.prefix = prefix;
     return this;
   }
 
+  /**
+   * Adds a transport to the logger.
+   * @param transport - The transport to add.
+   * @returns The logger instance.
+   */
   public addTransport(transport: Transport): this {
     this.transports.push(transport);
     return this;
   }
 
+  /**
+   * Formats a log message.
+   * @param level - The log level.
+   * @param message - The message to format.
+   * @returns The formatted message.
+   */
   protected formatMessage(level: LogLevel, message: string): string {
     const levelNames = {
       [LogLevel.DEBUG]: 'DEBUG',
@@ -88,6 +128,12 @@ export class Logger {
     return formattedMessage;
   }
 
+  /**
+   * Logs a message.
+   * @param level - The log level.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   protected log(level: LogLevel, message: string | Error, ...args: any[]): void {
     if (level < this.level) {
       return;
@@ -121,34 +167,73 @@ export class Logger {
     });
   }
 
+  /**
+   * Checks if the debug log level is enabled.
+   * @returns True if the debug log level is enabled, false otherwise.
+   */
   public isEnableDebug() {
     return this.level <= LogLevel.DEBUG;
   }
 
+  /**
+   * Logs a debug message.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   public debug(message: string | Error, ...args: any[]): void {
     this.log(LogLevel.DEBUG, message, ...args);
   }
 
+  /**
+   * Checks if the info log level is enabled.
+   * @returns True if the info log level is enabled, false otherwise.
+   */
   public isEnableInfo() {
     return this.level <= LogLevel.INFO;
   }
 
+  /**
+   * Logs an info message.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   public info(message: string | Error, ...args: any[]): void {
     this.log(LogLevel.INFO, message, ...args);
   }
 
+  /**
+   * Logs a warning message.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   public warn(message: string | Error, ...args: any[]): void {
     this.log(LogLevel.WARN, message, ...args);
   }
 
+  /**
+   * Logs an error message.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   public error(message: string | Error, ...args: any[]): void {
     this.log(LogLevel.ERROR, message, ...args);
   }
 
+  /**
+   * Logs a fatal message.
+   * @param message - The message to log.
+   * @param args - Additional arguments to log.
+   */
   public fatal(message: string | Error, ...args: any[]): void {
     this.log(LogLevel.FATAL, message, ...args);
   }
 
+  /**
+   * Creates a child logger.
+   * @param name - The name of the child logger.
+   * @param options - The options for the child logger.
+   * @returns The child logger.
+   */
   public createChild(name: string, options: Partial<LoggerOptions> = {}): Logger {
     const childPrefix = this.prefix ? `${this.prefix}.${name}` : name;
     

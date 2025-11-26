@@ -3,11 +3,20 @@ import { AgentContext, BaseBrowserLabelsAgent } from "@xsky/ai-agent-core";
 import { BrowserView, WebContentsView } from "electron";
 // import { store } from "../../electron/main/utils/store"; // External dependency - should be injected
 
+/**
+ * A browser agent that runs in an Electron environment.
+ */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
 
   private detailView: WebContentsView;
   private customPrompt?: string;
 
+  /**
+   * Creates an instance of the BrowserAgent.
+   * @param detailView - The Electron WebContentsView to use.
+   * @param mcpClient - The MCP client to use.
+   * @param customPrompt - A custom prompt to use.
+   */
   constructor(detailView: WebContentsView, mcpClient?: any, customPrompt?: string) {
     super(['default'], [], mcpClient);
     this.detailView = detailView;

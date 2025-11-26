@@ -6,7 +6,18 @@ import config from "../config";
 
 export const AGENT_NAME = "File";
 
+/**
+ * An agent that can perform file operations.
+ */
 export default abstract class BaseFileAgent extends Agent {
+  /**
+   * Creates an instance of the BaseFileAgent.
+   * @param work_path - The working directory for the agent.
+   * @param llms - A list of language models to use.
+   * @param ext_tools - A list of external tools to add to the agent.
+   * @param mcpClient - The MCP client to use.
+   * @param planDescription - A description of the agent's plan.
+   */
   constructor(
     work_path?: string,
     llms?: string[],
@@ -44,6 +55,12 @@ export default abstract class BaseFileAgent extends Agent {
     init_tools.forEach((tool) => _tools_.push(tool));
   }
 
+  /**
+   * Lists the files in a directory.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the directory.
+   * @returns A promise that resolves to a list of files.
+   */
   protected abstract file_list(
     agentContext: AgentContext,
     path: string
@@ -57,11 +74,24 @@ export default abstract class BaseFileAgent extends Agent {
     }>
   >;
 
+  /**
+   * Reads the content of a file.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the file.
+   * @returns A promise that resolves to the content of the file.
+   */
   protected abstract file_read(
     agentContext: AgentContext,
     path: string
   ): Promise<string>;
 
+  /**
+   * Reads the content of a file and stores it in a variable.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the file.
+   * @param write_variable - The name of the variable to store the file content in.
+   * @returns A promise that resolves to an object containing the file content and the variable name.
+   */
   protected async do_file_read(
     agentContext: AgentContext,
     path: string,
@@ -80,6 +110,13 @@ export default abstract class BaseFileAgent extends Agent {
     };
   }
 
+  /**
+   * Writes content to a file.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the file.
+   * @param content - The content to write to the file.
+   * @param append - Whether to append the content to the file.
+   */
   protected abstract file_write(
     agentContext: AgentContext,
     path: string,
@@ -87,6 +124,14 @@ export default abstract class BaseFileAgent extends Agent {
     append: boolean
   ): Promise<any>;
 
+  /**
+   * Writes content to a file from a variable or a string.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the file.
+   * @param append - Whether to append the content to the file.
+   * @param content - The content to write to the file.
+   * @param from_variable - The name of the variable to read the content from.
+   */
   protected async do_file_write(
     agentContext: AgentContext,
     path: string,
@@ -117,6 +162,13 @@ export default abstract class BaseFileAgent extends Agent {
     return await this.file_write(agentContext, path, content || "", append);
   }
 
+  /**
+   * Replaces a string in a file.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the file.
+   * @param old_str - The string to replace.
+   * @param new_str - The string to replace with.
+   */
   protected abstract file_str_replace(
     agentContext: AgentContext,
     path: string,
@@ -124,6 +176,13 @@ export default abstract class BaseFileAgent extends Agent {
     new_str: string
   ): Promise<any>;
 
+  /**
+   * Finds files by name in a directory.
+   * @param agentContext - The context for the agent to run in.
+   * @param path - The path to the directory.
+   * @param glob - The glob pattern to match.
+   * @returns A promise that resolves to a list of files.
+   */
   protected abstract file_find_by_name(
     agentContext: AgentContext,
     path: string,
@@ -138,6 +197,10 @@ export default abstract class BaseFileAgent extends Agent {
     }>
   >;
 
+  /**
+   * Builds the initial set of tools for the agent.
+   * @returns A list of tools.
+   */
   private buildInitTools(): Tool[] {
     return [
       {

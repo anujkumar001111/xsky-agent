@@ -8,6 +8,9 @@ import {
 } from "playwright";
 import { getDefaultChromeUserDataDir } from "./utils";
 
+/**
+ * A browser agent that uses Playwright to interact with a browser.
+ */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private cdpWsEndpoint?: string;
   private userDataDir?: string;
@@ -17,14 +20,27 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private current_page: Page | null = null;
   private headless: boolean = false;
 
+  /**
+   * Sets whether to run the browser in headless mode.
+   * @param headless - Whether to run the browser in headless mode.
+   */
   public setHeadless(headless: boolean) {
     this.headless = headless;
   }
 
+  /**
+   * Sets the CDP websocket endpoint to connect to.
+   * @param cdpWsEndpoint - The CDP websocket endpoint.
+   */
   public setCdpWsEndpoint(cdpWsEndpoint: string) {
     this.cdpWsEndpoint = cdpWsEndpoint;
   }
 
+  /**
+   * Initializes the user data directory for the browser.
+   * @param userDataDir - The user data directory to use.
+   * @returns The user data directory.
+   */
   public initUserDataDir(userDataDir?: string): string | undefined {
     if (userDataDir) {
       this.userDataDir = userDataDir;
@@ -34,6 +50,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return this.userDataDir;
   }
 
+  /**
+   * Sets the options for the browser.
+   * @param options - The options to set.
+   */
   public setOptions(options?: Record<string, any>) {
     this.options = options;
   }

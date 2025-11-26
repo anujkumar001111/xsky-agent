@@ -3,6 +3,11 @@ import * as os from "os";
 import * as path from "path";
 import { Log } from "@xsky/ai-agent-core";
 
+/**
+ * Gets the CDP websocket endpoint for a given port.
+ * @param port - The port to get the endpoint for.
+ * @returns A promise that resolves to the CDP websocket endpoint.
+ */
 export async function getCdpWsEndpoint(port: number): Promise<string> {
   // Example => ws://localhost:9222/devtools/browser/{session-id}
   const response = await fetch(`http://localhost:${port}/json/version`);
@@ -11,6 +16,11 @@ export async function getCdpWsEndpoint(port: number): Promise<string> {
   return browserInfo.webSocketDebuggerUrl as string;
 }
 
+/**
+ * Gets the default Chrome user data directory.
+ * @param copyToTempDir - Whether to copy the user data directory to a temporary directory.
+ * @returns The default Chrome user data directory, or undefined if it cannot be found.
+ */
 export function getDefaultChromeUserDataDir(
   copyToTempDir: boolean = false
 ): string | undefined {

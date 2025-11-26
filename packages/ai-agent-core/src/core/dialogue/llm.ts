@@ -21,6 +21,18 @@ import Log from "../../common/log";
 import { RetryLanguageModel } from "../../llm";
 import { sleep, uuidv4 } from "../../common/utils";
 
+/**
+ * Calls the chat language model.
+ * @param messageId - The ID of the message.
+ * @param rlm - The retry language model.
+ * @param messages - The messages to send to the language model.
+ * @param tools - The tools to use.
+ * @param toolChoice - The tool choice to use.
+ * @param retryNum - The number of times to retry the call.
+ * @param callback - A callback to call with progress updates.
+ * @param signal - An abort signal to abort the call.
+ * @returns A promise that resolves to the result of the call.
+ */
 export async function callChatLLM(
   messageId: string,
   rlm: RetryLanguageModel,
@@ -248,6 +260,11 @@ export async function callChatLLM(
     : toolParts;
 }
 
+/**
+ * Converts the result of a tool call to an assistant message part.
+ * @param results - The results of the tool call.
+ * @returns The converted assistant message parts.
+ */
 export function convertAssistantToolResults(
   results: Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>
 ): EkoMessageAssistantPart[] {
@@ -269,6 +286,11 @@ export function convertAssistantToolResults(
   });
 }
 
+/**
+ * Converts the result of a tool call to a tool message part.
+ * @param toolResults - The results of the tool call.
+ * @returns The converted tool message parts.
+ */
 export function convertToolResults(
   toolResults: LanguageModelV2ToolResultPart[]
 ): EkoMessageToolPart[] {
@@ -299,6 +321,11 @@ export function convertToolResults(
   });
 }
 
+/**
+ * Converts the content of a user message to a user message part.
+ * @param content - The content of the user message.
+ * @returns The converted user message parts.
+ */
 export function convertUserContent(
   content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart>
 ): EkoMessageUserPart[] {

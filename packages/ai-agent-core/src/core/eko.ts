@@ -14,15 +14,29 @@ import {
 } from "../types/core.types";
 import { checkTaskReplan, replanWorkflow } from "./replan";
 
+/**
+ * The main class for the Eko AI agent.
+ */
 export class Eko {
   protected config: EkoConfig;
   protected taskMap: Map<string, Context>;
 
+  /**
+   * Creates an instance of the Eko class.
+   * @param config - The configuration for the Eko instance.
+   */
   constructor(config: EkoConfig) {
     this.config = config;
     this.taskMap = new Map();
   }
 
+  /**
+   * Generates a workflow for a given task prompt.
+   * @param taskPrompt - The prompt for the task.
+   * @param taskId - The ID of the task.
+   * @param contextParams - Additional parameters for the context.
+   * @returns A promise that resolves to the generated workflow.
+   */
   public async generate(
     taskPrompt: string,
     taskId: string = uuidv4(),
@@ -51,6 +65,12 @@ export class Eko {
     }
   }
 
+  /**
+   * Modifies a workflow for a given task ID and prompt.
+   * @param taskId - The ID of the task to modify.
+   * @param modifyTaskPrompt - The new prompt for the task.
+   * @returns A promise that resolves to the modified workflow.
+   */
   public async modify(
     taskId: string,
     modifyTaskPrompt: string
@@ -68,6 +88,11 @@ export class Eko {
     return context.workflow;
   }
 
+  /**
+   * Executes a workflow for a given task ID.
+   * @param taskId - The ID of the task to execute.
+   * @returns A promise that resolves to the result of the execution.
+   */
   public async execute(taskId: string): Promise<EkoResult> {
     const context = this.getTask(taskId);
     if (!context) {
@@ -94,6 +119,13 @@ export class Eko {
     }
   }
 
+  /**
+   * Generates and executes a workflow for a given task prompt.
+   * @param taskPrompt - The prompt for the task.
+   * @param taskId - The ID of the task.
+   * @param contextParams - Additional parameters for the context.
+   * @returns A promise that resolves to the result of the execution.
+   */
   public async run(
     taskPrompt: string,
     taskId: string = uuidv4(),
@@ -103,6 +135,12 @@ export class Eko {
     return await this.execute(taskId);
   }
 
+  /**
+   * Initializes a context for a given workflow.
+   * @param workflow - The workflow to initialize the context for.
+   * @param contextParams - Additional parameters for the context.
+   * @returns A promise that resolves to the initialized context.
+   */
   public async initContext(
     workflow: Workflow,
     contextParams?: Record<string, any>
@@ -288,14 +326,28 @@ export class Eko {
     }
   }
 
+  /**
+   * Gets a task by its ID.
+   * @param taskId - The ID of the task to get.
+   * @returns The context for the task, or undefined if the task is not found.
+   */
   public getTask(taskId: string): Context | undefined {
     return this.taskMap.get(taskId);
   }
 
+  /**
+   * Gets all task IDs.
+   * @returns A list of all task IDs.
+   */
   public getAllTaskId(): string[] {
     return [...this.taskMap.keys()];
   }
 
+  /**
+   * Deletes a task by its ID.
+   * @param taskId - The ID of the task to delete.
+   * @returns True if the task was deleted, false otherwise.
+   */
   public deleteTask(taskId: string): boolean {
     this.abortTask(taskId);
     const context = this.taskMap.get(taskId);
@@ -305,6 +357,12 @@ export class Eko {
     return this.taskMap.delete(taskId);
   }
 
+  /**
+   * Aborts a task by its ID.
+   * @param taskId - The ID of the task to abort.
+   * @param reason - The reason for aborting the task.
+   * @returns True if the task was aborted, false otherwise.
+   */
   public abortTask(taskId: string, reason?: string): boolean {
     let context = this.taskMap.get(taskId);
     if (context) {
@@ -317,6 +375,14 @@ export class Eko {
     }
   }
 
+  /**
+   * Pauses or resumes a task by its ID.
+   * @param taskId - The ID of the task to pause or resume.
+   * @param pause - Whether to pause or resume the task.
+   * @param abortCurrentStep - Whether to abort the current step when pausing.
+   * @param reason - The reason for pausing or resuming the task.
+   * @returns True if the task was paused or resumed, false otherwise.
+   */
   public pauseTask(
     taskId: string,
     pause: boolean,
@@ -333,6 +399,12 @@ export class Eko {
     }
   }
 
+  /**
+   * Sends a chat message to a task.
+   * @param taskId - The ID of the task to send the message to.
+   * @param userPrompt - The message to send.
+   * @returns The conversation history, or undefined if the task is not found.
+   */
   public chatTask(taskId: string, userPrompt: string): string[] | undefined {
     const context = this.taskMap.get(taskId);
     if (context) {
@@ -341,6 +413,10 @@ export class Eko {
     }
   }
 
+  /**
+   * Adds an agent to the configuration.
+   * @param agent - The agent to add.
+   */
   public addAgent(agent: Agent): void {
     this.config.agents = this.config.agents || [];
     this.config.agents.push(agent);

@@ -26,6 +26,10 @@ import {
   LanguageModelV2ToolResultOutput,
 } from "@ai-sdk/provider";
 
+/**
+ * Returns the default provider options for the language model.
+ * @returns The default provider options.
+ */
 export function defaultLLMProviderOptions(): SharedV2ProviderOptions {
   return {
     openai: {
@@ -41,6 +45,10 @@ export function defaultLLMProviderOptions(): SharedV2ProviderOptions {
   };
 }
 
+/**
+ * Returns the default provider options for messages.
+ * @returns The default provider options.
+ */
 export function defaultMessageProviderOptions(): SharedV2ProviderOptions {
   return {
     anthropic: {
@@ -55,6 +63,11 @@ export function defaultMessageProviderOptions(): SharedV2ProviderOptions {
   };
 }
 
+/**
+ * Converts a list of tools to a list of language model function tools.
+ * @param tools - The tools to convert.
+ * @returns The converted tools.
+ */
 export function convertTools(
   tools: Tool[] | DialogueTool[]
 ): LanguageModelV2FunctionTool[] {
@@ -67,6 +80,12 @@ export function convertTools(
   }));
 }
 
+/**
+ * Gets a tool by name from a list of tools.
+ * @param tools - The list of tools to search in.
+ * @param name - The name of the tool to get.
+ * @returns The tool with the given name, or null if not found.
+ */
 export function getTool<T extends Tool | DialogueTool>(
   tools: T[],
   name: string
@@ -79,6 +98,13 @@ export function getTool<T extends Tool | DialogueTool>(
   return null;
 }
 
+/**
+ * Converts a tool result to a language model tool result part.
+ * @param toolUse - The tool call that produced the result.
+ * @param toolResult - The result of the tool call.
+ * @param user_messages - A list of user messages to append to.
+ * @returns The converted tool result part.
+ */
 export function convertToolResult(
   toolUse: LanguageModelV2ToolCallPart,
   toolResult: ToolResult,
@@ -179,6 +205,19 @@ export function convertToolResult(
   };
 }
 
+/**
+ * Calls the agent's language model with the given messages and tools.
+ * @param agentContext - The context for the agent to run in.
+ * @param rlm - The language model to call.
+ * @param messages - The messages to send to the language model.
+ * @param tools - The tools available to the language model.
+ * @param noCompress - Whether to disable message compression.
+ * @param toolChoice - The tool choice to use.
+ * @param retryNum - The number of times to retry the call.
+ * @param callback - The callback to use for streaming messages.
+ * @param requestHandler - The request handler to use.
+ * @returns A promise that resolves to the result of the language model call.
+ */
 export async function callAgentLLM(
   agentContext: AgentContext,
   rlm: RetryLanguageModel,
@@ -546,6 +585,12 @@ export async function callAgentLLM(
     : toolParts;
 }
 
+/**
+ * Estimates the number of tokens in a prompt.
+ * @param messages - The messages in the prompt.
+ * @param tools - The tools available to the language model.
+ * @returns The estimated number of tokens.
+ */
 export function estimatePromptTokens(
   messages: LanguageModelV2Prompt,
   tools?: LanguageModelV2FunctionTool[]
@@ -603,6 +648,11 @@ export function estimatePromptTokens(
   return tokens;
 }
 
+/**
+ * Estimates the number of tokens in a string.
+ * @param text - The string to estimate the number of tokens in.
+ * @returns The estimated number of tokens.
+ */
 export function estimateTokens(text: string) {
   if (!text) {
     return 0;
@@ -648,6 +698,11 @@ export function estimateTokens(text: string) {
   return Math.max(1, tokenCount);
 }
 
+/**
+ * Appends the user's conversation to the messages.
+ * @param agentContext - The context for the agent to run in.
+ * @param messages - The messages to append to.
+ */
 function appendUserConversation(
   agentContext: AgentContext,
   messages: LanguageModelV2Prompt

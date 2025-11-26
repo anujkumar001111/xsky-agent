@@ -10,12 +10,26 @@ import * as utils from "./utils";
 
 export const AGENT_NAME = "Browser";
 
+/**
+ * An agent that can interact with a web browser.
+ */
 export default abstract class BaseBrowserAgent extends Agent {
+  /**
+   * Takes a screenshot of the current browser window.
+   * @param agentContext - The context for the agent to run in.
+   * @returns A promise that resolves to the screenshot image.
+   */
   protected abstract screenshot(agentContext: AgentContext): Promise<{
     imageBase64: string;
     imageType: "image/jpeg" | "image/png";
   }>;
 
+  /**
+   * Navigates to a new URL.
+   * @param agentContext - The context for the agent to run in.
+   * @param url - The URL to navigate to.
+   * @returns A promise that resolves to the new URL and title.
+   */
   protected abstract navigate_to(
     agentContext: AgentContext,
     url: string
@@ -24,6 +38,11 @@ export default abstract class BaseBrowserAgent extends Agent {
     title?: string;
   }>;
 
+  /**
+   * Gets a list of all open tabs.
+   * @param agentContext - The context for the agent to run in.
+   * @returns A promise that resolves to a list of tabs.
+   */
   protected abstract get_all_tabs(agentContext: AgentContext): Promise<
     Array<{
       tabId: number;
@@ -32,6 +51,12 @@ export default abstract class BaseBrowserAgent extends Agent {
     }>
   >;
 
+  /**
+   * Switches to a specific tab.
+   * @param agentContext - The context for the agent to run in.
+   * @param tabId - The ID of the tab to switch to.
+   * @returns A promise that resolves to the new tab information.
+   */
   protected abstract switch_tab(
     agentContext: AgentContext,
     tabId: number
@@ -41,6 +66,10 @@ export default abstract class BaseBrowserAgent extends Agent {
     title: string;
   }>;
 
+  /**
+   * Navigates to the previous page in the browser's history.
+   * @param agentContext - The context for the agent to run in.
+   */
   protected async go_back(agentContext: AgentContext): Promise<void> {
     try {
       await this.execute_script(
@@ -54,6 +83,12 @@ export default abstract class BaseBrowserAgent extends Agent {
     } catch (e) {}
   }
 
+  /**
+   * Extracts the content of the current page.
+   * @param agentContext - The context for the agent to run in.
+   * @param variable_name - The name of the variable to store the page content in.
+   * @returns A promise that resolves to the page content.
+   */
   protected async extract_page_content(
     agentContext: AgentContext,
     variable_name?: string
@@ -79,6 +114,13 @@ export default abstract class BaseBrowserAgent extends Agent {
     };
   }
 
+  /**
+   * Controls the MCP tools for the browser agent.
+   * @param agentContext - The context for the agent to run in.
+   * @param messages - The messages in the current conversation.
+   * @param loopNum - The current loop number.
+   * @returns A promise that resolves to the MCP tool control result.
+   */
   protected async controlMcpTools(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
@@ -108,6 +150,12 @@ export default abstract class BaseBrowserAgent extends Agent {
     }
   }
 
+  /**
+   * Creates a tool executer for the MCP client.
+   * @param mcpClient - The MCP client to use.
+   * @param name - The name of the tool.
+   * @returns The tool executer.
+   */
   protected toolExecuter(mcpClient: IMcpClient, name: string): ToolExecuter {
     return {
       execute: async (args, agentContext): Promise<ToolResult> => {
@@ -159,6 +207,11 @@ export default abstract class BaseBrowserAgent extends Agent {
     };
   }
 
+  /**
+   * Gets the current page URL, title, and tab ID.
+   * @param agentContext - The context for the agent to run in.
+   * @returns A promise that resolves to the current page information.
+   */
   protected async get_current_page(agentContext: AgentContext): Promise<{
     url: string;
     title?: string;
@@ -176,6 +229,11 @@ export default abstract class BaseBrowserAgent extends Agent {
     );
   }
 
+  /**
+   * Gets the result of the last tool call.
+   * @param messages - The messages in the current conversation.
+   * @returns The result of the last tool call, or null if there was no last tool call.
+   */
   protected lastToolResult(messages: LanguageModelV2Prompt): {
     id: string;
     toolName: string;
@@ -220,6 +278,11 @@ export default abstract class BaseBrowserAgent extends Agent {
     return null;
   }
 
+  /**
+   * Gets the names of the tools used in the conversation.
+   * @param messages - The messages in the current conversation.
+   * @returns A list of the names of the tools used.
+   */
   protected toolUseNames(messages?: LanguageModelV2Prompt): string[] {
     let toolNames: string[] = [];
     if (!messages) {
@@ -234,12 +297,25 @@ export default abstract class BaseBrowserAgent extends Agent {
     return toolNames;
   }
 
+  /**
+   * Executes a script in the browser.
+   * @param agentContext - The context for the agent to run in.
+   * @param func - The function to execute.
+   * @param args - The arguments to pass to the function.
+   * @returns A promise that resolves to the result of the script.
+   */
   protected abstract execute_script(
     agentContext: AgentContext,
     func: (...args: any[]) => void,
     args: any[]
   ): Promise<any>;
 
+  /**
+   * Executes an MCP script in the browser.
+   * @param agentContext - The context for the agent to run in.
+   * @param script - The script to execute.
+   * @returns A promise that resolves to the result of the script.
+   */
   protected async execute_mcp_script(
     agentContext: AgentContext,
     script: string

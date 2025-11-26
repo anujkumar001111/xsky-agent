@@ -1,6 +1,14 @@
 import { AgentContext, BaseBrowserLabelsAgent } from "@xsky/ai-agent-core";
 
+/**
+ * A browser agent that runs in a browser extension.
+ */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
+  /**
+   * Takes a screenshot of the current tab.
+   * @param agentContext - The context for the agent.
+   * @returns A promise that resolves to the screenshot data.
+   */
   protected async screenshot(
     agentContext: AgentContext
   ): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png" }> {
@@ -25,6 +33,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Navigates to a new URL.
+   * @param agentContext - The context for the agent.
+   * @param url - The URL to navigate to.
+   * @returns A promise that resolves to the new tab information.
+   */
   protected async navigate_to(
     agentContext: AgentContext,
     url: string
@@ -51,6 +65,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Gets a list of all open tabs.
+   * @param agentContext - The context for the agent.
+   * @returns A promise that resolves to a list of tabs.
+   */
   protected async get_all_tabs(
     agentContext: AgentContext
   ): Promise<Array<{ tabId: number; url: string; title: string }>> {
@@ -70,6 +89,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return result;
   }
 
+  /**
+   * Switches to a specific tab.
+   * @param agentContext - The context for the agent.
+   * @param tabId - The ID of the tab to switch to.
+   * @returns A promise that resolves to the new tab information.
+   */
   protected async switch_tab(
     agentContext: AgentContext,
     tabId: number
@@ -86,6 +111,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Goes back to the previous page in the browser history.
+   * @param agentContext - The context for the agent.
+   */
   protected async go_back(agentContext: AgentContext): Promise<any> {
     try {
       let canGoBack = await this.execute_script(
@@ -136,6 +165,13 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     }
   }
 
+  /**
+   * Executes a script in the browser.
+   * @param agentContext - The context for the agent.
+   * @param func - The function to execute.
+   * @param args - The arguments to pass to the function.
+   * @returns A promise that resolves to the result of the script.
+   */
   protected async execute_script(
     agentContext: AgentContext,
     func: (...args: any[]) => void,

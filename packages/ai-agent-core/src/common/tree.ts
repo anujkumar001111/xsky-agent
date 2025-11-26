@@ -5,6 +5,11 @@ import {
   ParallelAgentNode,
 } from "../types/core.types";
 
+/**
+ * Builds an agent tree from a list of agents.
+ * @param agents - The list of agents to build the tree from.
+ * @returns The root node of the agent tree.
+ */
 export function buildAgentTree(agents: WorkflowAgent[]): AgentNode {
   // Detect and handle circular dependencies
   const safeAgents = detectAndBreakCycles(agents);
@@ -98,6 +103,11 @@ export function buildAgentTree(agents: WorkflowAgent[]): AgentNode {
   return rootNode;
 }
 
+/**
+ * Detects and breaks cycles in a list of agents.
+ * @param agents - The list of agents to check for cycles.
+ * @returns A list of agents with cycles broken.
+ */
 function detectAndBreakCycles(agents: WorkflowAgent[]): WorkflowAgent[] {
   // Detect cyclic dependencies and return a safe dependency relationship
   // Use topological sorting algorithm to detect cycles, if a cycle is found, break some dependencies.
