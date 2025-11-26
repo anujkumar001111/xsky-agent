@@ -1,0 +1,7 @@
+packages:
+  - "packages/ai-agent-core"
+  - "packages/ai-agent-electron"
+  - "packages/ai-agent-extension"
+  - "packages/ai-agent-nodejs"
+  - "packages/ai-agent-web"
+  - "example/*"

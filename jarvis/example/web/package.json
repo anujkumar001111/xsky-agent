@@ -1,0 +1,36 @@
+{
+  "name": "@xsky/ai-agent-web-example",
+  "version": "3.0.0",
+  "scripts": {
+    "build": "react-scripts build",
+    "start": "react-scripts start",
+    "dev": "pnpm run build && pnpm run start"
+  },
+  "author": "XSky",
+  "license": "MIT",
+  "keywords": [
+    "xsky",
+    "ai-agent",
+    "web-example"
+  ],
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-scripts": "^5.0.1",
+    "@react-login-page/base": "^1.0.4",
+    "@xsky/ai-agent-core": "workspace:*",
+    "@xsky/ai-agent-web": "workspace:*"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
