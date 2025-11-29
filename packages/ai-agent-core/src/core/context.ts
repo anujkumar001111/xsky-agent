@@ -7,6 +7,14 @@ import {
   Workflow,
   WorkflowAgent,
 } from "../types";
+import { DomIntelligenceCache } from "../agent/browser/dom_intelligence";
+
+export interface AdaptiveWaitSignal {
+  type: 'mutation' | 'event' | 'animation' | 'load';
+  elementId?: string;
+  timestamp: number;
+  data: unknown;
+}
 
 /**
  * The context for a task.
@@ -138,6 +146,10 @@ export class AgentContext {
   consecutiveErrorNum: number;
   messages?: LanguageModelV2Prompt;
 
+  // DOM Intelligence related properties
+  domIntelligenceCache?: DomIntelligenceCache;
+  adaptiveWaitSignals: AdaptiveWaitSignal[] = [];
+
   /**
    * Creates an instance of the AgentContext.
    * @param context - The context for the task.
@@ -150,5 +162,19 @@ export class AgentContext {
     this.agentChain = agentChain;
     this.variables = new Map();
     this.consecutiveErrorNum = 0;
+  }
+
+  addAdaptiveWaitSignal(signal: AdaptiveWaitSignal) {
+    this.adaptiveWaitSignals.push(signal);
+    // Keep only recent signals (e.g., last 5 seconds)
+    const now = Date.now();
+    this.adaptiveWaitSignals = this.adaptiveWaitSignals.filter(s => now - s.timestamp < 5000);
+  }
+
+  getLatestSignal(type?: string): AdaptiveWaitSignal | undefined {
+      if (type) {
+          return this.adaptiveWaitSignals.filter(s => s.type === type).pop();
+      }
+      return this.adaptiveWaitSignals[this.adaptiveWaitSignals.length - 1];
   }
 }
