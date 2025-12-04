@@ -68,6 +68,12 @@ export class Agent {
   protected callback?: StreamCallback & HumanCallback;
   protected agentContext?: AgentContext;
 
+  // Static instances to avoid allocation overhead
+  private static variableStorageTool = new VariableStorageTool();
+  private static foreachTaskTool = new ForeachTaskTool();
+  private static watchTriggerTool = new WatchTriggerTool();
+  private static humanInteractTool = new HumanInteractTool();
+
   /**
    * Creates an instance of the Agent.
    * @param params - The parameters for creating the agent.
@@ -608,17 +614,17 @@ export class Agent {
       agentNodeXml.indexOf("input=") > -1 ||
       agentNodeXml.indexOf("output=") > -1;
     if (hasVariable) {
-      tools.push(new VariableStorageTool());
+      tools.push(Agent.variableStorageTool);
     }
     let hasForeach = agentNodeXml.indexOf("</forEach>") > -1;
     if (hasForeach) {
-      tools.push(new ForeachTaskTool());
+      tools.push(Agent.foreachTaskTool);
     }
     let hasWatch = agentNodeXml.indexOf("</watch>") > -1;
     if (hasWatch) {
-      tools.push(new WatchTriggerTool());
+      tools.push(Agent.watchTriggerTool);
     }
-    tools.push(new HumanInteractTool());
+    tools.push(Agent.humanInteractTool);
     let toolNames = this.tools.map((tool) => tool.name);
     return tools.filter((tool) => toolNames.indexOf(tool.name) == -1);
   }

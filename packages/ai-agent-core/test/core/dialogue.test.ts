@@ -4,6 +4,7 @@ import {
   LLMs,
   StreamCallbackMessage,
   EkoDialogue,
+  config,
 } from "../../src/index";
 import dotenv from "dotenv";
 import {
@@ -12,26 +13,36 @@ import {
   SimpleFileAgent,
 } from "./agents";
 import { ChatStreamCallbackMessage } from "../../src/types";
+import path from "path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 
-const openaiBaseURL = process.env.OPENAI_BASE_URL;
-const openaiApiKey = process.env.OPENAI_API_KEY;
+const openaiBaseURL = process.env.CUSTOM_API_URL || "http://143.198.174.251:8317/v1";
+const openaiApiKey = process.env.CUSTOM_API_KEY || "sk-anything";
+const openaiModel = "copilot-1-claude-opus-4.5";
+
+let provider = "openai-compatible";
+let apiKey = openaiApiKey;
+let baseURL = openaiBaseURL;
+let model = openaiModel;
 
 const llms: LLMs = {
   default: {
-    provider: "openrouter",
-    model: "anthropic/claude-sonnet-4",
-    apiKey: openaiApiKey || "",
+    provider: provider,
+    model: model,
+    apiKey: apiKey || "",
     config: {
-      baseURL: openaiBaseURL,
+      baseURL: baseURL,
     },
   },
 };
 
-const t = process.env.OPENAI_API_KEY ? test : test.skip;
+const t = (apiKey) ? test : test.skip;
 
 async function run() {
+  // Decrease maxTokens for tests using models with lower limits
+  config.maxTokens = 4000;
+
   Log.setLevel(0);
   const chatCallback = {
     onMessage: async (message: ChatStreamCallbackMessage) => {
@@ -102,4 +113,4 @@ async function run() {
 
 t("dialogue", async () => {
   await run();
-});
+}, 300000);

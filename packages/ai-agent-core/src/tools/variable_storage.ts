@@ -61,7 +61,7 @@ export default class VariableStorageTool implements Tool {
           resultText = "Error: name is required";
           break;
         }
-        if (args.value == undefined) {
+        if (args.value == undefined || args.value === "") {
           resultText = "Error: value is required";
           break;
         }

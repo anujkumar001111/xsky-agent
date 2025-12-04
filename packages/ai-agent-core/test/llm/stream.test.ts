@@ -25,7 +25,7 @@ function createReadableStream(): ReadableStream<String> {
   });
 }
 
-test.only("stream", async () => {
+test("stream", async () => {
   let stream: ReadableStream<String> = createReadableStream();
   let reader = stream.getReader();
   try {
