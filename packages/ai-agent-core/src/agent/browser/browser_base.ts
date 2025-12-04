@@ -15,6 +15,14 @@ export const AGENT_NAME = "Browser";
  */
 export default abstract class BaseBrowserAgent extends Agent {
   /**
+   * Scale factor from the last screenshot operation.
+   * Used for coordinate mapping when screenshots are scaled down for LLM processing.
+   * A value of 1 means no scaling was applied.
+   * A value of 0.5 means the screenshot was scaled to 50% of original size.
+   */
+  public lastScaleFactor: number = 1;
+
+  /**
    * Takes a screenshot of the current browser window.
    * @param agentContext - The context for the agent to run in.
    * @returns A promise that resolves to the screenshot image.

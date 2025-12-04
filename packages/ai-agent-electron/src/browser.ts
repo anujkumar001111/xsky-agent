@@ -1,26 +1,95 @@
 import { LanguageModelV2Prompt, Tool } from "@xsky/ai-agent-core/types";
-import { AgentContext, BaseBrowserLabelsAgent } from "@xsky/ai-agent-core";
-import { BrowserView, WebContentsView } from "electron";
+import { AgentContext, BaseBrowserLabelsAgent, config } from "@xsky/ai-agent-core";
+import { BrowserView, WebContentsView, NativeImage } from "electron";
+import * as path from "path";
 // import { store } from "../../electron/main/utils/store"; // External dependency - should be injected
 
 /**
+ * Configuration options for BrowserAgent security settings.
+ */
+export interface BrowserAgentSecurityOptions {
+  /**
+   * Enable contextIsolation for enhanced security.
+   * When true, uses IPC communication via preload script instead of direct executeJavaScript.
+   * Recommended for production use.
+   * @default false (for backward compatibility)
+   */
+  useContextIsolation?: boolean;
+
+  /**
+   * Path to the preload script.
+   * Required when useContextIsolation is true.
+   * The preload script should expose a secure API via contextBridge.
+   */
+  preloadPath?: string;
+}
+
+/**
  * A browser agent that runs in an Electron environment.
+ *
+ * ## Security Considerations
+ *
+ * By default, this agent uses `executeJavaScript` for backward compatibility.
+ * For production deployments, it is **strongly recommended** to enable
+ * `useContextIsolation` in the security options.
+ *
+ * ### Setting up secure mode:
+ *
+ * 1. Create your WebContentsView with security options:
+ * ```typescript
+ * const view = new WebContentsView({
+ *   webPreferences: {
+ *     contextIsolation: true,
+ *     nodeIntegration: false,
+ *     sandbox: true,
+ *     preload: path.join(__dirname, 'preload.js')
+ *   }
+ * });
+ * ```
+ *
+ * 2. Initialize the agent with security options:
+ * ```typescript
+ * const agent = new BrowserAgent(view, mcpClient, customPrompt, {
+ *   useContextIsolation: true,
+ *   preloadPath: path.join(__dirname, 'preload.js')
+ * });
+ * ```
+ *
+ * @see https://www.electronjs.org/docs/latest/tutorial/security
  */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
 
   private detailView: WebContentsView;
   private customPrompt?: string;
+  private securityOptions: BrowserAgentSecurityOptions;
+  /** Scale factor from last screenshot operation for coordinate mapping */
+  public lastScaleFactor: number = 1;
 
   /**
    * Creates an instance of the BrowserAgent.
    * @param detailView - The Electron WebContentsView to use.
    * @param mcpClient - The MCP client to use.
    * @param customPrompt - A custom prompt to use.
+   * @param securityOptions - Security configuration options.
    */
-  constructor(detailView: WebContentsView, mcpClient?: any, customPrompt?: string) {
+  constructor(
+    detailView: WebContentsView,
+    mcpClient?: any,
+    customPrompt?: string,
+    securityOptions?: BrowserAgentSecurityOptions
+  ) {
     super(['default'], [], mcpClient);
     this.detailView = detailView;
     this.customPrompt = customPrompt;
+    this.securityOptions = securityOptions || { useContextIsolation: false };
+
+    // Warn if using insecure mode in production
+    if (!this.securityOptions.useContextIsolation && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[BrowserAgent] WARNING: Running without contextIsolation in production. ' +
+        'This is a security risk. Consider enabling useContextIsolation option.'
+      );
+    }
   }
 
   protected async double_screenshots(
@@ -34,8 +103,34 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   protected async screenshot(
     agentContext: AgentContext
   ): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png" }> {
-    const image = await this.detailView.webContents.capturePage()
-    return { imageBase64: image.toDataURL(), imageType: "image/jpeg" }
+    let image = await this.detailView.webContents.capturePage();
+
+    // Apply resolution normalization if enabled
+    if (config.screenshotScaling?.enabled) {
+      const { maxWidth, maxHeight } = config.screenshotScaling;
+      const originalSize = image.getSize();
+
+      // Calculate scale factor to fit within max dimensions while preserving aspect ratio
+      const widthRatio = maxWidth / originalSize.width;
+      const heightRatio = maxHeight / originalSize.height;
+      const scaleFactor = Math.min(widthRatio, heightRatio, 1); // Never upscale
+
+      if (scaleFactor < 1) {
+        // Resize needed
+        const newWidth = Math.round(originalSize.width * scaleFactor);
+        const newHeight = Math.round(originalSize.height * scaleFactor);
+
+        image = image.resize({ width: newWidth, height: newHeight });
+        this.lastScaleFactor = scaleFactor;
+      } else {
+        // No scaling needed
+        this.lastScaleFactor = 1;
+      }
+    } else {
+      this.lastScaleFactor = 1;
+    }
+
+    return { imageBase64: image.toDataURL(), imageType: "image/jpeg" };
   }
 
   protected async navigate_to(
@@ -55,20 +150,41 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     func: (...args: any[]) => void,
     args: any[]
   ): Promise<any> {
-
     const viewWebContents = this.detailView.webContents;
 
-  const code = `(async() => {
+    if (this.securityOptions.useContextIsolation) {
+      // Secure mode: Use IPC communication via preload script
+      // The preload script exposes a limited API via contextBridge
+      const serializedFunc = func.toString();
+      const code = `
+        (async () => {
+          if (window.xskyAgent && window.xskyAgent.executeScript) {
+            return await window.xskyAgent.executeScript(${JSON.stringify(serializedFunc)}, ${JSON.stringify(args)});
+          } else {
+            throw new Error('xskyAgent API not available. Ensure preload script is configured correctly.');
+          }
+        })()
+      `;
+      console.log("[BrowserAgent] Executing script via secure preload API");
+      const result = await viewWebContents.executeJavaScript(code, true);
+      if (result && result.error) {
+        throw new Error(result.error);
+      }
+      return result;
+    } else {
+      // Legacy mode: Direct executeJavaScript (less secure, but backward compatible)
+      const code = `(async() => {
     const func = ${func};
     const result = await func(...${JSON.stringify(args)});
     return result;
-})()`
+})()`;
 
-  console.log("invoke-view-func code", code);
-  const result = await viewWebContents.executeJavaScript(code, true)
+      console.log("invoke-view-func code", code);
+      const result = await viewWebContents.executeJavaScript(code, true);
 
-  console.log("invoke-view-func result", result);
-  return result;
+      console.log("invoke-view-func result", result);
+      return result;
+    }
   }
 
   private async size(): Promise<[number, number]> {

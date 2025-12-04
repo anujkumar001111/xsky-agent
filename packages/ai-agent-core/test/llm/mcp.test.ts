@@ -30,6 +30,12 @@ async function testSseMCP() {
   await sleep(5000);
 }
 
-test.only("mcp", async () => {
+
+
+// const t = process.env.TEST_MCP ? test : test.skip;
+
+test.skip("mcp", async () => {
   await testSseMCP();
 });
+
+

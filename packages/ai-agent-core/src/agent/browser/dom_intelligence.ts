@@ -1,132 +1,196 @@
 import { AgentContext } from '../../core/context';
-import fs from 'fs';
-import path from 'path';
+import { EXTRACTORS } from './extractors';
 
+/**
+ * Represents the bounding rectangle of a DOM element.
+ * A JSON-serializable replacement for the native DOMRect object.
+ */
 export interface BoundingRect {
+  /** X coordinate of the rectangle's origin */
   x: number;
+  /** Y coordinate of the rectangle's origin */
   y: number;
+  /** Width of the rectangle */
   width: number;
+  /** Height of the rectangle */
   height: number;
+  /** Distance from the top of the viewport */
   top: number;
+  /** Distance from the left of the viewport */
   left: number;
+  /** Distance from the top to the bottom edge */
   bottom: number;
+  /** Distance from the left to the right edge */
   right: number;
 }
 
+/**
+ * Comprehensive intelligence data extracted from a DOM element.
+ * Contains all relevant information about an element for AI analysis.
+ */
 export interface DomElementIntelligence {
-  elementId: string; // stable identifier for serialization
+  /** Stable identifier for serialization and reference */
+  elementId: string;
+  /** HTML tag name of the element */
   tagName: string;
+  /** Optional DOM id attribute */
   id?: string;
+  /** Optional CSS class names */
   className?: string;
+  /** Map of all HTML attributes */
   attributes: Record<string, string>;
-  boundingRect: BoundingRect; // JSON-serializable replacement for DOMRect
+  /** Element's position and size information */
+  boundingRect: BoundingRect;
+  /** Computed CSS styles for the element */
   computedStyles: Record<string, string>;
+  /** Event handlers attached to the element */
   eventHandlers: EventHandler[];
-  children: string[]; // child elementIds to avoid object cycles
+  /** Child element IDs (avoids object cycles in serialization) */
+  children: string[];
+  /** Scroll position and dimensions */
   scrollInfo: ScrollInfo;
+  /** CSS animations applied to the element */
   animations: AnimationData[];
+  /** Related assets (images, scripts, etc.) */
   relatedAssets: AssetReference[];
-  path?: string; // CSS Selector path
+  /** Optional CSS selector path to the element */
+  path?: string;
 }
 
+/**
+ * Information about an event handler attached to a DOM element.
+ */
 export interface EventHandler {
+  /** Event type (e.g., "click", "submit", "change") */
   type: string;
-  hasHandler: boolean; // avoid storing function source for security/size
+  /** Whether a handler is actually attached */
+  hasHandler: boolean;
+  /** Detected JavaScript framework, if applicable */
   framework?: 'react' | 'vue' | 'angular' | 'jquery';
+  /** Whether the handler was defined inline in HTML */
   isInline: boolean;
+  /** Optional source code of the handler (if available and safe to include) */
   source?: string;
 }
 
+/**
+ * Scroll state and dimensions for a scrollable element.
+ */
 export interface ScrollInfo {
+  /** Current vertical scroll position */
   scrollTop: number;
+  /** Current horizontal scroll position */
   scrollLeft: number;
+  /** Total scrollable height */
   scrollHeight: number;
+  /** Total scrollable width */
   scrollWidth: number;
+  /** Visible viewport height */
   clientHeight: number;
+  /** Visible viewport width */
   clientWidth: number;
 }
 
+/**
+ * CSS animation or transition data for an element.
+ */
 export interface AnimationData {
+  /** Animation name (for keyframe animations) */
   name: string;
+  /** Duration in milliseconds */
   duration: number;
+  /** Delay before animation starts in milliseconds */
   delay: number;
+  /** CSS timing function (e.g., "ease", "linear") */
   timingFunction: string;
+  /** CSS properties being animated */
   properties?: string[];
+  /** Number of times animation repeats (or "infinite") */
   iterationCount?: string;
 }
 
+/**
+ * Reference to an asset related to a DOM element.
+ */
 export interface AssetReference {
+  /** Type of asset */
   type: 'image' | 'video' | 'audio' | 'icon' | 'stylesheet' | 'script';
+  /** URL of the asset */
   url: string;
-  elementId?: string; // reference by id to avoid embedding full object
+  /** Element ID that references this asset */
+  elementId?: string;
 }
 
+/**
+ * Summary of a DOM mutation event.
+ */
 export interface MutationSummary {
+  /** Type of mutation that occurred */
   type: 'attributes' | 'childList' | 'characterData';
+  /** ID of the element that was mutated */
   targetId: string;
+  /** Name of the changed attribute (for attribute mutations) */
   attributeName?: string;
-  addedNodes?: string[]; // elementIds
-  removedNodes?: string[]; // elementIds
+  /** IDs of newly added child elements */
+  addedNodes?: string[];
+  /** IDs of removed child elements */
+  removedNodes?: string[];
 }
 
+/**
+ * Complete DOM intelligence cache containing all extracted element data.
+ */
 export interface DomIntelligenceCache {
-  elements: Record<string, DomElementIntelligence>; // JSON-safe instead of Map
+  /** Map of element IDs to their intelligence data */
+  elements: Record<string, DomElementIntelligence>;
+  /** Timestamp when the cache was created */
   timestamp: number;
+  /** URL of the page when intelligence was gathered */
   pageUrl: string;
-  mutations: MutationSummary[]; // JSON-safe subset of MutationRecord
+  /** Mutations observed since last cache update */
+  mutations: MutationSummary[];
 }
 
+/**
+ * Agent for extracting comprehensive DOM intelligence from web pages.
+ * Runs multiple extractors in parallel to gather element information,
+ * styles, events, animations, and assets.
+ */
 export class DomIntelligenceAgent {
+  /** Agent context for accessing shared resources */
   private context: AgentContext;
-  private extractors: Map<string, string> = new Map();
+  /** Map of extractor names to their implementation functions */
+  private extractors: Map<string, Function> = new Map();
+  /** Cached intelligence data with TTL */
   private cache: DomIntelligenceCache | null = null;
-  private extractorsPath: string;
 
+  /**
+   * Creates a new DomIntelligenceAgent.
+   * @param context - The agent context for shared resources and configuration.
+   */
   constructor(context: AgentContext) {
     this.context = context;
-    // Assuming standard path structure relative to this file
-    this.extractorsPath = path.join(__dirname, 'extractors');
     this.loadExtractors();
   }
 
+  /**
+   * Loads all available extractors into the extractors map.
+   * Called during construction to prepare extractors for execution.
+   */
   private loadExtractors() {
-    const extractorFiles = [
-      'extract_structure.js',
-      'extract_styles.js',
-      'extract_events.js',
-      'extract_assets.js',
-      'comprehensive_element_extractor.js',
-      'extract_related_files.js',
-      'extract_animations.js',
-      'setup_mutation_observer.js'
-    ];
-
-    for (const file of extractorFiles) {
-      try {
-        const content = fs.readFileSync(path.join(this.extractorsPath, file), 'utf-8');
-        this.extractors.set(file, content);
-      } catch (error) {
-        console.error(`Failed to load extractor ${file}:`, error);
-      }
-    }
+    Object.entries(EXTRACTORS).forEach(([name, content]) => {
+      this.extractors.set(name, content);
+    });
   }
 
-  // Abstract method to be implemented by specific browser adapters (Node, Web, Extension, Electron)
-  // or passed via context if possible.
-  // Since AgentContext is generic, we might need a way to execute scripts.
-  // However, BaseBrowserLabelsAgent usually has methods for this.
-  // But DomIntelligenceAgent is a helper.
-  // We need to know how to execute scripts.
-
-  // Design doc says: injectExtractors(agentContext)
-  // But how does it execute?
-  // Maybe we pass the execution function or the browser page object.
-  // Let's assume we pass an executor function or use what's available in context if extended.
-
-  // For now, let's define the interface and let the caller provide the execution mechanism.
-
+  /**
+   * Executes multiple extractors in parallel and collects their results.
+   * @param executor - Function that executes an extractor script in the browser context.
+   * @param extractorNames - Optional array of extractor names to run. Defaults to all extractors.
+   * @returns A promise resolving to a map of extractor names to their results.
+   */
   async runExtractorsParallel(
-    executor: (script: string) => Promise<any>,
+    executor: (script: Function) => Promise<any>,
     extractorNames: string[] = Array.from(this.extractors.keys())
   ): Promise<Record<string, any>> {
     const results: Record<string, any> = {};
@@ -137,7 +201,6 @@ export class DomIntelligenceAgent {
         return;
       }
       try {
-        // Wrap in IIFE if not already? The files are IIFEs.
         const result = await executor(script);
         results[name] = result;
       } catch (error) {
@@ -150,8 +213,16 @@ export class DomIntelligenceAgent {
     return results;
   }
 
+  /**
+   * Gathers comprehensive DOM intelligence by running all extractors.
+   * Results are cached with a 5-second TTL to avoid redundant extraction.
+   * @param executor - Function that executes extractor scripts in the browser context.
+   * @param useCache - Whether to return cached results if available and fresh.
+   * @returns A promise resolving to the complete DOM intelligence cache.
+   * @throws Error if the comprehensive element extractor fails.
+   */
   async getIntelligence(
-      executor: (script: string) => Promise<any>,
+      executor: (script: Function) => Promise<any>,
       useCache: boolean = true
   ): Promise<DomIntelligenceCache> {
       if (useCache && this.cache && (Date.now() - this.cache.timestamp < 5000)) { // 5s TTL for demo

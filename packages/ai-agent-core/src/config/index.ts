@@ -1,24 +1,57 @@
 /**
  * The global configuration for the AI agent.
+ * Controls behavior limits, compression settings, and feature flags.
  */
 type GlobalConfig = {
-  name: string; // product name
+  /** Product name identifier */
+  name: string;
+  /** Operating system platform */
   platform: "windows" | "mac" | "linux";
+  /** Maximum number of reaction cycles for agent execution */
   maxReactNum: number;
+  /** Maximum tokens for LLM requests */
   maxTokens: number;
+  /** Maximum retry attempts for failed operations */
   maxRetryNum: number;
+  /** Whether agents can execute in parallel */
   agentParallel: boolean;
-  compressThreshold: number; // Dialogue context compression threshold (message count)
-  compressTokensThreshold: number; // Dialogue context compression threshold (token count)
+  /** Message count threshold to trigger dialogue compression */
+  compressThreshold: number;
+  /** Token count threshold to trigger dialogue compression */
+  compressTokensThreshold: number;
+  /** Character length considered "large text" */
   largeTextLength: number;
+  /** Maximum character length for file text content */
   fileTextMaxLength: number;
+  /** Maximum number of images allowed in dialogue */
   maxDialogueImgFileNum: number;
+  /** Whether tool results can include multimodal content */
   toolResultMultimodal: boolean;
+  /** Whether to allow parallel tool calls */
   parallelToolCalls: boolean;
+  /** Enable expert mode for advanced features */
   expertMode: boolean;
+  /** Number of todo loop iterations in expert mode */
   expertModeTodoLoopNum: number;
+  /** Whether to use DOM intelligence extraction */
+  useDomIntelligence?: boolean;
+  /** Maximum recent screenshots to keep in memory (0 = disabled) */
+  maxRecentScreenshots: number;
+  /** Screenshot scaling for optimal LLM processing */
+  screenshotScaling: {
+    /** Enable scaling (default: false for backward compatibility) */
+    enabled: boolean;
+    /** Maximum width in pixels (default: 1024 - XGA) */
+    maxWidth: number;
+    /** Maximum height in pixels (default: 768 - XGA) */
+    maxHeight: number;
+  };
 }
 
+/**
+ * Default global configuration values.
+ * These values can be overridden at runtime through configuration APIs.
+ */
 const config: GlobalConfig = {
   name: "Eko",
   platform: "mac",
@@ -35,6 +68,13 @@ const config: GlobalConfig = {
   parallelToolCalls: true,
   expertMode: false,
   expertModeTodoLoopNum: 10,
+  useDomIntelligence: false,
+  maxRecentScreenshots: 0,
+  screenshotScaling: {
+    enabled: false,
+    maxWidth: 1024,
+    maxHeight: 768,
+  },
 };
 
 export default config;

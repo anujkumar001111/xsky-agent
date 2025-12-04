@@ -25,7 +25,8 @@
   "scripts": {
     "build": "rollup -c",
     "docs": "typedoc",
-    "test": "npx jest test/core/eko.test.ts"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "author": "XSky",
   "license": "MIT",
@@ -61,12 +62,12 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/chai": "^5.2.3",
     "@types/jest": "^29.5.14",
-    "@types/jsdom": "^27.0.0",
+    "@types/jsdom": "^21.1.7",
     "@types/json-schema": "^7.0.15",
     "chai": "^6.2.1",
     "dotenv": "^16.5.0",
     "jest": "^29.7.0",
-    "jsdom": "^27.2.0",
+    "jsdom": "^22.1.0",
     "mocha": "^11.7.5",
     "rollup": "^4.40.0",
     "rollup-plugin-copy": "^3.5.0",
@@ -74,6 +75,7 @@
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "typedoc": "^0.27.6",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "undici": "^7.16.0"
   }
 }

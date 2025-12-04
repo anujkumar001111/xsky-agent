@@ -37,6 +37,8 @@ const llms: LLMs = {
   },
 };
 
+const t = process.env.OPENAI_API_KEY ? test : test.skip;
+
 async function testPlaner() {
   Log.setLevel(0);
   let callback = {
@@ -67,6 +69,6 @@ async function testPlaner() {
   console.log("=========> workflow", JSON.stringify(workflow, null, 2));
 }
 
-test.only("test", async () => {
+t("test", async () => {
   await testPlaner();
 });

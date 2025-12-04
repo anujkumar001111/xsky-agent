@@ -3,6 +3,7 @@ export * from "./dialogue.types";
 export * from "./llm.types";
 export * from "./tools.types";
 export * from "./mcp.types";
+export * from "./hooks.types";
 
 export type {
   JSONSchema7,

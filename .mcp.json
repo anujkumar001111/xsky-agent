@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "google-jules": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "export JULES_API_KEY=$(grep '^JULES_API_KEY=' .env 2>/dev/null | cut -d= -f2- || echo '') && npx -y @amitdeshmukh/google-jules-mcp"
+      ]
+    }
+  }
+}

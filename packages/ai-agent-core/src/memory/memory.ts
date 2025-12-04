@@ -2,42 +2,82 @@ import { LanguageModelV2Message } from "@ai-sdk/provider";
 import { toFile, uuidv4, getMimeType, sub } from "../common/utils";
 import { EkoMessage, LanguageModelV2Prompt } from "../types";
 import { defaultMessageProviderOptions } from "../agent/llm";
+import config from "../config";
 
+/**
+ * Configuration options for EkoMemory instance.
+ * @property maxMessages - Maximum number of messages to retain in memory.
+ * @property maxTokens - Maximum estimated token count before trimming.
+ * @property enableCompression - Whether to compress long messages.
+ * @property compressionThreshold - Message count threshold to trigger compression.
+ * @property compressionMaxLength - Maximum character length before truncating content.
+ */
 export interface MemoryConfig {
   maxMessages?: number;
   maxTokens?: number;
   enableCompression?: boolean;
   compressionThreshold?: number;
   compressionMaxLength?: number;
+  /** Maximum recent screenshots to keep (0 = disabled, uses global config) */
+  maxRecentScreenshots?: number;
 }
 
+/**
+ * Memory management class for maintaining conversation history with LLMs.
+ * Handles message storage, capacity management, token estimation, and compression.
+ */
 export class EkoMemory {
+  /** The system prompt to prepend to all conversations */
   protected systemPrompt: string;
+  /** Array of conversation messages */
   protected messages: EkoMessage[];
+  /** Maximum number of messages to retain */
   private maxMessages: number;
+  /** Maximum estimated token count */
   private maxTokens: number;
+  /** Whether compression is enabled */
   private enableCompression: boolean;
+  /** Message count threshold for compression */
   private compressionThreshold: number;
+  /** Maximum content length before truncation */
   private compressionMaxLength: number;
+  /** Maximum recent screenshots to keep (0 = disabled) */
+  private maxRecentScreenshots: number;
 
+  /**
+   * Creates a new EkoMemory instance.
+   * @param systemPrompt - The system prompt to use for conversations.
+   * @param messages - Initial messages to populate the memory with.
+   * @param config - Optional configuration options.
+   */
   constructor(
     systemPrompt: string,
     messages: EkoMessage[] = [],
-    config: MemoryConfig = {}
+    memoryConfig: MemoryConfig = {}
   ) {
     this.messages = messages;
     this.systemPrompt = systemPrompt;
-    this.maxMessages = config.maxMessages ?? 15;
-    this.maxTokens = config.maxTokens ?? 16000;
-    this.enableCompression = config.enableCompression ?? false;
-    this.compressionThreshold = config.compressionThreshold ?? 10;
-    this.compressionMaxLength = config.compressionMaxLength ?? 4000;
+    this.maxMessages = memoryConfig.maxMessages ?? 15;
+    this.maxTokens = memoryConfig.maxTokens ?? 16000;
+    this.enableCompression = memoryConfig.enableCompression ?? false;
+    this.compressionThreshold = memoryConfig.compressionThreshold ?? 10;
+    this.compressionMaxLength = memoryConfig.compressionMaxLength ?? 4000;
+    this.maxRecentScreenshots = memoryConfig.maxRecentScreenshots ?? config.maxRecentScreenshots;
   }
 
+  /**
+   * Generates a unique message identifier.
+   * @returns A UUID string for message identification.
+   */
   public genMessageId(): string {
     return uuidv4();
   }
 
+  /**
+   * Imports messages and optionally updates configuration.
+   * @param data - Object containing messages and optional config to import.
+   * @returns A promise that resolves when import is complete.
+   */
   public async import(data: {
     messages: EkoMessage[];
     config?: MemoryConfig;
@@ -50,19 +90,39 @@ export class EkoMemory {
     }
   }
 
+  /**
+   * Adds new messages to memory and manages capacity.
+   * @param messages - Array of messages to add.
+   * @returns A promise that resolves when messages are added.
+   */
   public async addMessages(messages: EkoMessage[]): Promise<void> {
     this.messages.push(...messages);
     await this.manageCapacity();
   }
 
+  /**
+   * Retrieves all messages in memory.
+   * @returns Array of all stored messages.
+   */
   public getMessages(): EkoMessage[] {
     return this.messages;
   }
 
+  /**
+   * Finds a message by its unique identifier.
+   * @param id - The message ID to search for.
+   * @returns The message if found, undefined otherwise.
+   */
   public getMessageById(id: string): EkoMessage | undefined {
     return this.messages.find((message) => message.id === id);
   }
 
+  /**
+   * Removes a message and optionally subsequent messages until the next user message.
+   * @param id - The ID of the message to remove.
+   * @param removeToNextUserMessages - If true, also removes messages until the next user message.
+   * @returns Array of removed message IDs, or undefined if message not found.
+   */
   public removeMessageById(
     id: string,
     removeToNextUserMessages: boolean = true
@@ -88,6 +148,11 @@ export class EkoMemory {
     return removedIds.length > 0 ? removedIds : undefined;
   }
 
+  /**
+   * Estimates the total token count for all messages including optionally the system prompt.
+   * @param calcSystemPrompt - Whether to include the system prompt in the token count.
+   * @returns Estimated total token count.
+   */
   public getEstimatedTokens(calcSystemPrompt: boolean = true): number {
     let tokens = 0;
     if (calcSystemPrompt) {
@@ -102,6 +167,12 @@ export class EkoMemory {
     }, tokens);
   }
 
+  /**
+   * Calculates estimated token count for a string.
+   * Uses a heuristic: Chinese characters count as 1 token each, other characters as 1 token per 4.
+   * @param content - The string content to estimate tokens for.
+   * @returns Estimated token count.
+   */
   protected calcTokens(content: string): number {
     // Simple estimation: Each Chinese character is 1 token, other characters are counted as 1 token for every 4.
     const chineseCharCount = (content.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -109,6 +180,11 @@ export class EkoMemory {
     return chineseCharCount + Math.ceil(otherCharCount / 4);
   }
 
+  /**
+   * Updates memory configuration and triggers capacity management.
+   * @param config - Partial configuration object with values to update.
+   * @returns A promise that resolves when configuration is applied.
+   */
   public async updateConfig(config: Partial<MemoryConfig>): Promise<void> {
     if (config.maxMessages !== undefined) {
       this.maxMessages = config.maxMessages;
@@ -125,13 +201,27 @@ export class EkoMemory {
     if (config.compressionMaxLength !== undefined) {
       this.compressionMaxLength = config.compressionMaxLength;
     }
+    if (config.maxRecentScreenshots !== undefined) {
+      this.maxRecentScreenshots = config.maxRecentScreenshots;
+    }
     await this.manageCapacity();
   }
 
+  /**
+   * Hook for implementing dynamic system prompt updates based on message context.
+   * Override this method to implement RAG (Retrieval Augmented Generation) or similar patterns.
+   * @param messages - Current messages in memory for context analysis.
+   * @returns A promise that resolves when the system prompt is updated.
+   */
   protected async dynamicSystemPrompt(messages: EkoMessage[]): Promise<void> {
     // RAG dynamic system prompt
   }
 
+  /**
+   * Manages memory capacity by trimming old messages, compressing content, and enforcing token limits.
+   * Called automatically after adding messages or updating configuration.
+   * @returns A promise that resolves when capacity management is complete.
+   */
   protected async manageCapacity(): Promise<void> {
     if (this.messages[this.messages.length - 1].role == "user") {
       await this.dynamicSystemPrompt(this.messages);
@@ -139,6 +229,10 @@ export class EkoMemory {
     if (this.messages.length > this.maxMessages) {
       const excess = this.messages.length - this.maxMessages;
       this.messages.splice(0, excess);
+    }
+    // Filter old screenshots if enabled
+    if (this.maxRecentScreenshots > 0) {
+      this.filterOldScreenshots(this.maxRecentScreenshots);
     }
     if (
       this.enableCompression &&
@@ -186,6 +280,11 @@ export class EkoMemory {
     this.fixDiscontinuousMessages();
   }
 
+  /**
+   * Repairs message sequence discontinuities to ensure valid conversation structure.
+   * Ensures messages start with a user message, removes duplicate user messages,
+   * and adds placeholder tool results for orphaned tool calls.
+   */
   public fixDiscontinuousMessages() {
     if (this.messages.length > 0 && this.messages[0].role != "user") {
       for (let i = 0; i < this.messages.length; i++) {
@@ -240,14 +339,87 @@ export class EkoMemory {
     }
   }
 
+  /**
+   * Determines if a content part is a screenshot image.
+   * Screenshots are identified by their mime type (image/jpeg or image/png)
+   * and optionally by associated text mentioning "screenshot".
+   * @param part - The content part to check.
+   * @returns True if the content part is a screenshot.
+   */
+  private isScreenshot(part: any): boolean {
+    if (part.type !== "image" && part.type !== "file") {
+      return false;
+    }
+    const mimeType = part.mimeType || part.mediaType || "";
+    return mimeType.startsWith("image/");
+  }
+
+  /**
+   * Filters old screenshots, keeping only the N most recent ones.
+   * Old screenshots are replaced with a "[screenshot]" placeholder text.
+   * This reduces token usage while preserving context.
+   * @param keepCount - Number of most recent screenshots to keep.
+   */
+  public filterOldScreenshots(keepCount: number): void {
+    if (keepCount <= 0) {
+      return;
+    }
+
+    // Collect all screenshot positions (message index, content index)
+    const screenshotPositions: Array<{ msgIdx: number; contentIdx: number }> = [];
+
+    for (let msgIdx = 0; msgIdx < this.messages.length; msgIdx++) {
+      const message = this.messages[msgIdx];
+      if (message.role !== "user" || typeof message.content === "string") {
+        continue;
+      }
+      for (let contentIdx = 0; contentIdx < message.content.length; contentIdx++) {
+        const part = message.content[contentIdx];
+        if (this.isScreenshot(part)) {
+          screenshotPositions.push({ msgIdx, contentIdx });
+        }
+      }
+    }
+
+    // If we have more screenshots than allowed, replace older ones
+    if (screenshotPositions.length <= keepCount) {
+      return;
+    }
+
+    // Keep the last N screenshots, replace others with placeholder
+    const toReplace = screenshotPositions.slice(0, screenshotPositions.length - keepCount);
+
+    for (const pos of toReplace) {
+      const message = this.messages[pos.msgIdx];
+      if (typeof message.content !== "string") {
+        (message.content as any)[pos.contentIdx] = {
+          type: "text",
+          text: "[screenshot]",
+        };
+      }
+    }
+  }
+
+  /**
+   * Gets the current system prompt.
+   * @returns The system prompt string.
+   */
   public getSystemPrompt(): string {
     return this.systemPrompt;
   }
 
+  /**
+   * Retrieves the first user message in the conversation.
+   * @returns The first user message, or undefined if no user messages exist.
+   */
   public getFirstUserMessage(): EkoMessage | undefined {
     return this.messages.filter((message) => message.role === "user")[0];
   }
 
+  /**
+   * Retrieves the most recent user message in the conversation.
+   * @returns The last user message, or undefined if no user messages exist.
+   */
   public getLastUserMessage(): EkoMessage | undefined {
     const userMessages = this.messages.filter(
       (message) => message.role === "user"
@@ -255,14 +427,28 @@ export class EkoMemory {
     return userMessages[userMessages.length - 1];
   }
 
+  /**
+   * Checks if a message with the given ID exists in memory.
+   * @param id - The message ID to check for.
+   * @returns True if the message exists, false otherwise.
+   */
   public hasMessage(id: string): boolean {
     return this.messages.some((message) => message.id === id);
   }
 
+  /**
+   * Clears all messages from memory.
+   */
   public clear(): void {
     this.messages = [];
   }
 
+  /**
+   * Builds the complete message array for LLM consumption.
+   * Includes the system prompt followed by all conversation messages,
+   * properly formatted for the LLM provider.
+   * @returns The formatted message prompt array.
+   */
   public buildMessages(): LanguageModelV2Prompt {
     const llmMessages: LanguageModelV2Message[] = [];
     for (let i = 0; i < this.messages.length; i++) {

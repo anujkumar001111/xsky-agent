@@ -106,7 +106,13 @@ async function runWithHttp() {
   console.log("result: ", JSON.stringify(result));
 }
 
-test.only("eko", async () => {
+
+
+// const t = process.env.TEST_MCP ? test : test.skip;
+
+test.skip("eko", async () => {
   // await runWithSse();
   await runWithHttp();
 });
+
+

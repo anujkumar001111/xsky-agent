@@ -7,11 +7,8 @@ dotenv.config();
 
 const baseURL = process.env.ANTHROPIC_BASE_URL;
 const apiKey = process.env.ANTHROPIC_API_KEY;
-if (!apiKey) {
-  throw new Error(
-    "ANTHROPIC_API_KEY environment variable is required for integration tests"
-  );
-}
+
+const t = process.env.ANTHROPIC_API_KEY ? test : test.skip;
 
 export async function testClaudePrompt() {
   const client: LanguageModelV2 = createAnthropic({
@@ -118,6 +115,6 @@ export async function testToolsPrompt() {
   }
 }
 
-test.only("testClaude", async () => {
+t("testClaude", async () => {
   await testToolsPrompt();
 });

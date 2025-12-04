@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSky AI Agent</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Navigation Bar -->
+        <header id="nav-bar">
+            <div class="nav-controls">
+                <button id="btn-back" title="Go Back">◀</button>
+                <button id="btn-forward" title="Go Forward">▶</button>
+                <button id="btn-refresh" title="Refresh">🔄</button>
+            </div>
+            <div class="url-bar-container">
+                <input type="text" id="url-input" placeholder="Enter URL...">
+            </div>
+            <div class="nav-actions">
+                <button id="btn-screenshot" title="Take Screenshot">📷</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-container">
+            <!-- Browser Area (Placeholder - covered by WebContentsView) -->
+            <div id="browser-placeholder">
+                <div class="placeholder-text">Browser View Area</div>
+            </div>
+
+            <!-- Chat Panel -->
+            <aside id="chat-panel">
+                <div id="messages-list">
+                    <div class="message system">
+                        <div class="message-content">
+                            Welcome to XSky AI Agent! Enter a task below to start.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Status Indicator -->
+                <div id="task-status" class="status-idle">
+                    <span id="status-text">Ready</span>
+                    <div class="task-controls">
+                        <button id="btn-pause" disabled>⏸️</button>
+                        <button id="btn-stop" disabled>⏹️</button>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div id="chat-input-container">
+                    <textarea id="chat-input" placeholder="Describe a task (e.g., 'Go to google.com and search for AI')..." rows="3"></textarea>
+                    <button id="btn-send">➤</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>

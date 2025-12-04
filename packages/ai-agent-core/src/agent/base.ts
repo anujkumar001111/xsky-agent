@@ -23,7 +23,9 @@ import {
   WorkflowAgent,
   HumanCallback,
   StreamCallback,
+  ToolHookResult,
 } from "../types";
+import type { ApprovalRequest } from "../types/hooks.types";
 import {
   LanguageModelV2Prompt,
   LanguageModelV2FilePart,
@@ -89,8 +91,30 @@ export class Agent {
   public async run(context: Context, agentChain: AgentChain): Promise<string> {
     const mcpClient = this.mcpClient || context.config.defaultMcpClient;
     const agentContext = new AgentContext(context, this, agentChain);
+    const hooks = context.config.hooks;
+
     try {
       this.agentContext = agentContext;
+
+      // ============ BEFORE AGENT START HOOK ============
+      // Called here because AgentContext is now available
+      if (hooks?.beforeAgentStart) {
+        try {
+          const hookResult = await hooks.beforeAgentStart(agentContext);
+          if (hookResult?.block) {
+            const reason = hookResult.reason || "Agent blocked by beforeAgentStart hook";
+            Log.warn(`Agent ${this.name} blocked: ${reason}`);
+            throw new Error(reason);
+          }
+        } catch (hookError: any) {
+          if (hookError.message?.includes("blocked by")) {
+            throw hookError;
+          }
+          Log.error("beforeAgentStart hook error:", hookError);
+          // Continue if hook fails (non-blocking)
+        }
+      }
+
       mcpClient &&
         !mcpClient.isConnected() &&
         (await mcpClient.connect(context.controller.signal));
@@ -282,31 +306,145 @@ export class Agent {
 
   /**
    * Calls a tool with the given arguments and context.
+   * Supports beforeToolCall and afterToolCall hooks for production-ready control.
    * @param agentContext - The context for the agent to run in.
    * @param agentTools - The tools available to the agent.
    * @param result - The tool call to execute.
    * @param user_messages - The user messages to append to.
+   * @param retryCount - Internal retry counter to prevent infinite loops.
    * @returns A promise that resolves to the result of the tool call.
    */
   protected async callToolCall(
     agentContext: AgentContext,
     agentTools: Tool[],
     result: LanguageModelV2ToolCallPart,
-    user_messages: LanguageModelV2Prompt = []
+    user_messages: LanguageModelV2Prompt = [],
+    retryCount: number = 0
   ): Promise<LanguageModelV2ToolResultPart> {
+    const MAX_TOOL_RETRIES = 3;
     const context = agentContext.context;
+    const hooks = context.config.hooks;
     const toolChain = new ToolChain(
       result,
       agentContext.agentChain.agentRequest as LLMRequest
     );
     agentContext.agentChain.push(toolChain);
+
+    let args =
+      typeof result.input == "string"
+        ? JSON.parse(result.input || "{}")
+        : result.input || {};
+    toolChain.params = args;
+
+    // ============ BEFORE TOOL CALL HOOK ============
+    if (hooks?.beforeToolCall) {
+      try {
+        const hookResult: ToolHookResult = await hooks.beforeToolCall(
+          agentContext,
+          result.toolName,
+          args
+        );
+
+        // Handle hook result
+        if (!hookResult.allow) {
+          // Tool call blocked by hook
+          const blockReason = hookResult.reason || "Tool call blocked by beforeToolCall hook";
+          Log.warn(`Tool ${result.toolName} blocked: ${blockReason}`);
+
+          if (hookResult.escalate) {
+            // ============ ON APPROVAL REQUIRED HOOK ============
+            if (hooks?.onApprovalRequired) {
+              try {
+                const approvalRequest: ApprovalRequest = {
+                  type: "tool_execution",
+                  description: `Approve execution of tool "${result.toolName}"?`,
+                  context: {
+                    toolName: result.toolName,
+                    args,
+                    reason: blockReason,
+                  },
+                };
+
+                const approval = await hooks.onApprovalRequired(agentContext, approvalRequest);
+
+                if (approval.approved) {
+                  // Approval granted - continue with tool execution
+                  Log.info(`Tool ${result.toolName} approved by ${approval.approver || "user"}`);
+                  // Fall through to execute the tool
+                } else {
+                  // Approval denied
+                  const deniedResult: ToolResult = {
+                    content: [
+                      {
+                        type: "text",
+                        text: `Action rejected: ${approval.feedback || blockReason}`,
+                      },
+                    ],
+                    isError: false,
+                  };
+                  toolChain.updateToolResult(deniedResult);
+                  return convertToolResult(result, deniedResult, user_messages);
+                }
+              } catch (approvalError) {
+                Log.error("onApprovalRequired hook error:", approvalError);
+                // Fall through to default escalate behavior
+              }
+            } else {
+              // No approval hook - use default escalate behavior
+              const escalateResult: ToolResult = {
+                content: [
+                  {
+                    type: "text",
+                    text: `Action requires human approval: ${blockReason}. Please request human assistance.`,
+                  },
+                ],
+                isError: false,
+              };
+              toolChain.updateToolResult(escalateResult);
+              return convertToolResult(result, escalateResult, user_messages);
+            }
+          } else if (hookResult.skip) {
+            // Skip without error (for batch/scraping scenarios)
+            const skipResult: ToolResult = {
+              content: [
+                {
+                  type: "text",
+                  text: `Skipped: ${blockReason}`,
+                },
+              ],
+              isError: false,
+            };
+            toolChain.updateToolResult(skipResult);
+            return convertToolResult(result, skipResult, user_messages);
+          }
+
+          // Return as error to LLM
+          const blockedResult: ToolResult = {
+            content: [
+              {
+                type: "text",
+                text: `Blocked: ${blockReason}`,
+              },
+            ],
+            isError: true,
+          };
+          toolChain.updateToolResult(blockedResult);
+          return convertToolResult(result, blockedResult, user_messages);
+        }
+
+        // Apply modified args if provided
+        if (hookResult.modifiedArgs) {
+          args = hookResult.modifiedArgs;
+          toolChain.params = args;
+        }
+      } catch (hookError) {
+        Log.error("beforeToolCall hook error:", hookError);
+        // Continue with original args if hook fails
+      }
+    }
+
     let toolResult: ToolResult;
     try {
-      const args =
-        typeof result.input == "string"
-          ? JSON.parse(result.input || "{}")
-          : result.input || {};
-      toolChain.params = args;
       let tool = getTool(agentTools, result.toolName);
       if (!tool) {
         throw new Error(result.toolName + " tool does not exist");
@@ -314,22 +452,131 @@ export class Agent {
       toolResult = await tool.execute(args, agentContext, result);
       toolChain.updateToolResult(toolResult);
       agentContext.consecutiveErrorNum = 0;
-    } catch (e) {
+
+      // ============ AFTER TOOL CALL HOOK (SUCCESS) ============
+      if (hooks?.afterToolCall) {
+        try {
+          await hooks.afterToolCall(agentContext, result.toolName, args, toolResult);
+        } catch (afterHookError) {
+          Log.error("afterToolCall hook error:", afterHookError);
+          // Don't fail the tool call if hook fails
+        }
+      }
+    } catch (e: any) {
       Log.error("tool call error: ", result.toolName, result.input, e);
-      toolResult = {
-        content: [
-          {
-            type: "text",
-            text: e + "",
-          },
-        ],
-        isError: true,
-      };
-      toolChain.updateToolResult(toolResult);
+
+      // ============ ON TOOL ERROR HOOK ============
+      if (hooks?.onToolError) {
+        try {
+          const errorAction = await hooks.onToolError(
+            agentContext,
+            result.toolName,
+            e,
+            args
+          );
+
+          switch (errorAction) {
+            case "retry":
+              // Retry the tool call with retry limit
+              if (retryCount < MAX_TOOL_RETRIES) {
+                Log.info(`Retrying tool ${result.toolName} after error (attempt ${retryCount + 1}/${MAX_TOOL_RETRIES})`);
+                return this.callToolCall(agentContext, agentTools, result, user_messages, retryCount + 1);
+              } else {
+                Log.warn(`Max retries (${MAX_TOOL_RETRIES}) reached for tool ${result.toolName}, falling through to error`);
+                // Fall through to default error handling
+                toolResult = {
+                  content: [
+                    {
+                      type: "text",
+                      text: `Error after ${MAX_TOOL_RETRIES} retries: ${e.message}`,
+                    },
+                  ],
+                  isError: true,
+                };
+                toolChain.updateToolResult(toolResult);
+              }
+              break;
+
+            case "skip":
+              // Skip without error
+              toolResult = {
+                content: [
+                  {
+                    type: "text",
+                    text: `Skipped due to error: ${e.message}`,
+                  },
+                ],
+                isError: false,
+              };
+              toolChain.updateToolResult(toolResult);
+              break;
+
+            case "abort":
+              // Re-throw to abort the task
+              throw e;
+
+            case "escalate":
+              // Escalate to human
+              toolResult = {
+                content: [
+                  {
+                    type: "text",
+                    text: `Error requires human assistance: ${e.message}. Please use human_interact tool to request help.`,
+                  },
+                ],
+                isError: true,
+              };
+              toolChain.updateToolResult(toolResult);
+              break;
+
+            case "continue":
+            default:
+              // Standard error handling
+              toolResult = {
+                content: [
+                  {
+                    type: "text",
+                    text: e + "",
+                  },
+                ],
+                isError: true,
+              };
+              toolChain.updateToolResult(toolResult);
+              break;
+          }
+        } catch (errorHookError) {
+          Log.error("onToolError hook failed:", errorHookError);
+          // Fall back to standard error handling
+          toolResult = {
+            content: [
+              {
+                type: "text",
+                text: e + "",
+              },
+            ],
+            isError: true,
+          };
+          toolChain.updateToolResult(toolResult);
+        }
+      } else {
+        // No error hook, standard error handling
+        toolResult = {
+          content: [
+            {
+              type: "text",
+              text: e + "",
+            },
+          ],
+          isError: true,
+        };
+        toolChain.updateToolResult(toolResult);
+      }
+
       if (++agentContext.consecutiveErrorNum >= 10) {
         throw e;
       }
     }
+
     const callback = this.callback || context.config.callback;
     if (callback) {
       await callback.onMessage(

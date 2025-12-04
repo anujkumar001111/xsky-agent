@@ -3,6 +3,7 @@ import { AgentContext } from "../../core/context";
 import { LanguageModelV2Prompt } from "@ai-sdk/provider";
 import { Tool, ToolResult, IMcpClient } from "../../types";
 import { mergeTools, sleep, toImage } from "../../common/utils";
+import { scaleCoordinates } from "../../common/coordinate-scaling";
 
 /**
  * An agent that can interact with a web browser using screen coordinates.
@@ -15,17 +16,44 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
    * @param mcpClient - The MCP client to use.
    */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
-    const description = `You are a browser operation agent, use a mouse and keyboard to interact with a browser.
-* This is a browser GUI interface, observe the webpage execution through screenshots, and specify action sequences to complete designated tasks.
-* For the first visit, please call the \`navigate_to\` or \`current_page\` tool first. After that, each of your actions will return a screenshot of the page.
-* BROWSER OPERATIONS:
-  - Navigate to URLs and manage history
-  - Fill forms and submit data
-  - Click elements and interact with pages
-  - Extract text and HTML content
-  - Wait for elements to load
-  - Scroll pages and handle infinite scroll
-  - YOU CAN DO ANYTHING ON THE BROWSER - including clicking on elements, filling forms, submitting data, etc.`;
+    const description = `<SYSTEM_CAPABILITY>
+* You are a browser automation agent using mouse and keyboard for interaction
+* You observe webpages through screenshots and specify action sequences to complete tasks
+* You can navigate, click at coordinates, type, scroll, and interact with any page element
+* For your first visit, call either \`navigate_to\` or \`current_page\` tool
+* After each action, you receive an updated screenshot of the page
+</SYSTEM_CAPABILITY>
+
+<INTERACTION_RULES>
+* Click elements by specifying X,Y coordinates from the screenshot
+* Type text after clicking to focus the target input field
+* Use scroll to reveal content outside visible area
+* Wait for page loads to complete before interacting
+* Use drag_and_drop for moving elements between positions
+</INTERACTION_RULES>
+
+<BROWSER_OPERATIONS>
+* Navigate to URLs and manage browser history
+* Fill forms and submit data
+* Click elements and interact with pages
+* Extract text and HTML content
+* Wait for elements to load
+* Scroll pages and handle infinite scroll
+* YOU CAN DO ANYTHING ON THE BROWSER - clicking, filling forms, submitting data, etc.
+</BROWSER_OPERATIONS>
+
+<CONSTRAINTS>
+* Only interact with elements visible in the current screenshot
+* Coordinates must be within the visible viewport
+* Handle popups and cookie banners before main task
+* Report failures clearly with what was attempted
+</CONSTRAINTS>
+
+<IMPORTANT>
+* Screenshots show the current page state - use them to determine coordinates
+* Dynamic content may change between screenshots
+* If an element is not visible, scroll to find it first
+</IMPORTANT>`;
     const _tools_ = [] as Tool[];
     super({
       name: AGENT_NAME,
@@ -227,11 +255,17 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
           args: Record<string, unknown>,
           agentContext: AgentContext
         ): Promise<ToolResult> => {
+          // Scale coordinates from screenshot space to viewport space
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
+          );
           return await this.callInnerTool(() =>
             this.click(
               agentContext,
-              args.x as number,
-              args.y as number,
+              scaled.x,
+              scaled.y,
               (args.num_clicks || 1) as number,
               (args.button || "left") as any
             )
@@ -259,8 +293,14 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
           args: Record<string, unknown>,
           agentContext: AgentContext
         ): Promise<ToolResult> => {
+          // Scale coordinates from screenshot space to viewport space
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
+          );
           return await this.callInnerTool(() =>
-            this.move_to(agentContext, args.x as number, args.y as number)
+            this.move_to(agentContext, scaled.x, scaled.y)
           );
         },
       },
@@ -366,13 +406,24 @@ export default abstract class BaseBrowserScreenAgent extends BaseBrowserAgent {
           args: Record<string, unknown>,
           agentContext: AgentContext
         ): Promise<ToolResult> => {
+          // Scale all coordinates from screenshot space to viewport space
+          const scaledStart = scaleCoordinates(
+            args.x1 as number,
+            args.y1 as number,
+            this.lastScaleFactor
+          );
+          const scaledEnd = scaleCoordinates(
+            args.x2 as number,
+            args.y2 as number,
+            this.lastScaleFactor
+          );
           return await this.callInnerTool(() =>
             this.drag_and_drop(
               agentContext,
-              args.x1 as number,
-              args.y1 as number,
-              args.x2 as number,
-              args.y2 as number
+              scaledStart.x,
+              scaledStart.y,
+              scaledEnd.x,
+              scaledEnd.y
             )
           );
         },

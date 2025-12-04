@@ -313,6 +313,12 @@ export async function testImageToolsPrompt(llm: "openai" | "claude") {
   console.log("resultText: ", resultText);
 }
 
-test.only("test", async () => {
+
+
+// const t = process.env.OPENAI_API_KEY ? test : test.skip;
+
+test.skip("test", async () => {
   await testOpenaiStream();
 });
+
+

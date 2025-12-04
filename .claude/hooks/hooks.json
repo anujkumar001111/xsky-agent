@@ -1,0 +1,41 @@
+{
+  "description": "XSky development quality gates - validates code changes and ensures standards",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Validate this file change for XSky framework. Check:\n1. TypeScript strict mode compliance (no 'any' without justification)\n2. Proper error handling (try/catch, meaningful messages)\n3. No console.log (use Log class from @xsky/ai-agent-core)\n4. Exports match XSky patterns (named exports)\n5. JSDoc on public APIs\n\nFile: $TOOL_INPUT\n\nReturn 'approve' if acceptable, or 'deny' with specific issues.",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before completing this XSky development task, verify:\n1. Code compiles without TypeScript errors\n2. Tests pass (if tests were written or modified)\n3. No breaking changes to public APIs (unless intentional)\n4. Documentation updated if APIs changed\n5. Exports properly set up\n\nReturn 'approve' to complete, or 'block' with what's missing.",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/scripts/load-xsky-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

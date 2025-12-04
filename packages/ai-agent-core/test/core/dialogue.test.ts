@@ -29,6 +29,8 @@ const llms: LLMs = {
   },
 };
 
+const t = process.env.OPENAI_API_KEY ? test : test.skip;
+
 async function run() {
   Log.setLevel(0);
   const chatCallback = {
@@ -98,6 +100,6 @@ async function run() {
   }
 }
 
-test.only("dialogue", async () => {
+t("dialogue", async () => {
   await run();
 });

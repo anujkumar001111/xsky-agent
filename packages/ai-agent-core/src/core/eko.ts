@@ -165,11 +165,22 @@ export class Eko {
   }
 
   private async doRunWorkflow(context: Context): Promise<EkoResult> {
+    const hooks = this.config.hooks;
     const agents = context.agents as Agent[];
     const workflow = context.workflow as Workflow;
     if (!workflow || workflow.agents.length == 0) {
       throw new Error("Workflow error");
     }
+
+    // ============ ON WORKFLOW GENERATED HOOK ============
+    if (hooks?.onWorkflowGenerated) {
+      try {
+        await hooks.onWorkflowGenerated(context, workflow);
+      } catch (hookError) {
+        Log.error("onWorkflowGenerated hook error:", hookError);
+      }
+    }
+
     const agentNameMap = agents.reduce((map, item) => {
       map[item.Name] = item;
       return map;
@@ -269,12 +280,24 @@ export class Eko {
       }
       agentTree = agentTree.nextAgent;
     }
-    return {
+
+    const ekoResult: EkoResult = {
       success: true,
       stopReason: "done",
       taskId: context.taskId,
       result: results[results.length - 1] || "",
     };
+
+    // ============ ON WORKFLOW COMPLETE HOOK ============
+    if (hooks?.onWorkflowComplete) {
+      try {
+        await hooks.onWorkflowComplete(context, ekoResult);
+      } catch (hookError) {
+        Log.error("onWorkflowComplete hook error:", hookError);
+      }
+    }
+
+    return ekoResult;
   }
 
   protected async runAgent(
@@ -283,8 +306,13 @@ export class Eko {
     agentNode: NormalAgentNode,
     agentChain: AgentChain
   ): Promise<string> {
+    const hooks = this.config.hooks;
+
     try {
       agentNode.agent.status = "running";
+
+      // Note: beforeAgentStart hook is called inside agent.run() where AgentContext is available
+
       this.config.callback &&
         (await this.config.callback.onMessage({
           taskId: context.taskId,
@@ -293,8 +321,37 @@ export class Eko {
           type: "agent_start",
           agentNode: agentNode.agent,
         }));
+
       agentNode.result = await agent.run(context, agentChain);
       agentNode.agent.status = "done";
+
+      // AgentContext is now available after agent.run()
+      const agentContext = agent.AgentContext;
+
+      // ============ AFTER AGENT COMPLETE HOOK ============
+      if (hooks?.afterAgentComplete && agentContext) {
+        try {
+          const hookResult = await hooks.afterAgentComplete(agentContext, agentNode.result);
+          if (hookResult?.retry) {
+            Log.info(`Retrying agent ${agentNode.agent.name} due to afterAgentComplete hook`);
+            agentNode.agent.status = "running";
+            return this.runAgent(context, agent, agentNode, agentChain);
+          }
+        } catch (afterHookError) {
+          Log.error("afterAgentComplete hook error:", afterHookError);
+          // Don't fail if hook fails
+        }
+      }
+
+      // ============ WORKFLOW STEP COMPLETE HOOK ============
+      if (hooks?.onWorkflowStepComplete) {
+        try {
+          await hooks.onWorkflowStepComplete(context, agentNode.agent, agentNode.result);
+        } catch (stepHookError) {
+          Log.error("onWorkflowStepComplete hook error:", stepHookError);
+        }
+      }
+
       this.config.callback &&
         (await this.config.callback.onMessage(
           {
@@ -308,8 +365,38 @@ export class Eko {
           agent.AgentContext
         ));
       return agentNode.result;
-    } catch (e) {
+    } catch (e: any) {
       agentNode.agent.status = "error";
+
+      // AgentContext may be available even if agent.run() failed
+      const agentContext = agent.AgentContext;
+
+      // ============ ON AGENT ERROR HOOK ============
+      if (hooks?.onAgentError && agentContext) {
+        try {
+          const errorAction = await hooks.onAgentError(agentContext, e);
+          switch (errorAction) {
+            case "retry":
+              Log.info(`Retrying agent ${agentNode.agent.name} after error`);
+              agentNode.agent.status = "init";
+              return this.runAgent(context, agent, agentNode, agentChain);
+            case "skip":
+              agentNode.result = `Skipped due to error: ${e.message}`;
+              agentNode.agent.status = "done";
+              return agentNode.result;
+            case "abort":
+              throw e;
+            case "escalate":
+            case "continue":
+            default:
+              // Continue with error callback
+              break;
+          }
+        } catch (errorHookError) {
+          Log.error("onAgentError hook failed:", errorHookError);
+        }
+      }
+
       this.config.callback &&
         (await this.config.callback.onMessage(
           {

@@ -7,11 +7,8 @@ dotenv.config();
 
 const baseURL = process.env.OPENAI_BASE_URL;
 const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  throw new Error(
-    "OPENAI_API_KEY environment variable is required for integration tests"
-  );
-}
+
+const t = process.env.OPENAI_API_KEY ? test : test.skip;
 
 export async function testOpenaiPrompt() {
   const client: LanguageModelV2 = createOpenAI({
@@ -121,6 +118,6 @@ export async function testToolsPrompt() {
   console.log(result.finishReason, result.content, result.usage);
 }
 
-test.only("testOpenai", async () => {
+t("testOpenai", async () => {
   await testOpenaiStream();
 });

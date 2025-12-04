@@ -1,0 +1,65 @@
+Claude Code Hooks - Complete Reference
+Hook Types Available
+Hook Event	Trigger
+PreToolUse	Before a tool executes
+PostToolUse	After a tool completes
+Notification	System notifications
+UserPromptSubmit	When user submits a prompt
+SessionStart	When session begins
+SessionEnd	When session ends
+Stop	When Claude stops execution
+SubagentStart	When subagent starts
+SubagentStop	When subagent stops
+PreCompact	Before context compaction
+PermissionRequest	When permission is requested
+Hook Configuration Schema
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Tool completed'",
+            "timeout": 30,
+            "statusMessage": "Running post-tool check..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/path/to/script.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
+Three Hook Types
+1. Command Hook
+{
+  "type": "command",
+  "command": "jules remote list --session | head -5",
+  "timeout": 30,
+  "statusMessage": "Checking Jules status..."
+}
+2. Prompt Hook
+{
+  "type": "prompt",
+  "prompt": "Analyze this output and summarize: $ARGUMENTS",
+  "timeout": 60,
+  "model": "claude-sonnet-4-5-20250929"
+}
+3. Agent Hook
+{
+  "type": "agent",
+  "prompt": "Verify that the operation completed successfully. $ARGUMENTS",
+  "timeout": 60,
+  "model": "claude-sonnet-4-5-20250929"
+}

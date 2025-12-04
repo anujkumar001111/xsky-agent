@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "find .claude/specs -name 'feature_status.md' -exec echo 'Recent Jules Activity:' \\; -exec head -n 5 {} \\; 2>/dev/null || echo 'No recent spec activity'",
+        "timeout": 2000,
+        "statusMessage": "Checking recent spec activity..."
+      }
+    ]
+  }
+}

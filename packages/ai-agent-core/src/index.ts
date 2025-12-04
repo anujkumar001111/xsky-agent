@@ -57,6 +57,20 @@ export {
   type StreamCallbackMessage,
 } from "./types";
 
+export type {
+  AgentHooks,
+  ToolHookResult,
+  ErrorHookResult,
+  AgentHookResult,
+  ApprovalRequest,
+  ApprovalResult,
+  Checkpoint,
+  StateConfig,
+  ApprovalConfig,
+  RateLimitConfig,
+  ProductionEkoConfig,
+} from "./types/hooks.types";
+
 export {
   mergeTools,
   toImage,
@@ -74,3 +88,17 @@ export {
 
 export { buildAgentTree } from "./common/tree";
 export { extract_page_content } from "./agent/browser/utils";
+export { scaleCoordinates, scaleCoordinate } from "./common/coordinate-scaling";
+
+// Utility exports
+export {
+  RateLimiter,
+  RateLimitPresets,
+  createRateLimitedHook,
+  createBlocklistHook,
+  createApprovalRequiredHook,
+  createUrlSanitizerHook,
+  combineHooks,
+  createAuditHook,
+  createErrorRecoveryHook,
+} from "./utils";

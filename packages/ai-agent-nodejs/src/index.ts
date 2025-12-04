@@ -1,3 +1,9 @@
+/**
+ * @module @xsky/ai-agent-nodejs
+ * Node.js adapter for XSky AI Agent framework.
+ * Provides Playwright-based browser automation and native filesystem access.
+ */
+
 import { getCdpWsEndpoint } from "./utils";
 
 export { getCdpWsEndpoint };

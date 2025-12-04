@@ -25,39 +25,65 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
    * @param mcpClient - The MCP client to use.
    */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
-    let description = `You are a browser operation agent, use structured commands to interact with the browser.
-* This is a browser GUI interface where you need to analyze webpages by taking screenshot and page element structures, and specify action sequences to complete designated tasks.
-* For your first visit, please start by calling either the \`navigate_to\` or \`current_page\` tool. After each action you perform, I will provide you with updated information about the current state, including page screenshots and structured element data that has been specially processed for easier analysis.
-* During execution, please output user-friendly step information. Do not output HTML-related element and index information to users, as this would cause user confusion.
+    let description = `<SYSTEM_CAPABILITY>
+* You are a browser automation agent using labeled elements for interaction
+* Screenshots show labeled elements with [index] markers for precise targeting
+* You can click, type, scroll, and navigate using element indices
+* DOM changes are tracked for adaptive waiting on dynamic content
+* For your first visit, call either \`navigate_to\` or \`current_page\` tool
+* After each action, you receive updated screenshots and structured element data
+</SYSTEM_CAPABILITY>
 
-* Screenshot description:
-  - Screenshot are used to understand page layouts, with labeled bounding boxes corresponding to element indexes. Each bounding box and its label share the same color, with labels typically positioned in the top-right corner of the box.
-  - Screenshot help verify element positions and relationships. Labels may sometimes overlap, so extracted elements are used to verify the correct elements.
-  - In addition to screenshot, simplified information about interactive elements is returned, with element indexes corresponding to those in the screenshot.
-  - This tool can ONLY screenshot the VISIBLE content. If a complete content is required, use 'extract_page_content' instead.
-  - If the webpage content hasn't loaded, please use the \`wait\` tool to allow time for the content to load.
-* Element interaction:
-  - Only use indexes that exist in the provided element list
-  - Browser tools only return elements in visible viewport by default
-  - Each element has a unique index number (e.g., "[33]:<button>Submit</button>")
-  - Elements marked with "[]:" are non-interactive (for context only, e.g., "[]: Google")
-  - Use the latest element index, do not rely on historical outdated element indexes
-  - Due to technical limitations, not all interactive elements may be identified; use coordinates to interact with unlisted elements
-* Error handling:
-  - If no suitable elements exist, use other functions to complete the task
-  - If stuck, try alternative approaches, don't refuse tasks
-  - Handle popups/cookies by accepting or closing them
-  - When encountering scenarios that require user assistance such as login, verification codes, QR code scanning, Payment, etc, you can request user help.
-* Browser operation:
-  - Use scroll to find elements you are looking for, When extracting content, prioritize using extract_page_content, only scroll when you need to load more content
-  - Please follow user instructions and don't be lazy until the task is completed. For example, if a user asks you to find 30 people, don't just find 10 - keep searching until you find all 30.`;
+<INTERACTION_RULES>
+* Click elements by their [index] number shown in screenshot (e.g., "[33]:<button>Submit</button>")
+* Only interact with elements visible in current viewport
+* Use scroll to reveal elements outside visible area
+* Wait for page loads to complete before interacting
+* Elements marked with "[]:" are non-interactive (context only, e.g., "[]: Google")
+* Use the latest element index - do not rely on historical outdated indexes
+</INTERACTION_RULES>
+
+<SCREENSHOT_GUIDANCE>
+* Screenshots show labeled bounding boxes corresponding to element indexes
+* Each bounding box and label share the same color, labels typically in top-right corner
+* Labels may overlap - use extracted element list to verify correct targets
+* Screenshots capture ONLY visible content - use 'extract_page_content' for full page
+* If content hasn't loaded, use \`wait\` tool to allow loading time
+</SCREENSHOT_GUIDANCE>
+
+<CONSTRAINTS>
+* Never click elements not visible in screenshot
+* Handle popups and cookie banners before main task
+* If element not found, scroll or navigate to find it
+* Report failures clearly with what was attempted
+* Only use indexes that exist in the provided element list
+* Due to technical limitations, not all interactive elements may be identified - use coordinates for unlisted elements
+</CONSTRAINTS>
+
+<ERROR_HANDLING>
+* If no suitable elements exist, use alternative functions to complete the task
+* If stuck, try alternative approaches - don't refuse tasks
+* Handle popups/cookies by accepting or closing them
+* For login, verification codes, QR scanning, payments - request user assistance
+</ERROR_HANDLING>
+
+<IMPORTANT>
+* Element indices reset after each screenshot
+* Overlapping labels may require scrolling for clarity
+* Dynamic content may change indices between screenshots
+* Output user-friendly step information - do not output HTML element/index info to users
+* Follow instructions completely - if asked to find 30 items, find all 30, not just 10
+* When extracting content, prioritize extract_page_content; only scroll to load more content
+</IMPORTANT>`;
     if (config.parallelToolCalls) {
       description += `
-* Parallelism:
-   - Do not call the navigate_to tool simultaneously
-   - Operations that support parallelism generally only include clicking and input operations
-   - When filling out a form, fields that are not dependent on each other should be filled simultaneously
-   - Avoid parallel processing for dependent operations, such as those that need to wait for page loading, DOM changes, redirects, subsequent operations that depend on the results of previous operations, or operations that may interfere with each other and affect the same page elements. In these cases, please do not use parallelization.`;
+
+<PARALLELISM>
+* Do not call navigate_to tool simultaneously with other operations
+* Parallelism supported for: clicking and input operations on independent elements
+* When filling forms, fill independent fields simultaneously
+* Avoid parallel processing for: page loading, DOM changes, redirects, dependent operations, or operations affecting same elements
+</PARALLELISM>`;
     }
     const _tools_ = [] as Tool[];
     super({
@@ -254,8 +280,8 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
           try {
              // We need to inject the observer script
              // This assumes runExtractorsParallel can be reused or we use execute_script directly
-             const executor = async (script: string) => {
-                  return await this.execute_script(agentContext, script, []);
+             const executor = async (script: Function) => {
+                  return await this.execute_script(agentContext, script as any, []);
              };
              // Just run the setup_mutation_observer.js using the agent's loading mechanism
              // We can do this by asking DomIntelligenceAgent to run it
@@ -315,11 +341,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
           try {
               // We need to execute the script in the browser context
               // define executor using agent's execute_script
-              const executor = async (script: string) => {
+              const executor = async (script: Function) => {
                   // We need to pass the script content.
                   // BaseBrowserAgent.execute_script usually takes a function or string.
                   // If string, it evaluates it.
-                  return await this.execute_script(agentContext, script, []);
+                  return await this.execute_script(agentContext, script as any, []);
               };
 
               const intelligence = await this.domIntelligence.getIntelligence(executor);

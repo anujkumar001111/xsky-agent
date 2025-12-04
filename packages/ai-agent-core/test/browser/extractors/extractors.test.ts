@@ -1,17 +1,9 @@
-import { expect } from 'chai';
-import fs from 'fs';
-import path from 'path';
 import { JSDOM } from 'jsdom';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { extract_structure, extract_styles } from '../../../src/agent/browser/extractors';
 
 describe('JS Extractors', () => {
-  const extractorsPath = path.resolve(__dirname, '../../../src/agent/browser/extractors');
 
   it('should extract structure correctly', () => {
-    const script = fs.readFileSync(path.join(extractorsPath, 'extract_structure.js'), 'utf-8');
     const dom = new JSDOM(`
       <div id="parent" class="container">
         <span id="child">Hello</span>
@@ -23,28 +15,29 @@ describe('JS Extractors', () => {
         x: 0, y: 0, width: 100, height: 100, top: 0, left: 0, bottom: 100, right: 100, toJSON: () => {}
     });
 
-    // Execute script
-    dom.window.eval(script.replace('return extractStructure();', 'window._result = extractStructure(document.body);'));
-    const result = (dom.window as any)._result;
+    // Execute script by serializing the function
+    const script = `(${extract_structure.toString()})(document.body)`;
+    const result = dom.window.eval(script);
 
-    expect(result).to.be.an('array');
+    expect(Array.isArray(result)).toBe(true);
     const parent = result.find((el: any) => el.id === 'parent');
-    expect(parent).to.exist;
-    expect(parent.tagName).to.equal('div');
-    expect(parent.className).to.equal('container');
-    expect(parent.children).to.include('child');
+    expect(parent).toBeDefined();
+    expect(parent.tagName).toBe('div');
+    expect(parent.className).toBe('container');
+    expect(parent.children).toContain('child');
   });
 
   it('should extract styles correctly', () => {
-    const script = fs.readFileSync(path.join(extractorsPath, 'extract_styles.js'), 'utf-8');
     const dom = new JSDOM('<div id="styled" style="color: red;">Styled</div>', { runScripts: "dangerously" });
 
     // JSDOM supports basic computed styles
-    dom.window.eval(script.replace('return extractStyles();', 'window._result = extractStyles(document.body);'));
-    const result = (dom.window as any)._result;
+    const script = `(${extract_styles.toString()})(document.body)`;
+    const result = dom.window.eval(script);
     const styled = result.find((el: any) => el.id === 'styled');
 
-    expect(styled).to.exist;
-    expect(styled.computedStyles.color).to.satisfy((c: string) => c === 'red' || c === 'rgb(255, 0, 0)');
+    expect(styled).toBeDefined();
+    // JSDOM might return RGB
+    const color = styled.computedStyles.color;
+    expect(color === 'red' || color === 'rgb(255, 0, 0)').toBe(true);
   });
 });

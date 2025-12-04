@@ -1,0 +1,13 @@
+{
+  "account": {
+    "id": 1,
+    "name": "primary",
+    "mcp_server": "google-jules",
+    "env_key": "JULES_API_KEY",
+    "limit": 100,
+    "used_today": 0,
+    "last_reset": "2025-12-01"
+  },
+  "active_sessions": [],
+  "history": []
+}

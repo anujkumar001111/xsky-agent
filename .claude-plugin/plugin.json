@@ -1,0 +1,25 @@
+{
+  "name": "xsky-dev-team",
+  "version": "1.0.0",
+  "description": "Complete AI development team for XSky AI Agent framework - architects, implementers, reviewers, and specialists",
+  "author": {
+    "name": "XSky Team",
+    "url": "https://github.com/xsky-ai"
+  },
+  "repository": "https://github.com/xsky-ai/ai-agent",
+  "license": "MIT",
+  "keywords": [
+    "xsky",
+    "ai-agent",
+    "development-team",
+    "browser-automation",
+    "multi-platform",
+    "electron",
+    "llm"
+  ],
+  "commands": "./.claude/commands",
+  "agents": "./.claude/agents",
+  "skills": "./.claude/skills",
+  "hooks": "./.claude/hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

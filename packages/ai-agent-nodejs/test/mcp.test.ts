@@ -24,7 +24,9 @@ async function testMcp() {
   await mcpClient.close();
 }
 
-test.only("mcp", async () => {
+const t = process.env.E2E_MCP_TEST ? test : test.skip;
+
+t("mcp", async () => {
   Log.setLevel(0);
   await testMcp();
 });

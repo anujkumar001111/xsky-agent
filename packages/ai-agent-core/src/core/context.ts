@@ -1,5 +1,5 @@
 import { Agent } from "../agent";
-import { sleep } from "../common/utils";
+import { sleep, uuidv4 } from "../common/utils";
 import Chain, { AgentChain } from "./chain";
 import {
   EkoConfig,
@@ -8,6 +8,7 @@ import {
   WorkflowAgent,
 } from "../types";
 import { DomIntelligenceCache } from "../agent/browser/dom_intelligence";
+import type { Checkpoint } from "../types/hooks.types";
 
 export interface AdaptiveWaitSignal {
   type: 'mutation' | 'event' | 'animation' | 'load';
@@ -30,6 +31,11 @@ export default class Context {
   conversation: string[] = [];
   private pauseStatus: 0 | 1 | 2 = 0;
   readonly currentStepControllers: Set<AbortController> = new Set();
+
+  // Checkpoint system
+  private checkpointTimer?: ReturnType<typeof setInterval>;
+  private stateChangeDebounceTimer?: ReturnType<typeof setTimeout>;
+  private pendingStateChanges: Map<string, any> = new Map();
 
   /**
    * Creates an instance of the Context.
@@ -132,6 +138,156 @@ export default class Context {
     });
     this.currentStepControllers.clear();
     this.controller = new AbortController();
+    this.stopCheckpointing();
+  }
+
+  // ============ CHECKPOINT SYSTEM ============
+
+  /**
+   * Starts automatic checkpointing at the specified interval.
+   * @param intervalMs - Interval in milliseconds between checkpoints.
+   */
+  startCheckpointing(intervalMs: number): void {
+    if (this.checkpointTimer) {
+      clearInterval(this.checkpointTimer);
+    }
+
+    this.checkpointTimer = setInterval(async () => {
+      await this.createCheckpoint();
+    }, intervalMs);
+  }
+
+  /**
+   * Stops automatic checkpointing.
+   */
+  stopCheckpointing(): void {
+    if (this.checkpointTimer) {
+      clearInterval(this.checkpointTimer);
+      this.checkpointTimer = undefined;
+    }
+  }
+
+  /**
+   * Creates a checkpoint and triggers the onCheckpoint hook.
+   * @returns The created checkpoint, or undefined if no hook is configured.
+   */
+  async createCheckpoint(): Promise<Checkpoint | undefined> {
+    const hooks = this.config.hooks;
+    if (!hooks?.onCheckpoint) {
+      return undefined;
+    }
+
+    const checkpoint: Checkpoint = {
+      id: uuidv4(),
+      taskId: this.taskId,
+      state: JSON.stringify(this.serialize()),
+      metadata: {
+        agentCount: this.chain.agents.length,
+        variableCount: this.variables.size,
+        timestamp: Date.now(),
+      },
+      createdAt: Date.now(),
+    };
+
+    try {
+      await hooks.onCheckpoint(checkpoint);
+    } catch (error) {
+      // Don't fail the workflow if checkpoint fails
+      console.error("Checkpoint hook error:", error);
+    }
+
+    return checkpoint;
+  }
+
+  /**
+   * Serializes the context state for checkpointing.
+   */
+  serialize(): Record<string, any> {
+    return {
+      taskId: this.taskId,
+      variables: Object.fromEntries(this.variables),
+      conversation: this.conversation,
+      workflowProgress: this.workflow?.agents.map((a) => ({
+        id: a.id,
+        name: a.name,
+        status: a.status,
+      })),
+    };
+  }
+
+  /**
+   * Restores context state from a checkpoint.
+   * @param state - The serialized state to restore.
+   */
+  restore(state: Record<string, any>): void {
+    if (state.variables) {
+      this.variables = new Map(Object.entries(state.variables));
+    }
+    if (state.conversation) {
+      this.conversation = state.conversation;
+    }
+  }
+
+  // ============ STATE CHANGE TRACKING ============
+
+  /**
+   * Sets a variable and triggers the onStateChange hook (debounced).
+   * @param key - The variable key.
+   * @param value - The variable value.
+   */
+  setVariable(key: string, value: any): void {
+    this.variables.set(key, value);
+    this.queueStateChange(key, value);
+  }
+
+  /**
+   * Gets a variable value.
+   * @param key - The variable key.
+   */
+  getVariable<T = any>(key: string): T | undefined {
+    return this.variables.get(key);
+  }
+
+  /**
+   * Queues a state change for debounced hook notification.
+   */
+  private queueStateChange(key: string, value: any): void {
+    const hooks = this.config.hooks;
+    if (!hooks?.onStateChange) {
+      return;
+    }
+
+    this.pendingStateChanges.set(key, value);
+
+    // Debounce: wait 100ms before firing hook
+    if (this.stateChangeDebounceTimer) {
+      clearTimeout(this.stateChangeDebounceTimer);
+    }
+
+    this.stateChangeDebounceTimer = setTimeout(async () => {
+      await this.flushStateChanges();
+    }, 100);
+  }
+
+  /**
+   * Flushes pending state changes to the onStateChange hook.
+   */
+  private async flushStateChanges(): Promise<void> {
+    const hooks = this.config.hooks;
+    if (!hooks?.onStateChange || this.pendingStateChanges.size === 0) {
+      return;
+    }
+
+    // Fire hook for each pending change
+    for (const [key, value] of this.pendingStateChanges) {
+      try {
+        await hooks.onStateChange(this, key, value);
+      } catch (error) {
+        console.error("onStateChange hook error:", error);
+      }
+    }
+
+    this.pendingStateChanges.clear();
   }
 }
 

@@ -49,6 +49,8 @@ async function run() {
   console.log("result: ", result.result);
 }
 
-test.only("eko", async () => {
+const t = process.env.OPENAI_API_KEY ? test : test.skip;
+
+t("eko", async () => {
   await run();
 });

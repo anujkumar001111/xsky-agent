@@ -1,211 +1,553 @@
+# XSky AI Agent
 
+A production-ready JavaScript/TypeScript framework for creating AI-powered automation agents across multiple platforms.
 
+## Overview
 
-<h1 align="center">
-   <a href="https://github.com/anujkumar001111/xsky-agent" target="_blank">
-     <img src="https://github.com/user-attachments/assets/55dbdd6c-2b08-4e5f-a841-8fea7c2a0b92" alt="xsky-logo" width="200" height="200">
-   </a>
-   <br>
-   <small>XSky AI Agent - Build Production-ready Agentic Workflow with Natural Language</small>
- </h1>
-
-
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://example.com/build-status) [![Version](https://img.shields.io/github/package-json/v/anujkumar001111/xsky-agent?color=yellow)](https://xsky.ai/docs/release/versions/)
-
-XSky AI Agent (pronounced like 'sky') is a production-ready JavaScript framework that enables developers to create reliable agents, **from simple commands to complex workflows**. It provides a unified interface for running agents in both **computer and browser environments**.
-
-## News
-
-- **2025-09:** XSky AI Agent 3.0 introduces dependency-aware parallel agent execution.
-- **2025-09:** New pause, resume, and interrupt controls with `task_snapshot` workflow recovery.
-- **2025-09:** Monorepo tooling migrated to pnpm for consistent workspace management.
-
-## Upgrading to XSky AI Agent 3.0
-
-Follow these steps when moving an existing XSky AI Agent 2.x project to 3.0:
-
-1. Update dependencies with `pnpm up @xsky/ai-agent-core @xsky/ai-agent-nodejs @xsky/ai-agent-web @xsky/ai-agent-extension`.
-2. Regenerate saved workflows or exported plans so they use the v3 schema and dependency graph format.
-3. Clean and reinstall using pnpm (`rm -rf node_modules && pnpm install`), then rebuild any browser or desktop bundles.
-4. Re-run automated demos and update documentation to reflect the new pause/interrupt APIs and parallel agent behavior.
-
-
-## Framework Comparison
-
-| Feature                              | XSky AI Agent   | Langchain  | Browser-use  | Dify.ai  | Coze   |
-|--------------------------------------|-------|------------|--------------|----------|--------|
-| **Supported Platform**               | **All platform**  | Server side  | Browser  | Web  | Web  |
-| **One sentence to multi-step workflow** | ✅    | ❌          | ✅            | ❌        | ❌      |
-| **Intervenability**                  | ✅    | ✅          | ❌            | ❌        | ❌      |
-| **Task Parallel** | ✅    | ❌          | ❌            | ❌        | ❌      |
-| **Development Efficiency**           | **High**  | Low      | Middle        | Middle    | Low    |
-| **Task Complexity**           | **High**  | High      | Low        | Middle    | Middle    | Middle       |
-| **Open-source**                      | ✅    | ✅          | ✅            | ✅        | ❌      |
-| **Access to private web resources** | ✅ | ❌          | ❌            | ❌        | ❌      |
+XSky AI Agent is a powerful and flexible framework designed to simplify the development of AI agents. It provides a comprehensive set of tools and features to build, manage, and deploy agents that can automate complex tasks across various environments. Whether you're creating a simple chatbot or a sophisticated multi-agent system, XSky AI Agent offers the building blocks you need to get started quickly.
 
 ## Features
 
-- [x] Pure JavaScript: Built for browsers and Node.js.🚀
-- [x] Multi-Agent: Unleash power with multiple Agents in one task.📈
-- [x] Agent/Tool Flexibility: Customize new Agents and Tools in just one line.🎉
-- [x] Native MCP: Connects seamlessly with [Awesome MCP Servers](https://mcpservers.org/).🔗
-- [x] Dynamic LLM: Balance speed and performance with flexible model choices.⚙️
-- [x] Human-in-the-loop: Intervene when it matters most.🤝
-- [x] Stream Planning: Dynamic rendering made easy.🎨
-- [x] Loop & Listener Tasks: Automate any repetitive task.🤖
-- [ ] Observable Chain: *Coming soon*
-- [ ] Native A2A: *Coming soon*
+- **Multi-platform**: Build agents that run in browser extensions, web apps, Node.js, and Electron applications.
+- **Multi-agent Orchestration**: Run multiple agents in parallel with dependency management to create complex workflows.
+- **Human-in-the-loop**: Pause, resume, and interrupt agent execution to allow for human intervention and collaboration.
+- **MCP Integration**: Native support for the Model Context Protocol (MCP) enables seamless communication with language models.
+- **Dynamic LLM Selection**: Support for multiple AI providers (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter, and more).
+- **Workflow Planning**: Convert natural language descriptions into executable task graphs.
+- **DOM Intelligence**: Extract comprehensive information from web pages for browser automation.
+- **Memory Management**: Built-in conversation memory with compression and capacity management.
 
-## Quickstart
+## Table of Contents
 
-> **Note**: Please refer to the [XSky AI Agent Quickstart guide](https://xsky.ai/docs/getting-started/quickstart/) guide for full instructions on how to run it.
+- [Getting Started](#getting-started)
+- [Installation](#installation)
+- [Packages](#packages)
+- [Architecture](#architecture)
+- [Usage Examples](#usage-examples)
+- [Configuration](#configuration)
+- [API Reference](#api-reference)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
-> **Security Warning**
-> 
-> DO NOT use API Keys in browser/frontend code!
->
-> This will expose your credentials and may lead to unauthorized usage.
->
-> Best Practices: Configure backend API proxy request through baseURL and request headers.
->
-> Please refer to the link: https://xsky.ai/docs/getting-started/configuration#web-environment
-
-```typescript
-const llms: LLMs = {
-  default: {
-    provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
-    apiKey: "your-api-key"
-  },
-  gemini: {
-    provider: "google",
-    model: "gemini-2.5-pro",
-    apiKey: "your-api-key"
-  },
-  openai: {
-    provider: "openai",
-    model: "gpt-5",
-    apiKey: "your-api-key"
-  },
-  // OpenAI-compatible models (Qwen, Doubao, etc.)
-  qwen: {
-    provider: "openai",
-    model: "qwen-plus",
-    apiKey: "your-qwen-api-key",
-    config: {
-      baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-    }
-  },
-  doubao: {
-    provider: "openai",  // Use OpenAI provider for compatibility
-    model: "doubao-seed-1-6-250615",  // or other Doubao model
-    apiKey: "your-volcengine-api-key",
-    config: {
-      baseURL: "https://ark.cn-beijing.volces.com/api/v3"  // Volcengine endpoint
-    }
-  }
-
-};
-
-let agents: Agent[] = [new BrowserAgent(), new FileAgent()];
-let xsky = new XSky AI Agent({ llms, agents });
-let result = await xsky.run("Search for the latest news about Musk, summarize and save to the desktop as Musk.md");
-```
-
-```bash
-$ pnpm install @xsky/ai-agent-core
-```
-
-## Example Projects
-
-The repository ships with three workspace examples under the `example/` folder.
+## Getting Started
 
 ### Prerequisites
 
-Before running any example, install dependencies and build the core packages from the root directory:
+- Node.js v18 or higher
+- pnpm v10 or higher
+
+### Installation
+
+Clone the repository and install dependencies:
 
 ```bash
+# Clone the repository
+git clone https://github.com/xsky-ai/ai-agent.git
+
+# Navigate to the project directory
+cd ai-agent
+
+# Install dependencies
 pnpm install
+
+# Build all packages
 pnpm build
 ```
 
-### Browser Extension (`example/extension`)
+### Quick Start
+
+Install the core package in your project:
 
 ```bash
-cd example/extension
-pnpm install
-pnpm run build
+pnpm add @xsky/ai-agent-core
 ```
 
-Load the generated `dist` directory via `chrome://extensions` → Developer Mode → Load unpacked.
-Configure your API key in the extension options before running the automation task.
+Create a simple agent:
 
-### Node.js Automation (`example/nodejs`)
+```typescript
+import { Eko } from "@xsky/ai-agent-core";
+
+// Initialize Eko with LLM configuration
+const eko = new Eko({
+  llms: {
+    default: {
+      provider: "openai",
+      model: "gpt-4",
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+  },
+});
+
+// Execute a task
+const result = await eko.run("Search for the latest news about AI");
+console.log(result);
+```
+
+## Packages
+
+XSky AI Agent is organized as a monorepo with the following packages:
+
+### Core Package
+
+**`@xsky/ai-agent-core`** - The foundation framework providing:
+- Agent runtime and execution context
+- Workflow planning and orchestration
+- Memory management and compression
+- LLM provider integrations
+- Tool and MCP client interfaces
+- DOM intelligence and element extraction
+
+```bash
+pnpm add @xsky/ai-agent-core
+```
+
+### Environment Adapters
+
+**`@xsky/ai-agent-nodejs`** - Node.js adapter with Playwright-based browser automation:
+- Full browser control via Playwright
+- Native filesystem access
+- STDIO MCP client for subprocess communication
+
+```bash
+pnpm add @xsky/ai-agent-nodejs
+```
+
+**`@xsky/ai-agent-web`** - Web browser adapter:
+- In-page browser automation
+- html2canvas-based screenshots
+- Same-origin navigation support
+
+```bash
+pnpm add @xsky/ai-agent-web
+```
+
+**`@xsky/ai-agent-extension`** - Chrome extension adapter:
+- Chrome Extension API integration
+- Tab management and navigation
+- Cross-tab screenshot capture
+
+```bash
+pnpm add @xsky/ai-agent-extension
+```
+
+**`@xsky/ai-agent-electron`** - Electron desktop adapter:
+- WebContentsView integration
+- Secure contextIsolation support
+- PDF content extraction
+- Native file system access
+
+```bash
+pnpm add @xsky/ai-agent-electron
+```
+
+## Architecture
+
+### Core Components
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Eko (Main Entry)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │   Planner    │  │   Chain      │  │    AgentContext      │  │
+│  │  (Workflow)  │  │ (Execution)  │  │  (State Management)  │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │    Memory    │  │   Dialogue   │  │      Replan          │  │
+│  │ (Compression)│  │  (LLM Loop)  │  │ (Error Recovery)     │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                        Agent Layer                              │
+│  ┌──────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌──────────┐  │
+│  │ Browser  │ │   File   │ │  LLM   │ │  Shell │ │ Computer │  │
+│  │  Agent   │ │  Agent   │ │ Agent  │ │ Agent  │ │  Agent   │  │
+│  └──────────┘ └──────────┘ └────────┘ └────────┘ └──────────┘  │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                     LLM Provider Layer                          │
+│  ┌────────┐ ┌───────────┐ ┌────────┐ ┌─────────┐ ┌───────────┐ │
+│  │ OpenAI │ │ Anthropic │ │ Google │ │ Bedrock │ │OpenRouter │ │
+│  └────────┘ └───────────┘ └────────┘ └─────────┘ └───────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Workflow Execution Flow
+
+1. **Planning**: Natural language task → Workflow XML
+2. **Parsing**: XML → Agent nodes with dependencies
+3. **Scheduling**: Dependency resolution → Execution order
+4. **Execution**: Agent dialogue loops with tool calls
+5. **Result Aggregation**: Combine outputs from all agents
+
+## Usage Examples
+
+### Node.js Browser Automation
+
+```typescript
+import { Eko } from "@xsky/ai-agent-core";
+import { BrowserAgent } from "@xsky/ai-agent-nodejs";
+
+const browserAgent = new BrowserAgent();
+browserAgent.initUserDataDir(); // Use default Chrome profile
+
+const eko = new Eko({
+  llms: {
+    default: {
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+  },
+  agents: [browserAgent],
+});
+
+const result = await eko.run(
+  "Go to google.com and search for 'XSky AI Agent'"
+);
+```
+
+### With MCP Server
+
+```typescript
+import { Eko } from "@xsky/ai-agent-core";
+import { SimpleStdioMcpClient } from "@xsky/ai-agent-nodejs";
+
+const mcpClient = new SimpleStdioMcpClient("node", ["mcp-server.js"]);
+await mcpClient.connect();
+
+const eko = new Eko({
+  llms: {
+    default: {
+      provider: "anthropic",
+      model: "claude-3-opus-20240229",
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    },
+  },
+  defaultMcpClient: mcpClient,
+});
+
+const result = await eko.run("Use the available tools to complete my task");
+```
+
+### Streaming Callbacks
+
+```typescript
+const eko = new Eko({
+  llms: { /* ... */ },
+  callback: {
+    async onMessage(message) {
+      switch (message.type) {
+        case "text":
+          console.log("Assistant:", message.text);
+          break;
+        case "tool_use":
+          console.log("Using tool:", message.toolName);
+          break;
+        case "tool_result":
+          console.log("Tool result:", message.toolResult);
+          break;
+        case "finish":
+          console.log("Finished:", message.finishReason);
+          break;
+      }
+    },
+  },
+});
+```
+
+### Human-in-the-Loop
+
+```typescript
+const eko = new Eko({
+  llms: { /* ... */ },
+  callback: {
+    async onMessage(message) { /* ... */ },
+    async onHumanConfirm(context, prompt) {
+      // Show confirmation dialog to user
+      return await showConfirmDialog(prompt);
+    },
+    async onHumanInput(context, prompt) {
+      // Get text input from user
+      return await showInputDialog(prompt);
+    },
+    async onHumanSelect(context, prompt, options, multiple) {
+      // Show selection dialog
+      return await showSelectDialog(prompt, options, multiple);
+    },
+  },
+});
+```
+
+## Configuration
+
+### LLM Providers
+
+```typescript
+// OpenAI
+{
+  provider: "openai",
+  model: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+  config: {
+    baseURL: "https://api.openai.com/v1", // Optional custom endpoint
+    temperature: 0.7,
+  },
+}
+
+// Anthropic
+{
+  provider: "anthropic",
+  model: "claude-3-opus-20240229",
+  apiKey: process.env.ANTHROPIC_API_KEY,
+}
+
+// Google (Gemini)
+{
+  provider: "google",
+  model: "gemini-pro",
+  apiKey: process.env.GOOGLE_API_KEY,
+}
+
+// AWS Bedrock
+{
+  provider: "aws",
+  model: "anthropic.claude-3-opus-20240229-v1:0",
+  apiKey: "", // Uses AWS credentials from environment
+}
+
+// OpenRouter
+{
+  provider: "openrouter",
+  model: "anthropic/claude-3-opus",
+  apiKey: process.env.OPENROUTER_API_KEY,
+}
+
+// OpenAI-compatible endpoints
+{
+  provider: "openai-compatible",
+  model: "your-model",
+  apiKey: process.env.API_KEY,
+  config: {
+    baseURL: "https://your-endpoint.com/v1",
+  },
+}
+```
+
+### Global Configuration
+
+The framework uses a global configuration object that can be customized:
+
+```typescript
+import config from "@xsky/ai-agent-core/config";
+
+// Available configuration options:
+config.maxReactNum;          // Maximum reaction cycles (default: 500)
+config.maxTokens;            // Maximum tokens for LLM requests (default: 16000)
+config.maxRetryNum;          // Maximum retry attempts (default: 3)
+config.agentParallel;        // Enable parallel agent execution (default: false)
+config.compressThreshold;    // Message count to trigger compression (default: 80)
+config.parallelToolCalls;    // Enable parallel tool calls (default: true)
+config.expertMode;           // Enable expert mode (default: false)
+config.useDomIntelligence;   // Enable DOM intelligence (default: false)
+```
+
+## API Reference
+
+### Eko Class
+
+The main entry point for creating and running agents.
+
+```typescript
+class Eko {
+  constructor(config: EkoConfig);
+
+  // Execute a task from natural language
+  run(task: string, signal?: AbortSignal): Promise<EkoResult>;
+
+  // Execute a pre-built workflow
+  execute(workflow: Workflow, signal?: AbortSignal): Promise<EkoResult>;
+
+  // Abort current execution
+  abort(): void;
+}
+```
+
+### EkoConfig Interface
+
+```typescript
+interface EkoConfig {
+  llms: LLMs;                          // LLM configurations (required)
+  agents?: Agent[];                     // Custom agents to register
+  planLlms?: string[];                  // LLM names for planning
+  compressLlms?: string[];              // LLM names for compression
+  callback?: StreamCallback & HumanCallback;  // Callbacks
+  defaultMcpClient?: IMcpClient;        // Default MCP client
+  a2aClient?: IA2aClient;               // Agent-to-Agent client
+}
+```
+
+### Agent Classes
+
+All agents extend from base classes and provide platform-specific implementations:
+
+- **BaseBrowserLabelsAgent**: Base for browser automation with element labeling
+- **BaseFileAgent**: Base for filesystem operations
+- **BaseLLMAgent**: Base for LLM-powered agents
+
+### Tool Interface
+
+```typescript
+interface Tool {
+  readonly name: string;
+  readonly description?: string;
+  readonly parameters: JSONSchema7;
+  readonly noPlan?: boolean;
+  readonly supportParallelCalls?: boolean;
+
+  execute(
+    args: Record<string, unknown>,
+    agentContext: AgentContext,
+    toolCall: LanguageModelV2ToolCallPart
+  ): Promise<ToolResult>;
+}
+```
+
+## Development
+
+### Commands
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run all tests
+pnpm test
+
+# Clean build artifacts
+pnpm clean
+
+# Build specific package
+pnpm --filter @xsky/ai-agent-core build
+
+# Run specific package tests
+pnpm --filter @xsky/ai-agent-core test
+
+# Run single test file
+pnpm --filter @xsky/ai-agent-core test -- path/to/test.ts
+```
+
+### Running Examples
+
+#### Node.js Example
 
 ```bash
 cd example/nodejs
 pnpm install
-pnpm run playwright   # first time only, installs browsers
-pnpm run build
-OPENAI_API_KEY=... ANTHROPIC_API_KEY=... pnpm run start
+pnpm build
+OPENAI_API_KEY=your-key pnpm start
 ```
 
-The Node.js demo drives Playwright through XSky AI Agent; provide at least one model API key before running it.
-
-### Web Login Demo (`example/web`)
+#### Web Example
 
 ```bash
 cd example/web
 pnpm install
-pnpm run start
+pnpm start
 ```
 
-This starts a React dev server on the default port with a simple login flow that you can automate
-with the browser or web agents.
+#### Extension Example
 
-## Use Cases
+```bash
+cd example/extension
+pnpm install
+pnpm build
+# Load the dist/ folder as an unpacked extension in Chrome
+```
 
-- Browser automation and web scraping
-- System file and process management
-- Workflow automation
-- Data processing and organization
-- GUI automation
-- Multi-step task orchestration
+### Project Structure
 
-## Documentation
+```
+.
+├── packages/
+│   ├── ai-agent-core/          # Core framework
+│   │   ├── src/
+│   │   │   ├── agent/          # Agent implementations
+│   │   │   ├── core/           # Core runtime (Eko, Chain, etc.)
+│   │   │   ├── common/         # Utilities (logging, XML, etc.)
+│   │   │   ├── config/         # Global configuration
+│   │   │   ├── llm/            # LLM provider implementations
+│   │   │   ├── memory/         # Memory management
+│   │   │   ├── mcp/            # MCP clients (SSE, HTTP)
+│   │   │   └── types/          # TypeScript type definitions
+│   │   └── test/               # Tests
+│   │
+│   ├── ai-agent-nodejs/        # Node.js adapter
+│   ├── ai-agent-web/           # Web browser adapter
+│   ├── ai-agent-extension/     # Chrome extension adapter
+│   └── ai-agent-electron/      # Electron adapter
+│
+├── example/
+│   ├── nodejs/                 # Node.js example
+│   ├── web/                    # React web example
+│   └── extension/              # Browser extension example
+│
+└── package.json                # Monorepo configuration
+```
 
-Visit our [documentation site](https://xsky.ai/docs) for:
+### Testing
 
-- Getting started guide
-- API reference
-- Usage examples
-- Best practices
-- Configuration options
+Tests use Jest with ts-jest. Each package has its own test configuration:
 
-## Development Environments
+```bash
+# Run all tests
+pnpm test
 
-XSky AI Agent can be used in multiple environments:
+# Run tests with coverage
+pnpm test -- --coverage
 
-- Browser Extension
-- Web Applications
-- Node.js Applications
+# Run tests in watch mode
+pnpm test -- --watch
+```
 
-## Community and Support
+## Environment Variables
 
-- Report issues on [GitHub Issues](https://github.com/anujkumar001111/xsky-agent/issues)
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key | For OpenAI provider |
+| `OPENAI_BASE_URL` | Custom OpenAI endpoint | No |
+| `ANTHROPIC_API_KEY` | Anthropic API key | For Anthropic provider |
+| `GOOGLE_API_KEY` | Google AI API key | For Google provider |
+| `OPENROUTER_API_KEY` | OpenRouter API key | For OpenRouter provider |
 
-[![Star History Chart](https://api.star-history.com/svg?repos=anujkumar001111/xsky-agent&type=Date)](https://star-history.com/#anujkumar001111/xsky-agent&Date)
+## Contributing
 
+We welcome contributions to XSky AI Agent! Please follow these steps:
 
-## Community Spotlight
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- **Career Co-Pilot**: https://github.com/wangwangbobo/career_skill_learnig.git
-- **Slides Agent by XSky**: https://github.com/MICAHFANG/slides-agent-by-xsky
-- **Universal Sidebar Assistant**: https://github.com/San12341/xsky-broser-extension.git
-- **Orbit X Smart Terminal**: https://github.com/Skywang16/OrbitX/tree/main
-- **48 Hour Browser Challenge**: https://github.com/MoonIRL/xsky
+Please ensure your code:
+- Follows the existing code style
+- Includes appropriate documentation
+- Has test coverage for new features
+- Passes all existing tests
 
 ## License
 
-XSky AI Agent is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+XSky AI Agent is licensed under the [MIT License](LICENSE).
+
+## Support
+
+- **Documentation**: Check the inline documentation and JSDoc comments
+- **Issues**: Report bugs and feature requests on GitHub Issues
+- **Discussions**: Join community discussions on GitHub Discussions
