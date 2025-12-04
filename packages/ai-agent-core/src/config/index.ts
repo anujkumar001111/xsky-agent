@@ -35,6 +35,8 @@ type GlobalConfig = {
   expertModeTodoLoopNum: number;
   /** Whether to use DOM intelligence extraction */
   useDomIntelligence?: boolean;
+  /** Enable coordinate-based mouse operations (click_at_coordinates, hover_at_coordinates, etc.) */
+  enableCoordinateTools?: boolean;
   /** Maximum recent screenshots to keep in memory (0 = disabled) */
   maxRecentScreenshots: number;
   /** Screenshot scaling for optimal LLM processing */
@@ -69,6 +71,7 @@ const config: GlobalConfig = {
   expertMode: false,
   expertModeTodoLoopNum: 10,
   useDomIntelligence: false,
+  enableCoordinateTools: true,
   maxRecentScreenshots: 0,
   screenshotScaling: {
     enabled: false,

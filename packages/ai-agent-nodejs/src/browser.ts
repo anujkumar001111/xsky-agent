@@ -1,4 +1,5 @@
-import { AgentContext, BaseBrowserLabelsAgent } from "@xsky/ai-agent-core";
+import { AgentContext, BaseBrowserLabelsAgent, config, scaleCoordinates } from "@xsky/ai-agent-core";
+import { Tool, IMcpClient } from "@xsky/ai-agent-core/types";
 import {
   chromium,
   Browser,
@@ -19,6 +20,16 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private browser_context: BrowserContext | null = null;
   private current_page: Page | null = null;
   private headless: boolean = false;
+
+  constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
+    super(llms, ext_tools, mcpClient);
+
+    // Add coordinate tools if enabled
+    if (config.enableCoordinateTools) {
+      const coordinateTools = this.buildCoordinateTools();
+      coordinateTools.forEach(tool => this.tools.push(tool));
+    }
+  }
 
   /**
    * Sets whether to run the browser in headless mode.
@@ -176,6 +187,188 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     } catch (e) {
       await super.hover_to_element(agentContext, index);
     }
+  }
+
+  /**
+   * Clicks at specific viewport coordinates using Playwright mouse API.
+   */
+  protected async click_at_coordinates(
+    x: number,
+    y: number,
+    button: "left" | "right" | "middle" = "left",
+    clickCount: number = 1
+  ): Promise<void> {
+    const page = await this.currentPage();
+    await page.mouse.click(x, y, { button, clickCount });
+  }
+
+  /**
+   * Moves cursor to specific coordinates (triggers hover states).
+   */
+  protected async hover_at_coordinates(x: number, y: number): Promise<void> {
+    const page = await this.currentPage();
+    await page.mouse.move(x, y);
+  }
+
+  /**
+   * Drags from one coordinate to another.
+   */
+  protected async drag_to_coordinates(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number
+  ): Promise<void> {
+    const page = await this.currentPage();
+    await page.mouse.move(x1, y1);
+    await page.mouse.down();
+    await page.mouse.move(x2, y2);
+    await page.mouse.up();
+  }
+
+  /**
+   * Scrolls at specific coordinates using mouse wheel.
+   */
+  protected async scroll_at_coordinates(
+    x: number,
+    y: number,
+    deltaX: number,
+    deltaY: number
+  ): Promise<void> {
+    const page = await this.currentPage();
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(deltaX, deltaY);
+  }
+
+  /**
+   * Clicks at coordinates and types text.
+   */
+  protected async type_at_coordinates(
+    x: number,
+    y: number,
+    text: string,
+    clearFirst: boolean = true
+  ): Promise<void> {
+    const page = await this.currentPage();
+    await page.mouse.click(x, y);
+    if (clearFirst) {
+      const modifier = process.platform === "darwin" ? "Meta" : "Control";
+      await page.keyboard.press(`${modifier}+a`);
+      await page.keyboard.press("Delete");
+    }
+    await page.keyboard.type(text);
+  }
+
+  private buildCoordinateTools(): Tool[] {
+    return [
+      {
+        name: "click_at_coordinates",
+        description: "Click at specific X,Y coordinates in the browser viewport. Use when element labels are unavailable (canvas, SVG, video players, custom widgets).",
+        parameters: {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "X coordinate from screenshot" },
+            y: { type: "number", description: "Y coordinate from screenshot" },
+            button: { type: "string", enum: ["left", "right", "middle"], default: "left" },
+            clicks: { type: "number", minimum: 1, maximum: 3, default: 1 }
+          },
+          required: ["x", "y"]
+        },
+        execute: async (args, agentContext) => {
+          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
+          return await this.callInnerTool(() =>
+            this.click_at_coordinates(scaled.x, scaled.y, args.button as any || "left", args.clicks as number || 1)
+          );
+        }
+      },
+      {
+        name: "hover_at_coordinates",
+        description: "Move cursor to X,Y coordinates to trigger hover states and reveal dynamic content (tooltips, dropdowns, menus).",
+        parameters: {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "X coordinate from screenshot" },
+            y: { type: "number", description: "Y coordinate from screenshot" }
+          },
+          required: ["x", "y"]
+        },
+        execute: async (args, agentContext) => {
+          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
+          return await this.callInnerTool(() =>
+            this.hover_at_coordinates(scaled.x, scaled.y)
+          );
+        }
+      },
+      {
+        name: "drag_to_coordinates",
+        description: "Drag from one position to another. Useful for sliders, resizing, reordering, drawing on canvas.",
+        parameters: {
+          type: "object",
+          properties: {
+            start_x: { type: "number", description: "Starting X coordinate" },
+            start_y: { type: "number", description: "Starting Y coordinate" },
+            end_x: { type: "number", description: "Ending X coordinate" },
+            end_y: { type: "number", description: "Ending Y coordinate" }
+          },
+          required: ["start_x", "start_y", "end_x", "end_y"]
+        },
+        execute: async (args, agentContext) => {
+          const start = scaleCoordinates(args.start_x as number, args.start_y as number, this.lastScaleFactor);
+          const end = scaleCoordinates(args.end_x as number, args.end_y as number, this.lastScaleFactor);
+          return await this.callInnerTool(() =>
+            this.drag_to_coordinates(start.x, start.y, end.x, end.y)
+          );
+        }
+      },
+      {
+        name: "scroll_at_coordinates",
+        description: "Scroll at specific coordinates using mouse wheel. Useful for scrolling within specific containers.",
+        parameters: {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "X coordinate to position cursor" },
+            y: { type: "number", description: "Y coordinate to position cursor" },
+            direction: { type: "string", enum: ["up", "down", "left", "right"] },
+            amount: { type: "number", minimum: 1, maximum: 10, default: 3 }
+          },
+          required: ["x", "y", "direction"]
+        },
+        execute: async (args, agentContext) => {
+          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
+          const amount = (args.amount as number || 3) * 100;
+          let deltaX = 0, deltaY = 0;
+          switch (args.direction) {
+            case "up": deltaY = -amount; break;
+            case "down": deltaY = amount; break;
+            case "left": deltaX = -amount; break;
+            case "right": deltaX = amount; break;
+          }
+          return await this.callInnerTool(() =>
+            this.scroll_at_coordinates(scaled.x, scaled.y, deltaX, deltaY)
+          );
+        }
+      },
+      {
+        name: "type_at_coordinates",
+        description: "Click at coordinates and type text. Use for inputs not accessible via element labels.",
+        parameters: {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "X coordinate to click" },
+            y: { type: "number", description: "Y coordinate to click" },
+            text: { type: "string", description: "Text to type" },
+            clear_first: { type: "boolean", description: "Clear existing text before typing", default: true }
+          },
+          required: ["x", "y", "text"]
+        },
+        execute: async (args, agentContext) => {
+          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
+          return await this.callInnerTool(() =>
+            this.type_at_coordinates(scaled.x, scaled.y, args.text as string, args.clear_first !== false)
+          );
+        }
+      }
+    ];
   }
 
   protected async execute_script(
