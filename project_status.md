@@ -43,6 +43,7 @@ Added pixel-accurate coordinate-based mouse operations to the Node.js `BrowserAg
 | `drag_to_coordinates` | Drag from point A to B | start_x, start_y, end_x, end_y |
 | `scroll_at_coordinates` | Wheel scroll at position | x, y, direction, amount? |
 | `type_at_coordinates` | Click and type text | x, y, text, clear_first? |
+| `send_keys` | Send keyboard shortcuts/keys | keys |
 
 #### Configuration
 
@@ -142,7 +143,6 @@ cd packages/ai-agent-nodejs && pnpm test -- test/browser-coordinate-tools.test.t
 
 ### Out of Scope (Explicitly Deferred)
 - Visual cursor feedback (debug highlighting)
-- Extended key combinations (Ctrl+C, etc.)
 - Multi-touch gestures
 - Coordinate validation (bounds checking)
 

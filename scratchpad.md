@@ -14,6 +14,7 @@
     Tools: click_at_coordinates, hover_at_coordinates, drag_to_coordinates, scroll_at_coordinates, type_at_coordinates
 
 ## Change Log
+[2025-12-04T20:15:00Z] [Claude Code] Added send_keys tool to BrowserAgent for keyboard shortcuts (Ctrl+C, Enter, etc.)
 [2025-12-04T20:00:00Z] [Claude Code] Approved PR #4 (coordinate tools) with review - suggested comprehensive tests in follow-up
 [2025-12-04T20:00:00Z] [Claude Code] Updated project_status.md with final PR status and completion summary
 [2025-12-04T19:00:00Z] [Claude Code] Fixed import path regressions - restored @xsky/ai-agent-core imports in browser.ts and utils.ts
