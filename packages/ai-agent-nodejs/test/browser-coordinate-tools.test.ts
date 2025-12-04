@@ -47,6 +47,7 @@ describe("BrowserAgent Coordinate Tools", () => {
       expect(toolNames).toContain("drag_to_coordinates");
       expect(toolNames).toContain("scroll_at_coordinates");
       expect(toolNames).toContain("type_at_coordinates");
+      expect(toolNames).toContain("send_keys");
     });
 
     it("should NOT register coordinate tools when disabled", () => {
@@ -124,6 +125,18 @@ describe("BrowserAgent Coordinate Tools", () => {
         expect(mockPage.keyboard.type).toHaveBeenCalledWith("append");
       });
     });
+
+    describe("send_keys", () => {
+      it("should call page.keyboard.press with correct keys", async () => {
+        await agent.send_keys("Enter");
+        expect(mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
+      });
+
+      it("should call page.keyboard.press with key combination", async () => {
+        await agent.send_keys("Control+C");
+        expect(mockPage.keyboard.press).toHaveBeenCalledWith("Control+C");
+      });
+    });
   });
 
   describe("Tool Execution Wrapper", () => {
@@ -156,6 +169,15 @@ describe("BrowserAgent Coordinate Tools", () => {
       await tool.execute({ x: 100, y: 100 }, {} as any);
 
       expect(agent.hover_at_coordinates).toHaveBeenCalledWith(50, 50);
+    });
+
+    it("should call send_keys directly", async () => {
+      const tool = agent.tools.find((t: any) => t.name === "send_keys");
+      agent.send_keys = jest.fn();
+
+      await tool.execute({ keys: "Escape" }, {} as any);
+
+      expect(agent.send_keys).toHaveBeenCalledWith("Escape");
     });
   });
 });

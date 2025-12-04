@@ -259,6 +259,14 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     await page.keyboard.type(text);
   }
 
+  /**
+   * Sends keyboard shortcuts or single keys.
+   */
+  protected async send_keys(keys: string): Promise<void> {
+    const page = await this.currentPage();
+    await page.keyboard.press(keys);
+  }
+
   private buildCoordinateTools(): Tool[] {
     return [
       {
@@ -365,6 +373,25 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
           const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
           return await this.callInnerTool(() =>
             this.type_at_coordinates(scaled.x, scaled.y, args.text as string, args.clear_first !== false)
+          );
+        }
+      },
+      {
+        name: "send_keys",
+        description: "Send keyboard shortcuts or single keys. Use for system commands (Copy/Paste), navigation (Tab/Arrows), or closing modals (Escape).",
+        parameters: {
+          type: "object",
+          properties: {
+            keys: {
+              type: "string",
+              description: "Key combination (e.g., 'Enter', 'Control+C', 'Meta+v', 'ArrowDown', 'Escape'). Follows Playwright key format."
+            }
+          },
+          required: ["keys"]
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.send_keys(args.keys as string)
           );
         }
       }
