@@ -7,6 +7,8 @@ export default {
   testTimeout: 60000,
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@xsky/ai-agent-core/(.*)$": "<rootDir>/../ai-agent-core/src/$1",
+    "^@xsky/ai-agent-core$": "<rootDir>/../ai-agent-core/src/index.ts"
   },
   globals: {
     'ts-jest': {

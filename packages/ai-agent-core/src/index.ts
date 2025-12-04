@@ -55,6 +55,9 @@ export {
   type WorkflowAgent,
   type WorkflowNode,
   type StreamCallbackMessage,
+  type Tool,
+  type ToolResult,
+  type IMcpClient,
 } from "./types";
 
 export type {
