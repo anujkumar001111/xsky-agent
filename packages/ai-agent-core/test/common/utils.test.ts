@@ -1,3 +1,10 @@
+import { sub } from '../../src/common/utils';
+
+describe('sub', () => {
+  it('should return "..." when sub("Hello World", -5) is called', () => {
+    expect(sub('Hello World', -5)).toBe('Hello ...');
+  });
+});
 
 import {
   convertToolSchema,
@@ -620,10 +627,14 @@ describe('common/utils', () => {
       });
 
       test('should handle very large timeout (but not wait)', async () => {
-        // Just verify it doesn't crash with a large number
-        const promise = sleep(1000000);
-        await new Promise(resolve => setTimeout(resolve, 10));
-        // Don't wait for the actual timeout
+        jest.useFakeTimers();
+        try {
+          const promise = sleep(1000000);
+          jest.advanceTimersByTime(1000000);
+          await promise;
+        } finally {
+          jest.useRealTimers();
+        }
       });
 
       test('should handle very small positive timeout', async () => {

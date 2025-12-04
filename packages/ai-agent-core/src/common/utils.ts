@@ -8,7 +8,7 @@ import { LanguageModelV2FunctionTool } from "@ai-sdk/provider";
  * @returns A promise that resolves when the time has passed.
  */
 export function sleep(time: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(() => resolve(), time));
+  return new Promise((resolve) => setTimeout(() => resolve(), Math.max(0, time)));
 }
 
 /**
@@ -139,8 +139,11 @@ export function toFile(mediaData: string, type: "base64|url" | "binary|url" = "b
  * @param data - The data string to get the MIME type of.
  * @returns The MIME type of the data string.
  */
-export function getMimeType(data: string): string {
+export function getMimeType(data: string | undefined | null): string {
   let mediaType = "image/png";
+  if (!data) {
+    return mediaType;
+  }
   if (data.startsWith("data:")) {
     mediaType = data.split(";")[0].split(":")[1];
   } else if (data.indexOf(".") > -1) {

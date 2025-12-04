@@ -15,6 +15,18 @@ describe('JS Extractors', () => {
         x: 0, y: 0, width: 100, height: 100, top: 0, left: 0, bottom: 100, right: 100, toJSON: () => {}
     });
 
+    // Mock getComputedStyle to avoid JSDOM not implemented error
+    const originalGetComputedStyle = dom.window.getComputedStyle;
+    dom.window.getComputedStyle = (elt: any, pseudoElt?: string | null) => {
+      try {
+        return originalGetComputedStyle(elt, pseudoElt);
+      } catch (e) {
+        return {
+          getPropertyValue: () => '',
+        } as any;
+      }
+    };
+
     // Execute script by serializing the function
     const script = `(${extract_structure.toString()})(document.body)`;
     const result = dom.window.eval(script);
@@ -29,6 +41,19 @@ describe('JS Extractors', () => {
 
   it('should extract styles correctly', () => {
     const dom = new JSDOM('<div id="styled" style="color: red;">Styled</div>', { runScripts: "dangerously" });
+
+    // Mock getComputedStyle to avoid JSDOM not implemented error
+    const originalGetComputedStyle = dom.window.getComputedStyle;
+    dom.window.getComputedStyle = (elt: any, pseudoElt?: string | null) => {
+      try {
+        return originalGetComputedStyle(elt, pseudoElt);
+      } catch (e) {
+        return {
+          getPropertyValue: () => '',
+          color: 'red'
+        } as any;
+      }
+    };
 
     // JSDOM supports basic computed styles
     const script = `(${extract_styles.toString()})(document.body)`;

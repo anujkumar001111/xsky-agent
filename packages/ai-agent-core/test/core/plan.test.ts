@@ -21,7 +21,7 @@ const openaiApiKey = process.env.OPENAI_API_KEY;
 const llms: LLMs = {
   default: {
     provider: "openai",
-    model: "anthropic/claude-sonnet-4",
+    model: "gpt-4o",
     apiKey: openaiApiKey || "",
     config: {
       baseURL: openaiBaseURL,
@@ -29,6 +29,10 @@ const llms: LLMs = {
     fetch: (url, options) => {
       const body = JSON.parse(options?.body as string);
       console.log("====> body", JSON.stringify(body, null, 2));
+      // Replace invalid model with valid one if needed during fetch interception
+      if (body.model === "anthropic/claude-sonnet-4") {
+        body.model = "gpt-4o";
+      }
       return fetch(url, {
         ...options,
         body: JSON.stringify(body),
