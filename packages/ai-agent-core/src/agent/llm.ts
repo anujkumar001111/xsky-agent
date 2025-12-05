@@ -27,6 +27,17 @@ import {
 } from "@ai-sdk/provider";
 
 /**
+ * @file llm.ts
+ * @description Provides low-level utilities and helper functions for managing LLM interactions within agents.
+ *
+ * Responsibilities:
+ * - Converting internal tool definitions to LLM-compatible formats (JSON Schema).
+ * - Adapting tool results (including multi-modal content like images) for the LLM context.
+ * - Handling the core LLM execution loop including streaming, retries, and context compression.
+ * - Estimating token usage to manage context window limits.
+ */
+
+/**
  * Returns the default provider options for the language model.
  * @returns The default provider options.
  */
@@ -100,9 +111,11 @@ export function getTool<T extends Tool | DialogueTool>(
 
 /**
  * Converts a tool result to a language model tool result part.
+ * Handles text, JSON, and multimodal (image) content.
+ *
  * @param toolUse - The tool call that produced the result.
  * @param toolResult - The result of the tool call.
- * @param user_messages - A list of user messages to append to.
+ * @param user_messages - A list of user messages to append to (for fallback multimodal support).
  * @returns The converted tool result part.
  */
 export function convertToolResult(
@@ -139,6 +152,7 @@ export function convertToolResult(
         value: text,
       };
     }
+    // Attempt to parse JSON strings to provide structured data to LLM
     if (
       text &&
       ((text.startsWith("{") && text.endsWith("}")) ||
@@ -153,6 +167,7 @@ export function convertToolResult(
       } catch (e) {}
     }
   } else {
+    // Handle multi-part content
     result = {
       type: "content",
       value: [],
@@ -166,7 +181,7 @@ export function convertToolResult(
         });
       } else {
         if (config.toolResultMultimodal) {
-          // Support returning images from tool results
+          // Support returning images directly in tool results (e.g. Claude)
           let mediaData = content.data;
           if (mediaData.startsWith("data:")) {
             mediaData = mediaData.substring(mediaData.indexOf(",") + 1);
@@ -177,8 +192,7 @@ export function convertToolResult(
             mediaType: content.mimeType || "image/png",
           });
         } else {
-          // Only the claude model supports returning images from tool results, while openai only supports text,
-          // Compatible with other AI models that do not support tool results as images.
+          // Fallback: Inject image as a separate user message for models that don't support multimodal tool outputs
           user_messages.push({
             role: "user",
             content: [
@@ -206,7 +220,13 @@ export function convertToolResult(
 }
 
 /**
- * Calls the agent's language model with the given messages and tools.
+ * Executes a call to the Language Model with full feature support:
+ * - Streaming response handling.
+ * - Tool calling and result processing.
+ * - Automatic context compression when limits are reached.
+ * - User intervention handling (injecting user prompts during execution).
+ * - Robust error handling and retries.
+ *
  * @param agentContext - The context for the agent to run in.
  * @param rlm - The language model to call.
  * @param messages - The messages to send to the language model.
@@ -230,15 +250,17 @@ export async function callAgentLLM(
   requestHandler?: (request: LLMRequest) => void
 ): Promise<Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>> {
   await agentContext.context.checkAborted();
+
+  // Check token limits and compress if necessary
   if (
     !noCompress &&
     (messages.length >= config.compressThreshold || (messages.length >= 10 && estimatePromptTokens(messages, tools) >= config.compressTokensThreshold))
   ) {
-    // Compress messages
+    // Compress messages using summarization or truncation
     await memory.compressAgentMessages(agentContext, messages, tools);
   }
   if (!toolChoice) {
-    // Append user dialogue
+    // Append any pending user interventions as a user message
     appendUserConversation(agentContext, messages);
   }
   const context = agentContext.context;
@@ -248,6 +270,8 @@ export async function callAgentLLM(
     context.config.callback || {
       onMessage: async () => {},
     };
+
+  // Setup cancellation controller for this specific step
   const stepController = new AbortController();
   const signal = AbortSignal.any([
     context.controller.signal,
@@ -274,6 +298,8 @@ export async function callAgentLLM(
     const result: StreamResult = await rlm.callStream(request);
     reader = result.stream.getReader();
     let toolPart: LanguageModelV2ToolCallPart | null = null;
+
+    // Process stream chunks
     while (true) {
       await context.checkAborted();
       const { done, value } = await reader.read();
@@ -303,6 +329,7 @@ export async function callAgentLLM(
             },
             agentContext
           );
+          // If we were accumulating a tool call, treat mixed text as interruption/interleaved content
           if (toolPart) {
             await streamCallback.onMessage(
               {
@@ -490,6 +517,7 @@ export async function callAgentLLM(
               agentContext
             );
           }
+          // Handle various stop reasons
           if (chunk.finishReason === "content-filter") {
             throw new Error("LLM error: trigger content filtering violation");
           } else if (chunk.finishReason === "other") {
@@ -500,6 +528,7 @@ export async function callAgentLLM(
             !noCompress &&
             retryNum < config.maxRetryNum
           ) {
+            // Context limit reached: Compress history and retry
             await memory.compressAgentMessages(
               agentContext,
               messages,
@@ -555,8 +584,9 @@ export async function callAgentLLM(
     }
   } catch (e: any) {
     await context.checkAborted();
+    // Retry logic for transient errors
     if (retryNum < config.maxRetryNum) {
-      await sleep(300 * (retryNum + 1) * (retryNum + 1));
+      await sleep(300 * (retryNum + 1) * (retryNum + 1)); // Exponential backoff
       if ((e + "").indexOf("is too long") > -1) {
         await memory.compressAgentMessages(agentContext, messages, tools);
       }
@@ -586,7 +616,8 @@ export async function callAgentLLM(
 }
 
 /**
- * Estimates the number of tokens in a prompt.
+ * Estimates the number of tokens in a prompt to determine if compression is needed.
+ * Uses a heuristic based on character counts and Unicode ranges.
  * @param messages - The messages in the prompt.
  * @param tools - The tools available to the language model.
  * @returns The estimated number of tokens.

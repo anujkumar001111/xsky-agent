@@ -10,6 +10,21 @@ import {
 import { DomIntelligenceCache } from "../agent/browser/dom_intelligence";
 import type { Checkpoint } from "../types/hooks.types";
 
+/**
+ * @file context.ts
+ * @description Manages the execution state and lifecycle context for tasks and agents.
+ * The Context system is split into two levels:
+ * 1. Context: Global task-level state (variables, workflow, configuration).
+ * 2. AgentContext: Local agent-level state (current step, specific history, error counts).
+ *
+ * Key Features:
+ * - State persistence and variables management.
+ * - Task lifecycle control (abort, pause, resume).
+ * - Automatic checkpointing for recovery.
+ * - Signal handling for DOM/environment events (Adaptive Wait).
+ * - Hook integration for state changes.
+ */
+
 export interface AdaptiveWaitSignal {
   type: 'mutation' | 'event' | 'animation' | 'load';
   elementId?: string;
@@ -18,7 +33,9 @@ export interface AdaptiveWaitSignal {
 }
 
 /**
- * The context for a task.
+ * The global execution context for a single Task.
+ * Acts as the "memory" and "controller" for the entire workflow execution.
+ * Shared across all agents involved in the task.
  */
 export default class Context {
   taskId: string;
@@ -29,20 +46,24 @@ export default class Context {
   variables: Map<string, any>;
   workflow?: Workflow;
   conversation: string[] = [];
+
+  // Pause state: 0 = running, 1 = pause at safe point, 2 = force pause immediately
   private pauseStatus: 0 | 1 | 2 = 0;
+
+  // Track active controllers to cancel sub-operations during pause/abort
   readonly currentStepControllers: Set<AbortController> = new Set();
 
-  // Checkpoint system
+  // Checkpoint system state
   private checkpointTimer?: ReturnType<typeof setInterval>;
   private stateChangeDebounceTimer?: ReturnType<typeof setTimeout>;
   private pendingStateChanges: Map<string, any> = new Map();
 
   /**
-   * Creates an instance of the Context.
-   * @param taskId - The ID of the task.
-   * @param config - The configuration for the task.
-   * @param agents - The agents available for the task.
-   * @param chain - The chain of execution for the task.
+   * Initializes a new task context.
+   * @param taskId - Unique identifier for the task.
+   * @param config - Global configuration.
+   * @param agents - List of available agents.
+   * @param chain - Execution history tracker.
    */
   constructor(
     taskId: string,
@@ -59,8 +80,11 @@ export default class Context {
   }
 
   /**
-   * Checks if the task has been aborted.
-   * @param noCheckPause - Whether to skip checking for a pause.
+   * Checks if execution should be halted or paused.
+   * MUST be called frequently within long-running loops.
+   *
+   * @param noCheckPause - If true, ignores pause state (used for cleanup/shutdown).
+   * @throws {Error} Throws "AbortError" if task is cancelled.
    */
   async checkAborted(noCheckPause?: boolean): Promise<void> {
     if (this.controller.signal.aborted) {
@@ -68,14 +92,19 @@ export default class Context {
       error.name = "AbortError";
       throw error;
     }
+    // Handle pause logic: wait in loop until resumed or aborted
     while (this.pauseStatus > 0 && !noCheckPause) {
       await sleep(500);
+
+      // Level 2 pause: aggressively abort current steps
       if (this.pauseStatus == 2) {
         this.currentStepControllers.forEach((c) => {
           c.abort("Pause");
         });
         this.currentStepControllers.clear();
       }
+
+      // Check abort again during pause loop
       if (this.controller.signal.aborted) {
         const error = new Error("Operation was interrupted");
         error.name = "AbortError";
@@ -85,8 +114,8 @@ export default class Context {
   }
 
   /**
-   * Gets the current agent.
-   * @returns The current agent, or null if there is no current agent.
+   * Identifies the currently executing agent based on the chain history.
+   * @returns Tuple of [Agent Instance, Agent Def, Agent Context] or null.
    */
   currentAgent(): [Agent, WorkflowAgent, AgentContext] | null {
     const agentNode = this.chain.agents[this.chain.agents.length - 1];
@@ -104,16 +133,16 @@ export default class Context {
   }
 
   /**
-   * Whether the task is paused.
+   * Read-only accessor for pause state.
    */
   get pause() {
     return this.pauseStatus > 0;
   }
 
   /**
-   * Sets the pause status of the task.
-   * @param pause - Whether to pause the task.
-   * @param abortCurrentStep - Whether to abort the current step.
+   * Updates the pause state.
+   * @param pause - True to pause, false to resume.
+   * @param abortCurrentStep - If true, attempts to interrupt current async operation immediately.
    */
   setPause(pause: boolean, abortCurrentStep?: boolean) {
     this.pauseStatus = pause ? (abortCurrentStep ? 2 : 1) : 0;
@@ -126,7 +155,8 @@ export default class Context {
   }
 
   /**
-   * Resets the context.
+   * Fully resets the context, cancelling all operations.
+   * Typically used when restarting a task or clearing state.
    */
   reset() {
     this.pauseStatus = 0;
@@ -144,8 +174,9 @@ export default class Context {
   // ============ CHECKPOINT SYSTEM ============
 
   /**
-   * Starts automatic checkpointing at the specified interval.
-   * @param intervalMs - Interval in milliseconds between checkpoints.
+   * Activates periodic state snapshots.
+   * Useful for long-running tasks that might need crash recovery.
+   * @param intervalMs - Frequency of checkpoints in milliseconds.
    */
   startCheckpointing(intervalMs: number): void {
     if (this.checkpointTimer) {
@@ -158,7 +189,7 @@ export default class Context {
   }
 
   /**
-   * Stops automatic checkpointing.
+   * Disables automatic checkpointing.
    */
   stopCheckpointing(): void {
     if (this.checkpointTimer) {
@@ -168,8 +199,9 @@ export default class Context {
   }
 
   /**
-   * Creates a checkpoint and triggers the onCheckpoint hook.
-   * @returns The created checkpoint, or undefined if no hook is configured.
+   * Manually triggers a state snapshot.
+   * Invokes the `onCheckpoint` hook if configured.
+   * @returns The generated Checkpoint object.
    */
   async createCheckpoint(): Promise<Checkpoint | undefined> {
     const hooks = this.config.hooks;
@@ -192,7 +224,7 @@ export default class Context {
     try {
       await hooks.onCheckpoint(checkpoint);
     } catch (error) {
-      // Don't fail the workflow if checkpoint fails
+      // Fail safely: logging error but keeping workflow alive
       console.error("Checkpoint hook error:", error);
     }
 
@@ -200,7 +232,8 @@ export default class Context {
   }
 
   /**
-   * Serializes the context state for checkpointing.
+   * Converts current context state into a serializable object.
+   * Captures variables, conversation history, and workflow progress.
    */
   serialize(): Record<string, any> {
     return {
@@ -216,8 +249,8 @@ export default class Context {
   }
 
   /**
-   * Restores context state from a checkpoint.
-   * @param state - The serialized state to restore.
+   * Hydrates context state from a serialized object.
+   * @param state - The saved state object.
    */
   restore(state: Record<string, any>): void {
     if (state.variables) {
@@ -231,9 +264,9 @@ export default class Context {
   // ============ STATE CHANGE TRACKING ============
 
   /**
-   * Sets a variable and triggers the onStateChange hook (debounced).
-   * @param key - The variable key.
-   * @param value - The variable value.
+   * Sets a global variable and notifies listeners (debounced).
+   * @param key - Variable name.
+   * @param value - Value to store.
    */
   setVariable(key: string, value: any): void {
     this.variables.set(key, value);
@@ -241,15 +274,16 @@ export default class Context {
   }
 
   /**
-   * Gets a variable value.
-   * @param key - The variable key.
+   * Retrieves a global variable.
+   * @param key - Variable name.
    */
   getVariable<T = any>(key: string): T | undefined {
     return this.variables.get(key);
   }
 
   /**
-   * Queues a state change for debounced hook notification.
+   * Internal helper to debounce state change notifications.
+   * Prevents flooding the hook with rapid updates.
    */
   private queueStateChange(key: string, value: any): void {
     const hooks = this.config.hooks;
@@ -270,7 +304,7 @@ export default class Context {
   }
 
   /**
-   * Flushes pending state changes to the onStateChange hook.
+   * Emits queued state changes to the `onStateChange` hook.
    */
   private async flushStateChanges(): Promise<void> {
     const hooks = this.config.hooks;
@@ -292,25 +326,26 @@ export default class Context {
 }
 
 /**
- * The context for an agent.
+ * Localized context for a specific Agent execution instance.
+ * Wraps the global Context and adds agent-specific transient state.
  */
 export class AgentContext {
   agent: Agent;
   context: Context;
   agentChain: AgentChain;
-  variables: Map<string, any>;
+  variables: Map<string, any>; // Local variables scoped to this agent run
   consecutiveErrorNum: number;
-  messages?: LanguageModelV2Prompt;
+  messages?: LanguageModelV2Prompt; // Current conversation window
 
-  // DOM Intelligence related properties
+  // DOM Intelligence related properties (Browser Agents)
   domIntelligenceCache?: DomIntelligenceCache;
   adaptiveWaitSignals: AdaptiveWaitSignal[] = [];
 
   /**
-   * Creates an instance of the AgentContext.
-   * @param context - The context for the task.
-   * @param agent - The agent.
-   * @param agentChain - The agent chain.
+   * Initializes the agent-specific context.
+   * @param context - Parent global context.
+   * @param agent - The agent instance.
+   * @param agentChain - History tracker for this run.
    */
   constructor(context: Context, agent: Agent, agentChain: AgentChain) {
     this.context = context;
@@ -320,13 +355,21 @@ export class AgentContext {
     this.consecutiveErrorNum = 0;
   }
 
+  /**
+   * Records an environmental signal for adaptive waiting logic.
+   * Used by browser agents to detect page stability.
+   */
   addAdaptiveWaitSignal(signal: AdaptiveWaitSignal) {
     this.adaptiveWaitSignals.push(signal);
-    // Keep only recent signals (e.g., last 5 seconds)
+    // Keep only recent signals (e.g., last 5 seconds) to avoid memory growth
     const now = Date.now();
     this.adaptiveWaitSignals = this.adaptiveWaitSignals.filter(s => now - s.timestamp < 5000);
   }
 
+  /**
+   * Retrieves the most recent signal of a given type.
+   * @param type - Optional signal type to filter by.
+   */
   getLatestSignal(type?: string): AdaptiveWaitSignal | undefined {
       if (type) {
           return this.adaptiveWaitSignals.filter(s => s.type === type).pop();

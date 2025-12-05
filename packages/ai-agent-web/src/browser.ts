@@ -2,11 +2,26 @@ import html2canvas from "html2canvas";
 import { AgentContext, BaseBrowserLabelsAgent } from "@xsky/ai-agent-core";
 
 /**
+ * @file browser.ts
+ * @description Browser agent implementation for the web environment.
+ * This class allows the AI agent to operate within the browser itself (e.g., in a browser extension or web app),
+ * rather than controlling it remotely via CDP/Playwright.
+ *
+ * Capabilities:
+ * - In-browser screenshot capture using html2canvas.
+ * - Single Page Application (SPA) navigation.
+ * - DOM interaction via shared base class logic.
+ */
+
+/**
  * A browser agent that runs in a web browser.
  */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
   /**
-   * Takes a screenshot of the current page.
+   * Takes a screenshot of the current page using html2canvas.
+   * Note: This is a synthetic screenshot and may not perfectly match native rendering,
+   * especially for cross-origin iframes or advanced CSS.
+   *
    * @param agentContext - The context for the agent.
    * @returns A promise that resolves to the screenshot data.
    */
@@ -16,6 +31,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     const [width, height] = this.size();
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
+
+    // Render the DOM to a canvas
     const canvas = await html2canvas(document.documentElement || document.body, {
       width,
       height,
@@ -25,11 +42,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
       y: scrollY,
       scrollX: -scrollX,
       scrollY: -scrollY,
-      useCORS: true,
-      foreignObjectRendering: true,
+      useCORS: true, // Allow loading cross-origin images if CORS headers permit
+      foreignObjectRendering: true, // Better support for modern CSS
       // backgroundColor: 'white',
       // scale: window.devicePixelRatio || 1,
     });
+
     let dataUrl = canvas.toDataURL("image/jpeg");
     let data = dataUrl.substring(dataUrl.indexOf("base64,") + 7);
     return {
@@ -39,7 +57,9 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Navigates to a new URL.
+   * Navigates to a new URL within the SPA context.
+   * Limitation: Cannot navigate to different domains due to browser security sandbox.
+   *
    * @param agentContext - The context for the agent.
    * @param url - The URL to navigate to.
    * @returns A promise that resolves to the new URL and title.
@@ -50,6 +70,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   ): Promise<{ url: string; title?: string }> {
     let idx = location.href.indexOf("/", 10);
     let baseUrl = idx > -1 ? location.href.substring(0, idx) : location.href;
+
+    // Handle SPA navigation
     if (url.startsWith("/")) {
       history.pushState(null, "", url);
     } else if (url.startsWith(baseUrl)) {
@@ -60,6 +82,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
           baseUrl
       );
     }
+
+    // Trigger popstate to notify frameworks (React/Vue/etc) of route change
     window.dispatchEvent(new PopStateEvent("popstate"));
     await this.sleep(200);
     return {
@@ -69,7 +93,9 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Executes a script in the browser.
+   * Executes a script in the browser directly.
+   * Since this agent runs IN the browser, we just call the function.
+   *
    * @param agentContext - The context for the agent.
    * @param func - The function to execute.
    * @param args - The arguments to pass to the function.
@@ -100,6 +126,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
 
   /**
    * Gets a list of all open tabs.
+   * Sandbox limitation: Can only see the current tab.
+   *
    * @param agentContext - The context for the agent.
    * @returns A promise that resolves to a list of tabs.
    */
@@ -117,6 +145,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
 
   /**
    * Switches to a specific tab.
+   * Sandbox limitation: No-op as only one tab is accessible.
+   *
    * @param agentContext - The context for the agent.
    * @param tabId - The ID of the tab to switch to.
    * @returns A promise that resolves to the new tab information.

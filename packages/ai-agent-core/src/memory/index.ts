@@ -13,6 +13,26 @@ import { RetryLanguageModel } from "../llm";
 import { fixJson, mergeTools, sub } from "../common/utils";
 import { AgentContext } from "../core/context";
 
+/**
+ * @file index.ts
+ * @description Manages conversation memory and context window optimization.
+ *
+ * Strategies:
+ * - Redundant Tool Call Filtering: Removes duplicate or unnecessary tool calls.
+ * - Large Context Compression: Truncates or summarizes large text blocks.
+ * - Multi-modal Asset Management: Limits the number of images/files in history.
+ * - Smart Snapshotting: Uses a specialized "snapshot" tool to summarize past events when limits are reached.
+ */
+
+/**
+ * Extracts unique tools used in a conversation to minimize context.
+ * Filters the available tool set down to only those that have actually been invoked,
+ * reducing the prompt size for subsequent calls.
+ *
+ * @param messages - The conversation history.
+ * @param agentTools - The full list of available tools.
+ * @returns A subset of tools that are relevant to the history.
+ */
 export function extractUsedTool<T extends Tool | LanguageModelV2FunctionTool>(
   messages: LanguageModelV2Prompt,
   agentTools: T[]
@@ -38,6 +58,10 @@ export function extractUsedTool<T extends Tool | LanguageModelV2FunctionTool>(
   return tools;
 }
 
+/**
+ * Removes consecutive duplicate tool uses to clean up the context.
+ * Helpful when an agent gets stuck in a loop calling the same tool with same args.
+ */
 export function removeDuplicateToolUse(
   results: Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>
 ): Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart> {
@@ -64,6 +88,14 @@ export function removeDuplicateToolUse(
   return _results;
 }
 
+/**
+ * Compresses the agent's message history to fit within the context window.
+ * Triggers a recursive LLM call to summarize (snapshot) the current state if needed.
+ *
+ * @param agentContext - The current execution context.
+ * @param messages - The message history to compress.
+ * @param tools - Available tools (needed for the compression/snapshot process).
+ */
 export async function compressAgentMessages(
   agentContext: AgentContext,
   messages: LanguageModelV2Prompt,
@@ -79,6 +111,13 @@ export async function compressAgentMessages(
   }
 }
 
+/**
+ * Implementation of the message compression logic.
+ * 1. Configures a separate LLM instance for compression tasks.
+ * 2. Injects a 'snapshot' tool.
+ * 3. Asks the LLM to create a snapshot backup of the current state.
+ * 4. Replaces the middle chunk of the conversation history with the summary from the snapshot tool.
+ */
 async function doCompressAgentMessages(
   agentContext: AgentContext,
   messages: LanguageModelV2Prompt,
@@ -170,6 +209,10 @@ async function doCompressAgentMessages(
   });
 }
 
+/**
+ * Truncates individual large text blocks within messages.
+ * Uses a heuristic threshold (`config.largeTextLength`) to decide when to cut.
+ */
 function compressLargeContextMessages(messages: LanguageModelV2Prompt) {
   for (let r = 2; r < messages.length; r++) {
     const message = messages[r];
@@ -254,6 +297,10 @@ function compressLargeContextMessages(messages: LanguageModelV2Prompt) {
   }
 }
 
+/**
+ * Handles large context messages by replacing older images/files with placeholders.
+ * Ensures the model isn't overwhelmed by too many multi-modal inputs.
+ */
 export function handleLargeContextMessages(messages: LanguageModelV2Prompt) {
   let imageNum = 0;
   let fileNum = 0;

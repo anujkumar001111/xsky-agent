@@ -1,4 +1,10 @@
 /**
+ * @file index.ts
+ * @description Central configuration registry for the AI agent framework.
+ * Defines global defaults for runtime behavior, limits, and feature toggles.
+ */
+
+/**
  * The global configuration for the AI agent.
  * Controls behavior limits, compression settings, and feature flags.
  */

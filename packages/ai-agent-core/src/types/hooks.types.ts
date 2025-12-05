@@ -4,6 +4,17 @@ import type { Workflow, WorkflowAgent, EkoResult } from "./core.types";
 import type Context from "../core/context";
 
 /**
+ * @file hooks.types.ts
+ * @description Defines the lifecycle hooks and configuration interfaces for extending the agent system.
+ * These types enable "Production-Ready" features such as:
+ * - Fine-grained control over agent/tool execution (blocking, modification).
+ * - Human-in-the-Loop (HITL) approval workflows.
+ * - State persistence and checkpointing strategies.
+ * - Error handling policies and escalation paths.
+ * - Integration with external monitoring/logging systems.
+ */
+
+/**
  * Result returned by beforeToolCall hook to control tool execution.
  */
 export type ToolHookResult = {

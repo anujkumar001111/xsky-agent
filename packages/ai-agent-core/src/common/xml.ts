@@ -11,12 +11,41 @@ import {
 import { buildAgentTree } from "./tree";
 
 /**
- * Parses a workflow from an XML string.
- * @param taskId - The ID of the task.
- * @param xml - The XML string to parse.
- * @param done - Whether the workflow is done.
- * @param thinking - The thinking process of the agent.
- * @returns The parsed workflow, or null if the XML is invalid.
+ * @file xml.ts
+ * @description Provides utilities for parsing and generating XML representations of workflows.
+ * The Eko framework uses XML as the intermediate language between the LLM planner and the
+ * runtime execution engine.
+ *
+ * Key Functions:
+ * - parseWorkflow: Converts LLM-generated XML string into a structured Workflow object.
+ * - buildAgentRootXml: Prepares XML context for individual agents.
+ * - resetWorkflowXml: Regenerates XML from a modified Workflow object model.
+ */
+
+/**
+ * Parses a raw XML string from the planner LLM into a structured Workflow object.
+ * Handles partial parsing for streaming scenarios and fixes common XML syntax errors.
+ *
+ * Expected XML Structure:
+ * <root>
+ *   <thought>...</thought>
+ *   <name>...</name>
+ *   <agents>
+ *     <agent name="..." dependsOn="...">
+ *       <task>...</task>
+ *       <nodes>
+ *         <node>...</node>
+ *         <forEach>...</forEach>
+ *       </nodes>
+ *     </agent>
+ *   </agents>
+ * </root>
+ *
+ * @param taskId - The unique task identifier.
+ * @param xml - The raw XML string to parse.
+ * @param done - Boolean indicating if the stream is complete (enables stricter validation).
+ * @param thinking - Optional thinking process text (Chain of Thought) to preserve.
+ * @returns The parsed Workflow object or null if parsing fails/incomplete.
  */
 export function parseWorkflow(
   taskId: string,
@@ -118,10 +147,20 @@ export function parseWorkflow(
   }
 }
 
+/**
+ * Generates a unique agent ID based on task ID and index.
+ * @param taskId - The task ID.
+ * @param index - The agent index or ID suffix.
+ */
 function getAgentId(taskId: string, index: number | string) {
   return taskId + "-" + (+index < 10 ? "0" + index : index);
 }
 
+/**
+ * Recursive parser for workflow nodes (normal, forEach, watch).
+ * @param nodes - The target array to push parsed nodes into.
+ * @param xmlNodes - The raw XML nodes to process.
+ */
 function parseWorkflowNodes(
   nodes: WorkflowNode[],
   xmlNodes: NodeListOf<ChildNode> | HTMLCollectionOf<Element>
@@ -178,11 +217,13 @@ function parseWorkflowNodes(
 }
 
 /**
- * Builds the root XML for an agent.
- * @param agentXml - The XML of the agent.
- * @param mainTaskPrompt - The main task prompt.
- * @param nodeCallback - A callback to call for each node.
- * @returns The root XML for the agent.
+ * Reconstructs the XML for an individual agent, including its task and execution nodes.
+ * Used when providing context to the agent during execution.
+ *
+ * @param agentXml - The base XML string for the agent.
+ * @param mainTaskPrompt - The high-level task description.
+ * @param nodeCallback - Optional callback for processing individual nodes during XML generation.
+ * @returns A formatted XML string representing the agent's task context.
  */
 export function buildAgentRootXml(
   agentXml: string,
@@ -216,10 +257,10 @@ export function buildAgentRootXml(
 }
 
 /**
- * Extracts a node from an agent's XML.
- * @param agentXml - The XML of the agent.
- * @param nodeId - The ID of the node to extract.
- * @returns The extracted node, or null if the node is not found.
+ * Extracts a specific node element from an agent's XML definition by ID.
+ * @param agentXml - The XML string of the agent.
+ * @param nodeId - The numeric ID of the node to extract.
+ * @returns The DOM Element of the node, or null if not found.
  */
 export function extractAgentXmlNode(
   agentXml: string,
@@ -248,9 +289,7 @@ export function extractAgentXmlNode(
 }
 
 /**
- * Gets the inner XML of a node.
- * @param node - The node to get the inner XML of.
- * @returns The inner XML of the node.
+ * Utility to get inner XML string of an element (children only).
  */
 export function getInnerXML(node: Element): string {
   let result = "";
@@ -262,9 +301,7 @@ export function getInnerXML(node: Element): string {
 }
 
 /**
- * Gets the outer XML of a node.
- * @param node - The node to get the outer XML of.
- * @returns The outer XML of the node.
+ * Utility to get outer XML string of an element (including the tag itself).
  */
 export function getOuterXML(node: Element): string {
   const serializer = new XMLSerializer();
@@ -272,9 +309,11 @@ export function getOuterXML(node: Element): string {
 }
 
 /**
- * Builds a simple agent workflow.
- * @param options - The options for building the workflow.
- * @returns The built workflow.
+ * Factory method to create a simple, single-agent workflow object.
+ * Useful for testing or simple one-off tasks without full planning.
+ *
+ * @param options - Configuration including task description and node steps.
+ * @returns A fully initialized Workflow object.
  */
 export function buildSimpleAgentWorkflow({
   taskId,
@@ -321,8 +360,10 @@ export function buildSimpleAgentWorkflow({
 }
 
 /**
- * Resets the XML of a workflow.
- * @param workflow - The workflow to reset the XML of.
+ * Regenerates the full XML representation of a workflow from its object model.
+ * Should be called after modifying the workflow structure programmatically.
+ *
+ * @param workflow - The Workflow object to synchronize.
  */
 export function resetWorkflowXml(workflow: Workflow) {
   const agents: string[] = [];
