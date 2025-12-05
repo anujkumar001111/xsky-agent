@@ -145,10 +145,11 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
     agentContext: AgentContext,
     index: number,
     num_clicks: number,
-    button: "left" | "right" | "middle"
+    button: "left" | "right" | "middle",
+    modifiers: string[] = []
   ): Promise<any> {
     await this.execute_script(agentContext, do_click, [
-      { index, num_clicks, button },
+      { index, num_clicks, button, modifiers },
     ]);
   }
 
@@ -525,6 +526,14 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
               description: "Mouse button type, default left",
               enum: ["left", "right", "middle"],
             },
+            modifiers: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["Alt", "Control", "Meta", "Shift"],
+              },
+              description: "Modifier keys to hold during click",
+            },
           },
           required: ["index"],
         },
@@ -537,7 +546,8 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
               agentContext,
               args.index as number,
               (args.num_clicks || 1) as number,
-              (args.button || "left") as any
+              (args.button || "left") as any,
+              (args.modifiers || []) as any
             )
           );
         },
@@ -962,8 +972,15 @@ function do_click(params: {
   index: number;
   button: "left" | "right" | "middle";
   num_clicks: number;
+  modifiers?: string[];
 }): boolean {
-  let { index, button, num_clicks } = params;
+  let { index, button, num_clicks, modifiers } = params;
+  const modifierOptions = {
+    ctrlKey: modifiers?.includes("Control") || false,
+    shiftKey: modifiers?.includes("Shift") || false,
+    altKey: modifiers?.includes("Alt") || false,
+    metaKey: modifiers?.includes("Meta") || false,
+  };
   function simulateMouseEvent(
     eventTypes: Array<string>,
     button: 0 | 1 | 2
@@ -981,14 +998,10 @@ function do_click(params: {
           bubbles: true,
           cancelable: true,
           button, // 0 left; 1 middle; 2 right
+          ...modifierOptions,
         });
 
-        if (eventType === 'click' && element.click) {
-          // support shadow dom element
-          element.click();
-        } else {
-          element.dispatchEvent(event);
-        }
+        element.dispatchEvent(event);
 
         element.focus?.();
       }

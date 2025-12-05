@@ -13,7 +13,10 @@ const mockPage = {
   },
   keyboard: {
     type: jest.fn(),
-    press: jest.fn()
+    press: jest.fn(),
+    down: jest.fn(),
+    up: jest.fn(),
+    insertText: jest.fn()
   },
   evaluate: jest.fn(),
   url: () => "about:blank",
@@ -47,7 +50,7 @@ describe("BrowserAgent Coordinate Tools", () => {
       expect(toolNames).toContain("drag_to_coordinates");
       expect(toolNames).toContain("scroll_at_coordinates");
       expect(toolNames).toContain("type_at_coordinates");
-      expect(toolNames).toContain("send_keys");
+      expect(toolNames).toContain("keyboard_action");
     });
 
     it("should NOT register coordinate tools when disabled", () => {
@@ -69,12 +72,21 @@ describe("BrowserAgent Coordinate Tools", () => {
     describe("click_at_coordinates", () => {
       it("should call page.mouse.click with correct parameters", async () => {
         await agent.click_at_coordinates(100, 200, "left", 1);
-        expect(mockPage.mouse.click).toHaveBeenCalledWith(100, 200, { button: "left", clickCount: 1 });
+        expect(mockPage.mouse.click).toHaveBeenCalledWith(100, 200, { button: "left", clickCount: 1, modifiers: [] });
       });
 
       it("should handle different buttons and click counts", async () => {
         await agent.click_at_coordinates(100, 200, "right", 2);
-        expect(mockPage.mouse.click).toHaveBeenCalledWith(100, 200, { button: "right", clickCount: 2 });
+        expect(mockPage.mouse.click).toHaveBeenCalledWith(100, 200, { button: "right", clickCount: 2, modifiers: [] });
+      });
+
+      it("should pass modifiers to click", async () => {
+        await agent.click_at_coordinates(100, 200, "left", 1, ["Shift", "Control"]);
+        expect(mockPage.mouse.click).toHaveBeenCalledWith(100, 200, {
+          button: "left",
+          clickCount: 1,
+          modifiers: ["Shift", "Control"]
+        });
       });
     });
 
@@ -94,6 +106,18 @@ describe("BrowserAgent Coordinate Tools", () => {
         expect(mockPage.mouse.move).toHaveBeenCalledWith(100, 100);
         expect(mockPage.mouse.up).toHaveBeenCalled();
       });
+
+      it("should hold modifiers during drag", async () => {
+        await agent.drag_to_coordinates(10, 10, 100, 100, ["Shift"]);
+
+        // Sequence: KeyDown(Shift) -> Move -> MouseDown -> Move -> MouseUp -> KeyUp(Shift)
+        expect(mockPage.keyboard.down).toHaveBeenCalledWith("Shift");
+        expect(mockPage.mouse.move).toHaveBeenCalledWith(10, 10);
+        expect(mockPage.mouse.down).toHaveBeenCalled();
+        expect(mockPage.mouse.move).toHaveBeenCalledWith(100, 100);
+        expect(mockPage.mouse.up).toHaveBeenCalled();
+        expect(mockPage.keyboard.up).toHaveBeenCalledWith("Shift");
+      });
     });
 
     describe("scroll_at_coordinates", () => {
@@ -101,6 +125,15 @@ describe("BrowserAgent Coordinate Tools", () => {
         await agent.scroll_at_coordinates(50, 50, 0, 100);
         expect(mockPage.mouse.move).toHaveBeenCalledWith(50, 50);
         expect(mockPage.mouse.wheel).toHaveBeenCalledWith(0, 100);
+      });
+
+      it("should hold modifiers during scroll", async () => {
+        await agent.scroll_at_coordinates(50, 50, 0, 100, ["Control"]);
+
+        expect(mockPage.keyboard.down).toHaveBeenCalledWith("Control");
+        expect(mockPage.mouse.move).toHaveBeenCalledWith(50, 50);
+        expect(mockPage.mouse.wheel).toHaveBeenCalledWith(0, 100);
+        expect(mockPage.keyboard.up).toHaveBeenCalledWith("Control");
       });
     });
 
@@ -126,15 +159,30 @@ describe("BrowserAgent Coordinate Tools", () => {
       });
     });
 
-    describe("send_keys", () => {
-      it("should call page.keyboard.press with correct keys", async () => {
-        await agent.send_keys("Enter");
+    describe("keyboard_action", () => {
+      it("should handle 'press' action", async () => {
+        await agent.keyboard_action("press", "Enter");
         expect(mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
       });
 
-      it("should call page.keyboard.press with key combination", async () => {
-        await agent.send_keys("Control+C");
-        expect(mockPage.keyboard.press).toHaveBeenCalledWith("Control+C");
+      it("should handle 'down' action", async () => {
+        await agent.keyboard_action("down", "Shift");
+        expect(mockPage.keyboard.down).toHaveBeenCalledWith("Shift");
+      });
+
+      it("should handle 'up' action", async () => {
+        await agent.keyboard_action("up", "Shift");
+        expect(mockPage.keyboard.up).toHaveBeenCalledWith("Shift");
+      });
+
+      it("should handle 'type' action", async () => {
+        await agent.keyboard_action("type", undefined, "hello world");
+        expect(mockPage.keyboard.type).toHaveBeenCalledWith("hello world");
+      });
+
+      it("should handle 'insert' action", async () => {
+        await agent.keyboard_action("insert", undefined, "pasted text");
+        expect(mockPage.keyboard.insertText).toHaveBeenCalledWith("pasted text");
       });
     });
   });
@@ -156,7 +204,7 @@ describe("BrowserAgent Coordinate Tools", () => {
 
       await tool.execute({ x: 50, y: 50, button: "left", clicks: 1 }, {} as any);
 
-      expect(agent.click_at_coordinates).toHaveBeenCalledWith(100, 100, "left", 1);
+      expect(agent.click_at_coordinates).toHaveBeenCalledWith(100, 100, "left", 1, []);
     });
 
     it("should scale coordinates for hover_at_coordinates tool", async () => {
@@ -171,13 +219,23 @@ describe("BrowserAgent Coordinate Tools", () => {
       expect(agent.hover_at_coordinates).toHaveBeenCalledWith(50, 50);
     });
 
-    it("should call send_keys directly", async () => {
-      const tool = agent.tools.find((t: any) => t.name === "send_keys");
-      agent.send_keys = jest.fn();
+    it("should call keyboard_action directly", async () => {
+      const tool = agent.tools.find((t: any) => t.name === "keyboard_action");
+      agent.keyboard_action = jest.fn();
 
-      await tool.execute({ keys: "Escape" }, {} as any);
+      await tool.execute({ action: "press", key: "Escape" }, {} as any);
 
-      expect(agent.send_keys).toHaveBeenCalledWith("Escape");
+      expect(agent.keyboard_action).toHaveBeenCalledWith("press", "Escape", undefined);
+    });
+
+    it("should pass modifiers from tool execution", async () => {
+      const tool = agent.tools.find((t: any) => t.name === "click_at_coordinates");
+      agent.click_at_coordinates = jest.fn();
+
+      await tool.execute({ x: 50, y: 50, button: "left", clicks: 1, modifiers: ["Shift"] }, {} as any);
+
+      // Coordinates should be scaled (factor 1.0 default in tests, but let's assume default behavior)
+      expect(agent.click_at_coordinates).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), "left", 1, ["Shift"]);
     });
   });
 });

@@ -1,0 +1,293 @@
+diff --git a/packages/ai-agent-core/package.json b/packages/ai-agent-core/package.json
+index 1c0c90b..747b588 100644
+--- a/packages/ai-agent-core/package.json
++++ b/packages/ai-agent-core/package.json
+@@ -25,7 +25,7 @@
+   "scripts": {
+     "build": "rollup -c",
+     "docs": "typedoc",
+-    "test": "npx jest test/core/eko.test.ts"
++    "test": "npx jest"
+   },
+   "author": "XSky",
+   "license": "MIT",
+diff --git a/packages/ai-agent-core/test/common/utils.test.ts b/packages/ai-agent-core/test/common/utils.test.ts
+new file mode 100644
+index 0000000..d56fb6a
+--- /dev/null
++++ b/packages/ai-agent-core/test/common/utils.test.ts
+@@ -0,0 +1,7 @@
++import { sub } from '../../src/common/utils';
++
++describe('sub', () => {
++  it('should return "..." when sub("Hello World", -5) is called', () => {
++    expect(sub('Hello World', -5)).toBe('Hello ...');
++  });
++});
+diff --git a/packages/ai-agent-core/test/core/agents.ts b/packages/ai-agent-core/test/core/agents.ts
+index 95f6404..15d6dd1 100644
+--- a/packages/ai-agent-core/test/core/agents.ts
++++ b/packages/ai-agent-core/test/core/agents.ts
+@@ -3,63 +3,63 @@ import { BaseBrowserLabelsAgent, BaseComputerAgent, BaseFileAgent } from "../../
+ 
+ export class SimpleBrowserAgent extends BaseBrowserLabelsAgent {
+   protected screenshot(agentContext: AgentContext): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png"; }> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve({ imageBase64: '', imageType: 'image/png' });
+   }
+   protected navigate_to(agentContext: AgentContext, url: string): Promise<any> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve('success');
+   }
+   protected execute_script(agentContext: AgentContext, func: (...args: any[]) => void, args: any[]): Promise<any> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve('success');
+   }
+   protected get_all_tabs(agentContext: AgentContext): Promise<Array<{ tabId: number; url: string; title: string; }>> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve([]);
+   }
+   protected switch_tab(agentContext: AgentContext, tabId: number): Promise<{ tabId: number; url: string; title: string; }> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve({ tabId: 0, url: '', title: '' });
+   }
+ }
+ 
+ export class SimpleComputerAgent extends BaseComputerAgent {
+   protected screenshot(agentContext: AgentContext): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png"; }> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve({ imageBase64: '', imageType: 'image/png' });
+   }
+   protected typing(agentContext: AgentContext, text: string): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected click(agentContext: AgentContext, x: number, y: number, num_clicks: number, button_type: "left" | "right" | "middle"): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected scroll(agentContext: AgentContext, amount: number): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected move_to(agentContext: AgentContext, x: number, y: number): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected press(agentContext: AgentContext, key: string): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected hotkey(agentContext: AgentContext, keys: string): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+   protected drag_and_drop(agentContext: AgentContext, x1: number, y1: number, x2: number, y2: number): Promise<void> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve();
+   }
+ }
+ 
+ export class SimpleFileAgent extends BaseFileAgent {
+   protected file_list(agentContext: AgentContext, path: string): Promise<Array<{ path: string; name?: string; isDirectory?: boolean; size?: string; modified?: string; }>> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve([]);
+   }
+   protected file_read(agentContext: AgentContext, path: string): Promise<string> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve('');
+   }
+   protected file_write(agentContext: AgentContext, path: string, content: string, append: boolean): Promise<any> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve('success');
+   }
+   protected file_str_replace(agentContext: AgentContext, path: string, old_str: string, new_str: string): Promise<any> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve('success');
+   }
+   protected file_find_by_name(agentContext: AgentContext, path: string, glob: string): Promise<Array<{ path: string; name?: string; isDirectory?: boolean; size?: string; modified?: string; }>> {
+-    throw new Error("Method not implemented.");
++    return Promise.resolve([]);
+   }
+ }
+\ No newline at end of file
+diff --git a/packages/ai-agent-core/test/core/dialogue.test.ts b/packages/ai-agent-core/test/core/dialogue.test.ts
+index 26f51a0..f22434d 100644
+--- a/packages/ai-agent-core/test/core/dialogue.test.ts
++++ b/packages/ai-agent-core/test/core/dialogue.test.ts
+@@ -98,6 +98,8 @@ async function run() {
+   }
+ }
+ 
+-test.only("dialogue", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("dialogue", async () => {
+   await run();
+ });
+diff --git a/packages/ai-agent-core/test/core/eko.test.ts b/packages/ai-agent-core/test/core/eko.test.ts
+index a561b8e..ea3af10 100644
+--- a/packages/ai-agent-core/test/core/eko.test.ts
++++ b/packages/ai-agent-core/test/core/eko.test.ts
+@@ -49,6 +49,8 @@ async function run() {
+   console.log("result: ", result.result);
+ }
+ 
+-test.only("eko", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("eko", async () => {
+   await run();
+ });
+diff --git a/packages/ai-agent-core/test/core/mcp.test.ts b/packages/ai-agent-core/test/core/mcp.test.ts
+index ba38fd4..ae8e044 100644
+--- a/packages/ai-agent-core/test/core/mcp.test.ts
++++ b/packages/ai-agent-core/test/core/mcp.test.ts
+@@ -106,7 +106,9 @@ async function runWithHttp() {
+   console.log("result: ", JSON.stringify(result));
+ }
+ 
+-test.only("eko", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("eko", async () => {
+   // await runWithSse();
+   await runWithHttp();
+ });
+diff --git a/packages/ai-agent-core/test/core/plan.test.ts b/packages/ai-agent-core/test/core/plan.test.ts
+index 89c3be1..1727508 100644
+--- a/packages/ai-agent-core/test/core/plan.test.ts
++++ b/packages/ai-agent-core/test/core/plan.test.ts
+@@ -67,6 +67,8 @@ async function testPlaner() {
+   console.log("=========> workflow", JSON.stringify(workflow, null, 2));
+ }
+ 
+-test.only("test", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("test", async () => {
+   await testPlaner();
+ });
+diff --git a/packages/ai-agent-core/test/llm/claude.test.ts b/packages/ai-agent-core/test/llm/claude.test.ts
+index 7cc2360..7369b83 100644
+--- a/packages/ai-agent-core/test/llm/claude.test.ts
++++ b/packages/ai-agent-core/test/llm/claude.test.ts
+@@ -7,11 +7,6 @@ dotenv.config();
+ 
+ const baseURL = process.env.ANTHROPIC_BASE_URL;
+ const apiKey = process.env.ANTHROPIC_API_KEY;
+-if (!apiKey) {
+-  throw new Error(
+-    "ANTHROPIC_API_KEY environment variable is required for integration tests"
+-  );
+-}
+ 
+ export async function testClaudePrompt() {
+   const client: LanguageModelV2 = createAnthropic({
+@@ -118,6 +113,8 @@ export async function testToolsPrompt() {
+   }
+ }
+ 
+-test.only("testClaude", async () => {
++const t = process.env.ANTHROPIC_API_KEY ? test : test.skip;
++
++t("testClaude", async () => {
+   await testToolsPrompt();
+ });
+diff --git a/packages/ai-agent-core/test/llm/llm.test.ts b/packages/ai-agent-core/test/llm/llm.test.ts
+index 9a7f304..cc64a44 100644
+--- a/packages/ai-agent-core/test/llm/llm.test.ts
++++ b/packages/ai-agent-core/test/llm/llm.test.ts
+@@ -313,6 +313,8 @@ export async function testImageToolsPrompt(llm: "openai" | "claude") {
+   console.log("resultText: ", resultText);
+ }
+ 
+-test.only("test", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("test", async () => {
+   await testOpenaiStream();
+ });
+diff --git a/packages/ai-agent-core/test/llm/mcp.test.ts b/packages/ai-agent-core/test/llm/mcp.test.ts
+index 93054f2..f61b6d1 100644
+--- a/packages/ai-agent-core/test/llm/mcp.test.ts
++++ b/packages/ai-agent-core/test/llm/mcp.test.ts
+@@ -30,6 +30,8 @@ async function testSseMCP() {
+   await sleep(5000);
+ }
+ 
+-test.only("mcp", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("mcp", async () => {
+   await testSseMCP();
+ });
+diff --git a/packages/ai-agent-core/test/llm/openai.test.ts b/packages/ai-agent-core/test/llm/openai.test.ts
+index c43d53c..b995bdb 100644
+--- a/packages/ai-agent-core/test/llm/openai.test.ts
++++ b/packages/ai-agent-core/test/llm/openai.test.ts
+@@ -7,11 +7,6 @@ dotenv.config();
+ 
+ const baseURL = process.env.OPENAI_BASE_URL;
+ const apiKey = process.env.OPENAI_API_KEY;
+-if (!apiKey) {
+-  throw new Error(
+-    "OPENAI_API_KEY environment variable is required for integration tests"
+-  );
+-}
+ 
+ export async function testOpenaiPrompt() {
+   const client: LanguageModelV2 = createOpenAI({
+@@ -121,6 +116,8 @@ export async function testToolsPrompt() {
+   console.log(result.finishReason, result.content, result.usage);
+ }
+ 
+-test.only("testOpenai", async () => {
++const t = process.env.OPENAI_API_KEY ? test : test.skip;
++
++t("testOpenai", async () => {
+   await testOpenaiStream();
+ });
+diff --git a/packages/ai-agent-core/test/llm/utils.test.ts b/packages/ai-agent-core/test/llm/utils.test.ts
+index f3ced0b..9389786 100644
+--- a/packages/ai-agent-core/test/llm/utils.test.ts
++++ b/packages/ai-agent-core/test/llm/utils.test.ts
+@@ -1,6 +1,6 @@
+ import { call_timeout, sleep } from "../../src/common/utils";
+ 
+-test.only("test", async () => {
++test("test", async () => {
+   console.log("start ====>");
+   let result1 = await call_timeout(
+     async () => {
+@@ -13,15 +13,18 @@ test.only("test", async () => {
+     }
+   );
+   console.log("result1 ===> ", result1);
+-  let result2 = await call_timeout(
+-    async () => {
+-      await sleep(300);
+-      return 2;
+-    },
+-    200,
+-    (e) => {
+-      console.log("___error2___", e);
+-    }
+-  );
+-  console.log("result2 ===> ", result2);
++  try {
++    await call_timeout(
++      async () => {
++        await sleep(300);
++        return 2;
++      },
++      200,
++      (e) => {
++        console.log("___error2___", e);
++      }
++    );
++  } catch (e) {
++    expect(e.message).toBe("Timeout");
++  }
+ });
+

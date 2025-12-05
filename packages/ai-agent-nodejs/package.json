@@ -2,7 +2,7 @@
   "name": "@xsky/ai-agent-nodejs",
   "version": "0.1.2",
   "description": "Node.js environment support for XSky AI Agent framework with Playwright integration.",
-  "main": "dist/index.cjs.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -14,7 +14,7 @@
   ],
   "exports": {
     ".": {
-      "require": "./dist/index.cjs.js",
+      "require": "./dist/index.cjs",
       "import": "./dist/index.esm.js",
       "types": "./dist/index.d.ts"
     }

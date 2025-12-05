@@ -43,6 +43,8 @@ import {
 import { doTaskResultCheck } from "../tools/task_result_check";
 import { doTodoListManager } from "../tools/todo_list_manager";
 import { getAgentSystemPrompt, getAgentUserPrompt } from "../prompt/agent";
+import { ToolSandboxFactory } from "../security/tool-sandbox";
+import { ResourceAccess, ResourceType } from "../types/security.types";
 
 export type AgentParams = {
   name: string;
@@ -58,8 +60,8 @@ export type AgentParams = {
  * Represents an AI agent that can run tasks, interact with tools, and communicate with language models.
  */
 export class Agent {
-  protected name: string;
-  protected description: string;
+  protected name!: string;
+  protected description!: string;
   protected tools: Tool[] = [];
   protected llms?: string[];
   protected mcpClient?: IMcpClient;
@@ -75,8 +77,116 @@ export class Agent {
   private static humanInteractTool = new HumanInteractTool();
 
   /**
+   * Extracts resource access requirements from tool arguments.
+   * This enables granular permission enforcement based on specific resources being accessed.
+   */
+  private extractResourcesFromArgs(
+    toolName: string,
+    args: Record<string, any>
+  ): ResourceAccess[] {
+    const resources: ResourceAccess[] = [];
+
+    // Helper function to check if string looks like a file path
+    const isFilePath = (str: string): boolean => {
+      return str.includes('/') || str.includes('\\') || str.startsWith('./') || str.startsWith('../') || /^\w:/.test(str);
+    };
+
+    // Helper function to check if string looks like a URL
+    const isUrl = (str: string): boolean => {
+      return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ftp://');
+    };
+
+    // Helper function to check if string looks like a domain/host
+    const isDomain = (str: string): boolean => {
+      return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(str) && !isUrl(str);
+    };
+
+    // Helper function to check if string looks like a shell command
+    const isShellCommand = (str: string, key?: string): boolean => {
+      return key === 'command' || key === 'cmd' || (str.includes(' ') && (str.includes('ls ') || str.includes('cat ') || str.includes('rm ') || str.includes('cp ') || str.includes('mkdir ') || str.includes('touch ')));
+    };
+
+    // Recursively search through args for resource indicators
+    const extractFromValue = (value: any, key?: string): void => {
+      if (typeof value === 'string') {
+        // Check in order: URLs first, then domains, then shell commands, then file paths
+        if (isUrl(value)) {
+          resources.push({
+            type: "network",
+            identifier: value,
+            accessType: 'read',
+            permission: 'allow',
+            allowed: true,
+          });
+        } else if (isDomain(value)) {
+          resources.push({
+            type: "network",
+            identifier: value,
+            accessType: 'read',
+            permission: 'allow',
+            allowed: true,
+          });
+        } else if (isShellCommand(value, key)) {
+          resources.push({
+            type: "system_command",
+            identifier: value,
+            accessType: 'execute',
+            permission: 'allow',
+            allowed: true,
+          });
+        } else if (isFilePath(value)) {
+          resources.push({
+            type: "file_system",
+            identifier: value,
+            accessType: key?.includes('write') || key?.includes('delete') || key?.includes('output') || key?.includes('dest') ? 'write' : 'read',
+            permission: 'allow', // Default, will be evaluated by security system
+            allowed: true,
+          });
+        }
+      } else if (Array.isArray(value)) {
+        value.forEach(item => extractFromValue(item));
+      } else if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([k, v]) => extractFromValue(v, k));
+      }
+    };
+
+    // Extract from all arguments
+    Object.entries(args).forEach(([key, value]) => {
+      extractFromValue(value, key);
+    });
+
+    // Tool-specific extractions
+    if (toolName === 'variable_storage') {
+      // Variable storage might access internal state, but typically not external resources
+      // Could add environment variable access if needed
+    } else if (toolName.startsWith('browser_') || toolName.includes('navigate')) {
+      // Browser tools might access URLs
+      if (args.url || args.targetUrl) {
+        const url = args.url || args.targetUrl;
+        if (typeof url === 'string') {
+          resources.push({
+            type: "network",
+            identifier: url,
+            accessType: 'read',
+            permission: 'allow',
+            allowed: true,
+          });
+        }
+      }
+    }
+
+    // Remove duplicates based on identifier and type
+    const uniqueResources = resources.filter((resource, index, self) =>
+      index === self.findIndex(r =>
+        r.identifier === resource.identifier && r.type === resource.type
+      )
+    );
+
+    return uniqueResources;
+  }
+
+  /**
    * Creates an instance of the Agent.
-   * @param params - The parameters for creating the agent.
    */
   constructor(params: AgentParams) {
     this.name = params.name;
@@ -455,7 +565,42 @@ export class Agent {
       if (!tool) {
         throw new Error(result.toolName + " tool does not exist");
       }
-      toolResult = await tool.execute(args, agentContext, result);
+
+      // Security Sandboxing
+      const securityConfig = context.config.security;
+      if (securityConfig && securityConfig.enabled) {
+        const sandbox = ToolSandboxFactory.createDefault(securityConfig);
+        const toolExecutor = async () => {
+          return await tool!.execute(args, agentContext, result);
+        };
+
+        const sandboxResult = await sandbox.execute(
+          agentContext,
+          result.toolName,
+          args,
+          toolExecutor,
+          this.extractResourcesFromArgs(result.toolName, args)
+        );
+
+        if (!sandboxResult.allowed) {
+          toolResult = {
+            content: [
+              {
+                type: "text",
+                text: `Action blocked by security policy: ${sandboxResult.reason}`,
+              },
+            ],
+            isError: true,
+          };
+        } else if (sandboxResult.error) {
+          throw sandboxResult.error;
+        } else {
+          toolResult = sandboxResult.result;
+        }
+      } else {
+        toolResult = await tool.execute(args, agentContext, result);
+      }
+
       toolChain.updateToolResult(toolResult);
       agentContext.consecutiveErrorNum = 0;
 

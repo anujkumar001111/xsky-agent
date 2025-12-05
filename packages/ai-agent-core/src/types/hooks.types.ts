@@ -2,6 +2,8 @@ import type { AgentContext } from "../core/context";
 import type { ToolResult } from "./tools.types";
 import type { Workflow, WorkflowAgent, EkoResult } from "./core.types";
 import type Context from "../core/context";
+import type { SecurityConfig } from "./security.types";
+
 
 /**
  * Result returned by beforeToolCall hook to control tool execution.
@@ -548,4 +550,9 @@ export interface ProductionEkoConfig {
    * Webhook handlers for external integrations.
    */
   webhooks?: Record<string, (request: any) => Promise<void>>;
+
+  /**
+   * Security configuration for sandboxing and permissions.
+   */
+  security?: SecurityConfig;
 }

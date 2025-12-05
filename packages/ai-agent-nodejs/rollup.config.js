@@ -9,9 +9,10 @@ export default [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/index.cjs.js',
+        file: 'dist/index.cjs',
         format: 'cjs',
-        sourcemap: true
+        sourcemap: true,
+        exports: 'named'
       }
     ],
     external: ["dotenv", "@xsky/ai-agent-core", "playwright"],

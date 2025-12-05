@@ -100,6 +100,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return false;
   }
 
+  /**
+   * Captures a screenshot of the current page in the Electron view.
+   * Handles optional resolution normalization based on configuration.
+   * @param agentContext - The current agent context containing execution state.
+   * @returns A promise that resolves to an object containing the base64-encoded image and image type.
+   */
   protected async screenshot(
     agentContext: AgentContext
   ): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png" }> {
@@ -133,6 +139,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return { imageBase64: image.toDataURL(), imageType: "image/jpeg" };
   }
 
+  /**
+   * Navigates the browser view to a specified URL.
+   * @param agentContext - The current agent context containing execution state.
+   * @param url - The URL to navigate to.
+   * @returns A promise that resolves to an object containing the loaded URL and page title.
+   */
   protected async navigate_to(
     agentContext: AgentContext,
     url: string
@@ -145,6 +157,14 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Executes a JavaScript function within the page context.
+   * Supports both legacy execution and secure context-isolated execution via IPC.
+   * @param agentContext - The current agent context.
+   * @param func - The function to execute.
+   * @param args - Arguments to pass to the function.
+   * @returns A promise that resolves to the result of the function execution.
+   */
   protected async execute_script(
     agentContext: AgentContext,
     func: (...args: any[]) => void,
@@ -187,16 +207,29 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     }
   }
 
+  /**
+   * Gets the dimensions of the browser view.
+   * @returns A promise that resolves to a tuple [width, height].
+   */
   private async size(): Promise<[number, number]> {
     const width = this.detailView.getBounds().width;
     const height = this.detailView.getBounds().height;
     return [width, height]
   }
 
+  /**
+   * Pauses execution for a specified duration.
+   * @param time - Duration in milliseconds.
+   */
   private sleep(time: number): Promise<void> {
     return new Promise((resolve) => setTimeout(() => resolve(), time));
   }
 
+  /**
+   * Retrieves the single active tab information (Electron agent currently supports single view).
+   * @param agentContext - The current agent context.
+   * @returns A promise that resolves to an array containing the single active tab.
+   */
   protected async get_all_tabs(
     agentContext: AgentContext
   ): Promise<Array<{ tabId: number; url: string; title: string }>> {
@@ -211,6 +244,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     ];
   }
 
+  /**
+   * Switches to a specific tab (noop for single-view Electron agent).
+   * @param agentContext - The current agent context.
+   * @param tabId - The ID of the tab to switch to.
+   * @returns A promise that resolves to the active tab info.
+   */
   protected async switch_tab(
     agentContext: AgentContext,
     tabId: number
@@ -218,6 +257,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return (await this.get_all_tabs(agentContext))[0];
   }
 
+  /**
+   * Navigates back in the browser history.
+   * @param agentContext - The current agent context.
+   */
   protected async go_back(agentContext: AgentContext): Promise<void> {
     if (this.detailView.webContents.navigationHistory.canGoBack()) {
       this.detailView.webContents.navigationHistory.goBack();
@@ -265,7 +308,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return await super.extract_page_content(agentContext);
   }
 
-  // Detect if URL is a PDF
+  /**
+   * Checks if a URL points to a PDF file based on extensions and common patterns.
+   * @param url - The URL to check.
+   * @returns True if the URL is likely a PDF.
+   */
   private isPdfUrl(url: string): boolean {
     return url.toLowerCase().includes('.pdf') ||
            url.includes('application/pdf') ||
@@ -273,7 +320,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
            url.includes('#page='); // PDF page anchor
   }
 
-  // Detect if current page is a PDF
+  /**
+   * Detects if the currently loaded page is displaying a PDF.
+   * Checks for PDF viewers (embeds, iframes, specific viewer classes).
+   * @param agentContext - The current agent context.
+   * @returns A promise that resolves to true if the page is a PDF viewer.
+   */
   private async isPdfPage(agentContext: AgentContext): Promise<boolean> {
     try {
       return await this.execute_script(agentContext, () => {
@@ -291,7 +343,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     }
   }
 
-  // Extract PDF content
+  /**
+   * Extracts text content from a PDF file using PDF.js.
+   * Dynamically loads PDF.js if not present and parses all pages.
+   * @param agentContext - The current agent context.
+   * @returns A promise that resolves to an object containing PDF metadata and extracted text.
+   */
   private async extractPdfContent(agentContext: AgentContext): Promise<any> {
     try {
       return await this.execute_script(agentContext, () => {

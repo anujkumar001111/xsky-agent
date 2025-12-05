@@ -220,7 +220,7 @@ export class Eko {
           }
           lastAgent = agent;
           const agentChain = new AgentChain(agentNode.agent);
-          context.chain.push(agentChain);
+          // context.chain.push(agentChain); // Removed to prevent race conditions/duplication
           const result = await this.runAgent(
             context,
             agent,
@@ -440,6 +440,7 @@ export class Eko {
     const context = this.taskMap.get(taskId);
     if (context) {
       context.variables.clear();
+      context.reset();
     }
     return this.taskMap.delete(taskId);
   }

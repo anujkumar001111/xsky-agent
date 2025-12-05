@@ -1,150 +1,99 @@
-# AGENTS.md
+# Repository Guidelines and rules
 
-This file defines specialized AI agent configurations for development workflows on this repository.
+**You are Codex running in a CLI session. Another agent (Claude Code) is running in a separate CLI session. You collaborate and coordinate using `scratchpad.md` as the bridge.**
 
-## Available Agents
+**Before any task:** Read `scratchpad.md` for Claude Code's work, active tasks, and lessons.
+**Coordination Protocol:**
+- Claim tasks with `[~] Codex` in scratchpad; mark `[X] Codex` when done
+- Log every file change: `[timestamp] [Codex] file.ext - summary`
+- Record lessons (fixes, versions, mistakes) immediately
+- Never duplicate Claude Code's claimed/completed work; check conflicts first
+- Create `scratchpad.md` if missing
+**Your Role:** Large codebase refactors, autonomous debugging, long-context tasks, math/logic-heavy execution
+**Claude Code's Role:** Agentic planning, multi-file bug fixes, complex architectural decisions, nuanced code generation
+**Handoff Format:**
+When completing work: `[Codex] completed: [summary] | next: [recommended follow-up for Claude Code if needed]`
 
-### xsky-architect
-**Purpose**: Design features, plan architecture, make technical decisions
-**When to use**: Before implementing new features or making significant changes
-**Capabilities**:
-- Analyze existing codebase patterns
-- Design component interfaces
-- Plan multi-package changes
-- Evaluate architectural trade-offs
+## Steering Documents
+Before starting any task, read these steering documents in `.claude/steering/:
+- product.md : Product purpose, core features, user value, business logic rules
+- tech.md : Tech stack, dependencies, common commands, conventions
+- structure.md : Monorepo layout, package structure, key file locations
 
-### xsky-implementer
-**Purpose**: Write code, implement features, make code changes
-**When to use**: When implementing features, fixing bugs, writing new functionality
-**Capabilities**:
-- Write TypeScript code following project conventions
-- Implement agents, tools, and MCP clients
-- Add tests alongside implementations
-- Update package exports
 
-### xsky-reviewer
-**Purpose**: Review code changes, PRs, and implementations
-**When to use**: After implementing features, before merging PRs
-**Capabilities**:
-- Check code quality and patterns
-- Verify test coverage
-- Identify potential issues
-- Suggest improvements
+## Project Structure & Modules
+- **Monorepo managed by `pnpm`** with packages in `packages/`:
+  - `ai-agent-core/` – Core Eko orchestrator, agents, tools, MCP clients, security sandboxing
+  - `ai-agent-nodejs/` – Node.js runtime (Playwright-based BrowserAgent, FileAgent)
+  - `ai-agent-web/` – Browser SPA runtime for in-page automation
+  - `ai-agent-extension/` – Chrome extension runtime with sidebar/content-script control
+  - `ai-agent-electron/` – Electron desktop application runtime
+- **Shared configuration** and scripts live in the repo root (e.g. `package.json`, `eslint.config.js`, `pnpm-workspace.yaml`).
+- **Documentation and guides** are under `docs/` and `GUIDES/`; examples and demos are under `example/`.
+- **Benchmarks and development utilities** live in `benchmarks/` and `development/`.
+- **Security implementation** includes permission evaluators, audit loggers, and tool execution sandboxing.
+- **MCP (Model Context Protocol)** integration for extending agent capabilities via external servers.
 
-### xsky-test-engineer
-**Purpose**: Write tests, debug test failures, improve coverage
-**When to use**: When writing tests or debugging test issues
-**Capabilities**:
-- Write Jest tests with ts-jest
-- Mock dependencies appropriately
-- Debug test failures
-- Improve test coverage
+## Build, Test, and Development
+- Install dependencies: `pnpm install`.
+- Build all packages: `pnpm build`.
+- Run tests for all packages: `pnpm test` (or package-specific scripts via `pnpm -C packages/<name> test`).
+- Start local development (where available): `pnpm dev` or package-specific `dev` scripts (check `package.json` in each package).
+- Run benchmarks: `pnpm bench`.
+- Clean workspace: `pnpm clean` (removes node_modules and dist).
 
-### browser-tools-specialist
-**Purpose**: Work on browser automation tools and DOM functionality
-**When to use**: When working on browser agents, labeling, or DOM extraction
-**Capabilities**:
-- Implement browser automation tools
-- Work with DOM Intelligence system
-- Handle element labeling
-- Write browser-specific tests
+## Security & Production Features
+- **Security Sandboxing**: `ToolExecutionSandbox` wraps all tool calls with permission checks, audit logging, and approval gates
+- **Permission System**: `DefaultPermissionEvaluator` with pattern-based resource permissions (file_system, network, etc.)
+- **Audit Logging**: `InMemoryAuditLogger` tracks all tool executions with tamper-proof logging
+- **Production Hooks**: Rate limiting, checkpointing, pause/resume, human-in-the-loop approvals
+- **MCP Integration**: `SimpleSseMcpClient` and `SimpleHttpMcpClient` for external tool extensions
 
-### llm-integration-specialist
-**Purpose**: Work on LLM provider integrations
-**When to use**: When adding providers, fixing LLM issues, or optimizing prompts
-**Capabilities**:
-- Integrate new LLM providers
-- Debug provider-specific issues
-- Optimize system prompts
-- Handle streaming and token management
+## Coding Style & Naming
+- Use TypeScript/JavaScript with 2‑space indentation and explicit imports.
+- Prefer descriptive, lowerCamelCase for variables and functions, PascalCase for types/classes, and kebab-case for file and directory names.
+- Run `pnpm lint` and `pnpm format` (if configured) before opening a PR; do not introduce new tooling without discussion.
+- Named exports from modules; default export only for main exports like `Eko`
+- Types in `src/types/` (core.types.ts, llm.types.ts, tools.types.ts, hooks.types.ts)
+- Test files use `.test.ts` extension in `__tests__/` or alongside source
+- Config files: Standard names (`jest.config.js`, `rollup.config.js`, `tsconfig.json`)
 
-### mcp-integration-specialist
-**Purpose**: Work on MCP client implementations
-**When to use**: When adding MCP clients or debugging MCP issues
-**Capabilities**:
-- Implement SSE, HTTP, or STDIO MCP clients
-- Debug MCP communication
-- Handle tool discovery and execution
-- Integrate external MCP servers
-
-### workflow-xml-specialist
-**Purpose**: Work on workflow planning and XML parsing
-**When to use**: When modifying planner, workflow structure, or XML parsing
-**Capabilities**:
-- Modify workflow XML schema
-- Debug planning issues
-- Improve workflow generation
-- Handle dependency resolution
-
-## Agent Selection Guide
-
-| Task Type | Primary Agent | Supporting Agents |
-|-----------|---------------|-------------------|
-| New feature design | xsky-architect | - |
-| Feature implementation | xsky-implementer | xsky-test-engineer |
-| Bug fix | xsky-implementer | xsky-reviewer |
-| Code review | xsky-reviewer | - |
-| Test writing | xsky-test-engineer | xsky-implementer |
-| Browser automation | browser-tools-specialist | xsky-implementer |
-| LLM integration | llm-integration-specialist | xsky-implementer |
-| MCP work | mcp-integration-specialist | xsky-implementer |
-| Workflow changes | workflow-xml-specialist | xsky-architect |
-
-## Workflow Patterns
-
-### Feature Development
-```
-1. xsky-architect → Design the feature
-2. xsky-implementer → Implement the code
-3. xsky-test-engineer → Add tests
-4. xsky-reviewer → Review implementation
+## LLM Configuration
+Configure providers in `LLMs` object before creating `Eko`:
+```typescript
+import { LLMs } from '@xsky/ai-agent-core';
+LLMs.default = { provider: 'anthropic', model: 'claude-3-5-sonnet-20240620' };
 ```
 
-### Bug Fix
-```
-1. xsky-implementer → Investigate and fix
-2. xsky-test-engineer → Add regression test
-3. xsky-reviewer → Verify fix
-```
+## Conventions
+- Environment variables for API keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`
+- Use `Eko.run()` for simple generate+execute flows; use `Eko.generate()` + `Eko.execute()` for workflows needing inspection or modification
+- Register agents via `context.setAgent()` before execution
+- Workflows use XML format with `<agent>`, `<forEach>`, and `<watch>` constructs
+- Hooks (`AgentHooks`) drive observability, approval, and persistence
 
-### Provider Addition
-```
-1. xsky-architect → Design integration approach
-2. llm-integration-specialist → Implement provider
-3. xsky-test-engineer → Add provider tests
-4. xsky-reviewer → Review integration
-```
+## Testing Guidelines
+- Keep tests close to code when possible (e.g. `*.test.ts` or `__tests__/` inside the relevant package).
+- When fixing a bug, add or update a test that fails without the fix.
+- Aim to keep or improve current coverage; avoid disabling existing tests.
+- Use Jest + ts-jest for testing framework
+- Run `pnpm test` from package root or `pnpm test -- path.test.ts` for single test files
 
-## Context for Agents
+## Commit & Pull Request Guidelines
+- Write clear, imperative commit messages (e.g. `fix: handle empty agent input`, `feat: add web agent settings`).
+- Keep changes focused; separate unrelated changes into different commits or PRs.
+- For PRs, include: a short summary, motivation, testing performed (`pnpm test`, manual steps), and links to related issues or docs. Use screenshots only when UI changes are involved.
 
-All agents should understand:
+## Key Business Logic Rules
+- Use `Eko.run()` for simple generate+execute flows; use `Eko.generate()` + `Eko.execute()` for workflows needing inspection or modification
+- Register agents via `context.setAgent()` before execution
+- Configure LLM providers in `LLMs` before instantiating Eko
+- Workflows use XML format with `<agent>`, `<forEach>`, and `<watch>` constructs
+- Hooks (`AgentHooks`) drive observability, approval, and persistence
 
-### Core Concepts
-- **Eko**: Main orchestrator that converts tasks to workflows
-- **Workflow**: XML-based task graph with agent dependencies
-- **Agent**: Execution unit (Browser, File, Shell, etc.)
-- **Context**: State container for task execution
-- **Chain**: Execution history tracking
-
-### Package Structure
-- `ai-agent-core`: Core framework (required by all adapters)
-- `ai-agent-nodejs`: Node.js + Playwright
-- `ai-agent-web`: Browser environment
-- `ai-agent-extension`: Chrome extension
-- `ai-agent-electron`: Electron desktop
-
-### Key Files
-| Purpose | Location |
-|---------|----------|
-| Orchestrator | `packages/ai-agent-core/src/core/eko.ts` |
-| Planner | `packages/ai-agent-core/src/core/plan.ts` |
-| Agent base | `packages/ai-agent-core/src/agent/base.ts` |
-| Types | `packages/ai-agent-core/src/types/*.ts` |
-| Config | `packages/ai-agent-core/src/config/index.ts` |
-
-### Conventions
-- Named exports (default only for main entries)
-- TypeScript strict mode
-- Zod for runtime validation
-- Jest for testing
-- Rollup for building (CJS + ESM)
+## Agent-Specific Instructions
+- Obey any `AGENTS.md` in subdirectories when editing files there; more specific files override this root guide.
+- Keep edits minimal and aligned with the existing style; avoid large refactors unless explicitly requested.
+- When working on security-related code, ensure all tool executions go through the `ToolExecutionSandbox`
+- For new agents, extend `Agent` or `BaseBrowserAgent` and place in appropriate package
+- For new tools, add to `packages/ai-agent-core/src/tools/` and export from index.ts

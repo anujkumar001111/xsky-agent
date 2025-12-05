@@ -19,7 +19,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 
 const openaiBaseURL = process.env.CUSTOM_API_URL || "http://143.198.174.251:8317/v1";
 const openaiApiKey = process.env.CUSTOM_API_KEY || "sk-anything";
-const openaiModel = "copilot-1-claude-opus-4.5";
+const openaiModel = "gpt-5.1";
 
 let provider = "openai-compatible";
 let apiKey = openaiApiKey;

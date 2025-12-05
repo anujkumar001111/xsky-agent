@@ -1,4 +1,5 @@
 import { Agent } from "./base";
+import { AgentParams } from "./base";
 import { mergeTools } from "../common/utils";
 import { AgentContext } from "../core/context";
 import { Tool, ToolResult, IMcpClient } from "../types";

@@ -102,3 +102,27 @@ export {
   createAuditHook,
   createErrorRecoveryHook,
 } from "./utils";
+
+export {
+  DefaultPermissionEvaluator,
+  InMemoryAuditLogger,
+  AuditLoggerFactory,
+  ToolExecutionSandbox,
+  ToolSandboxFactory,
+  type ToolSandboxOptions,
+  type SandboxResult,
+} from "./security";
+
+export type {
+  PermissionLevel,
+  ResourceType,
+  SecurityPermission,
+  ToolConstraint,
+  SecurityContext,
+  ResourceAccess,
+  PermissionEvaluation,
+  AuditLogEntry,
+  SecurityConfig,
+  IPermissionEvaluator,
+  IAuditLogger,
+} from "./types/security.types";

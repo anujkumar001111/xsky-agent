@@ -1,163 +1,191 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Before Starting
-
-1. Read steering docs in `.claude/steering/` for detailed context:
-   - `product.md` - Features, business rules
-   - `tech.md` - Tech stack, commands, conventions
-   - `structure.md` - Project layout, data flow
-
-2. Understand the workflow: `/steering` → `/spec` → `/jules` → `/reviewer`
-
-## Project Map
-
-XSky is an AI agent framework. Core logic in `ai-agent-core`, platform adapters for different environments.
-
-```
-packages/
-├── ai-agent-core/           # Core framework
-│   ├── src/core/            # Eko, Planner, Context, Chain, Dialogue
-│   ├── src/agent/           # Agent base + browser/file/shell agents
-│   ├── src/tools/           # Built-in tools
-│   ├── src/mcp/             # MCP clients (SSE, HTTP)
-│   ├── src/memory/          # Conversation compression
-│   └── src/types/           # Type definitions (*.types.ts)
-├── ai-agent-nodejs/         # Node.js + Playwright + stdio MCP
-├── ai-agent-web/            # Browser environment
-├── ai-agent-extension/      # Chrome extension
-└── ai-agent-electron/       # Electron (preload bridge)
-```
-
-**Execution:** `Eko.run()` → `Planner.plan()` (NL→XML) → `parseWorkflow()` → `buildAgentTree()` → `Agent.run()` loop → `EkoResult`
-
-## Commands
-
-```bash
-pnpm install                                     # Install all
-pnpm build                                       # Build all packages
-pnpm test                                        # Run all tests
-pnpm clean                                       # Remove node_modules & dist
-pnpm --filter @xsky/ai-agent-core test           # Test one package
-pnpm --filter @xsky/ai-agent-core test -- test/core/eko.test.ts  # Single test
-
-# Run examples
-cd example/nodejs && pnpm install && pnpm start
-```
-
-## Workflow
-
-1. **Explore** - Read relevant files to understand existing patterns
-2. **Plan** - For multi-file changes, outline approach first
-3. **Implement** - Follow conventions below
-4. **Test** - Run `pnpm test` in affected package
-
-## Key Conventions
-
-**Class naming:** `Base*` = abstract, `Simple*` = basic implementation
-**Exports:** Named exports preferred; default only for `Eko`
-**Types:** Separate `*.types.ts` files
-**Tests:** `test/` directory with `*.test.ts` extension
-**Errors:** Cancellation errors MUST use `error.name = "AbortError"`
-**Build:** Rollup → `dist/index.cjs.js` + `dist/index.esm.js`
-
-## Non-Obvious Patterns
-
-- **AgentContext** created inside `Agent.run()`, not before - hooks receive it after creation
-- **Tool results** return text, image, or text+image via `ToolResult.content[]` array
-- **Variable storage** uses `VariableStorageTool` - maps to XML `input`/`output` attributes
-- **Message compression** triggers at 80 messages OR 80,000 tokens
-- **Consecutive tool errors** limit: 10 failures = agent abort (resets on success)
-- **Parallel agents** OFF by default (`config.agentParallel = false`)
-- **Expert mode** enables todo list management + result validation every 10 loops
-
-## Adding Components
-
-**New Agent** - Extend `Agent` inside `packages/ai-agent-core/src/agent/my_agent.ts` and register with `eko.addAgent()`:
-```typescript
-import { Agent, type AgentParams } from "./base";
-
-export class MyAgent extends Agent {
-  constructor(params: AgentParams) {
-    super({
-      ...params,
-      name: "MyAgent",
-    });
-  }
-}
-```
-
-**New Tool** - Export `Tool` object with JSON Schema parameters inside `packages/ai-agent-core/src/tools/my_tool.ts`:
-```typescript
-import type { Tool, ToolResult } from "../types/tools.types";
-
-export const MyTool: Tool = {
-  name: "my_tool",
-  description: "...",
-  parameters: { type: "object", properties: { /* schema */ } },
-  async execute(args, agentContext): Promise<ToolResult> {
-    return { content: [{ type: "text", text: "result" }] };
-  }
-};
-```
-
-**Override points:** `buildSystemPrompt()`, `buildUserPrompt()`, `extSysPrompt()`, `controlMcpTools()`
-
-## Key Files
-
-| Purpose | File |
-|---------|------|
-| Main orchestrator | `core/eko.ts` |
-| Agent base + React loop | `agent/base.ts` |
-| State management | `core/context.ts` |
-| NL → XML planning | `core/plan.ts` |
-| Production hooks | `types/hooks.types.ts` |
-| Hook utilities | `src/utils/` (RateLimiter, createBlocklistHook, etc.) |
-
-## Environment
-
-At least one LLM provider key required:
-```bash
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-GOOGLE_API_KEY=
-OPENROUTER_API_KEY=
-DEEPSEEK_API_KEY=
-```
-
-## Slash Commands
-
-- `/xsky-dev` - Start development workflow
-- `/xsky-add-agent` - Guided agent creation
-- `/xsky-add-tool` - Guided tool creation
-- `/spec <feature>` - Plan features
-- `/reviewer` - Review code/PRs
-
-## Getting Help
-
-- Advanced patterns: `GUIDES/hooks-and-control.md`
-- Workflow XML parsing: `src/common/xml.ts`
-- Full type reference: `src/types/index.ts`
-- Debug logging: `Log.setLevel(0)` for verbose output
-
-<reflection_protocol> 
-After completing each major task: 1. Self-Review: - Did I fully address the requirements? - Are there edge cases I missed? - Is the code maintainable by other developers? 2. Alternative Approaches: - What other solutions did I consider? - Why did I choose this approach? - Under what conditions would alternatives be better? 3. Risk Assessment: - What could go wrong in production? - What monitoring/alerts should be added? - What's the rollback procedure? 4. Learning: - What patterns worked well? - What would I do differently next time? Document your reflection and update approach accordingly.
-</reflection_protocol>
-
-<default_to_action>
-By default, implement changes rather than only suggesting them. If the user's intent is unclear, infer the most useful likely action and proceed, using tools to discover any missing details instead of guessing. Try to infer the user's intent about whether a tool call (e.g., file edit or read) is intended or not, and act accordingly.
-</default_to_action>
-
-<investigate_before_answering>
-ALWAYS read and understand relevant files before proposing code edits. Do not speculate about code you have not inspected. If the user references a specific file/path, you MUST open and inspect it before explaining or proposing fixes. Be rigorous and persistent in searching code for key facts. Thoroughly review the style, conventions, and abstractions of the codebase before implementing new features or abstractions.
-</investigate_before_answering>
-
 <autonomous_execution>
-Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching.
-<autonomous_execution>
+Your context window auto-compacts near limits, allowing indefinite work continuation. Never stop tasks early due to token concerns. Save progress/state to memory before context refresh. Always complete tasks fully and autonomously.
+</autonomous_execution>
 
 <use_parallel_tool_calls>
-If you intend to call multiple tools and there are no dependencies between the tool calls, make all of the independent tool calls in parallel. Prioritize calling tools simultaneously whenever the actions can be done in parallel rather than sequentially. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. Maximize use of parallel tool calls where possible to increase speed and efficiency. However, if some tool calls depend on previous calls to inform dependent values like the parameters, do NOT call these tools in parallel and instead call them sequentially. Never use placeholders or guess missing parameters in tool calls. choose models ( opus,sonnet,haiku ) based on the task complexity and requirements.
+Call multiple independent tools simultaneously—never sequentially when no dependencies exist. Example: read 3 files with 3 parallel calls. Only use sequential calls when parameters depend on previous results. Never use placeholders or guess parameters. Select model (opus/sonnet/haiku) based on task complexity.
 </use_parallel_tool_calls>
 
+<sub_agent_coordination>
+Use sub-agents for: complex investigations, parallel workstreams, specialized tasks, or preserving main context during long tasks.
+Dispatch with: clear self-contained instructions, expected output format, success criteria, and request for status updates.
+Sub-agents work independently and report condensed findings.
+</sub_agent_coordination>
+
+## Steering Documents
+
+Before starting any task, read these steering documents in `.claude/steering/`:
+
+| Document | Purpose |
+|----------|---------|
+| `product.md` | Product purpose, core features, user value, business logic rules |
+| `tech.md` | Tech stack, dependencies, common commands, conventions |
+| `structure.md` | Monorepo layout, package structure, key file locations |
+
+## Monorepo Overview
+
+This is the XSky AI Agent monorepo (`@xsky/ai-agent-monorepo`). It contains a core agent framework plus environment-specific runtimes:
+
+- `packages/ai-agent-core`: Core Eko agent engine (planning, dialogue, tools, MCP, hooks)
+- `packages/ai-agent-nodejs`: Node.js/Playwright runtime (`BrowserAgent`, `FileAgent`)
+- `packages/ai-agent-web`: Browser runtime for in-page automation
+- `packages/ai-agent-extension`: Browser extension runtime
+- `packages/ai-agent-electron`: Electron desktop/runtime integration
+- `example/`: Example apps for Node.js, Electron, browser extension, and web
+
+Top-level package manager: **pnpm**.
+
+## Top-Level Commands
+
+Run from repo root:
+
+- `pnpm install` – Install all workspace dependencies
+- `pnpm build` – Build all packages (`pnpm -r --sequential build`)
+- `pnpm test` – Run all package test suites (`pnpm -r --sequential test`)
+- `pnpm clean` – Remove `node_modules` and `dist` in all workspaces
+
+Package-specific (run inside each package directory):
+
+- `pnpm build` – Build that package via Rollup
+- `pnpm test` – Run Jest tests for that package
+
+Core package Jest config: `packages/ai-agent-core/jest.config.js`.
+
+## Core Architecture (ai-agent-core)
+
+Main public entry: `packages/ai-agent-core/src/index.ts`.
+
+Key building blocks:
+
+- **Eko Orchestrator** (`src/core/eko.ts`)
+  - `Eko.generate(...)` – Plan workflow for a task prompt
+  - `Eko.execute(taskId)` – Execute an existing workflow
+  - `Eko.run(taskPrompt, taskId?, contextParams?)` – Generate + execute in one call
+  - Manages `taskMap`, pause/resume/abort, and integrates hooks
+
+- **Workflow & Chain**
+  - `Context` (`src/core/context.ts`) – Per-task state (agents, variables, AbortController, checkpointing, state-change hooks)
+  - `Chain`/`AgentChain`/`ToolChain` (`src/core/chain.ts`) – Tracks LLM requests, tool calls, and agent execution timeline
+  - `Planner`/`replan` (`src/core/plan.ts`, `src/core/replan.ts`) – Builds and modifies XML-based workflows
+
+- **Agents**
+  - `Agent` base class (`src/agent/base.ts`) – Core “React-style” loop around LLM + tools
+    - `run(context, agentChain)` → `runWithContext(...)`
+    - Builds system/user prompts via `getAgentSystemPrompt`/`getAgentUserPrompt`
+    - Handles MCP tools (dynamic tools from external servers)
+    - Manages tool execution, error handling, and callbacks
+  - Browser-specific agents under `src/agent/browser/`:
+    - `BaseBrowserAgent` (`browser_base.ts`) – Abstract browser contract (screenshot, navigate, tabs, go_back, DOM extraction helpers)
+    - `browser_labels.ts`, `browser_screen.ts`, `dom_intelligence.ts` – Higher-level browser control/introspection
+
+- **Dialogue Layer**
+  - `EkoDialogue` (`src/core/dialogue.ts`) – Chat-style interface over `Eko`
+    - Uses `RetryLanguageModel` + internal tools:
+      - Task planning (`task_planner`)
+      - Task execution (`execute_task`)
+      - Dialogue-scoped variable storage (`dialogue/variable_storage`)
+
+- **LLM Integration**
+  - `RetryLanguageModel` (`src/llm/index.ts`)
+    - Wraps AI SDK providers (`@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`, `@ai-sdk/amazon-bedrock`, `@openrouter/ai-sdk-provider`, `@ai-sdk/deepseek`)
+    - Provides non-stream (`call`/`doGenerate`) and stream (`callStream`/`doStream`) APIs
+    - Selects among configured models (`LLMs`), applies provider options and timeouts
+  - `src/agent/llm.ts` – Tool conversion, request building, default provider options
+
+- **Tools System**
+  - Exported tools in `src/tools/index.ts` / `src/tools/*.ts`:
+    - `HumanInteractTool` – Ask for human input
+    - `TaskNodeStatusTool` – Inspect workflow node status
+    - `VariableStorageTool` – Agent-level variable read/write
+    - `ForeachTaskTool` – Handle `<forEach>` workflow constructs
+    - `WatchTriggerTool` – Handle `<watch>` workflow constructs
+  - Agent automatically injects system tools based on workflow XML (`system_auto_tools` in `Agent`):
+    - Adds variable/foreach/watch tools where needed, plus `HumanInteractTool` by default
+
+- **MCP (Model Context Protocol)**
+  - Clients under `src/mcp/`:
+    - `SimpleSseMcpClient` (`sse.ts`) – SSE-based MCP client with reconnection logic, request/response map, and protocol version `2024-11-05`
+    - `SimpleHttpMcpClient` (`http.ts`) – HTTP transport
+  - MCP tools are surfaced to agents via `McpTool` + `ToolWrapper` and `IMcpClient` interface
+
+- **Hooks & Production Configuration**
+  - Types in `src/types/hooks.types.ts`:
+    - `AgentHooks` – Main hooks interface
+      - `beforeAgentStart`, `afterAgentComplete`
+      - `beforeToolCall`, `afterToolCall`, `onToolError`, `onAgentError`
+      - `onApprovalRequired` (human-in-the-loop)
+      - `onCheckpoint`, `onStateChange` (persistence)
+      - `onWorkflowGenerated`, `onWorkflowStepComplete`, `onWorkflowComplete`
+    - `ProductionEkoConfig` – Extended config with `hooks`, `stateConfig`, `approvalConfig`, `rateLimits`, `workflow`
+  - `Context` implements checkpointing and debounced state-change notifications via these hooks.
+
+- **Utilities & XML**
+  - `src/common/xml.ts` – Workflow XML parsing and helpers
+  - `src/common/tree.ts` – Workflow agent tree construction
+  - `src/common/utils.ts` – Shared utilities (`mergeTools`, `uuidv4`, `call_timeout`, etc.)
+  - `src/common/coordinate-scaling.ts` – Map screenshot coordinates across scales
+
+## Environment Runtimes
+
+Each environment package wraps `ai-agent-core` with platform-specific agents and tooling.
+
+- **Node.js Runtime (`packages/ai-agent-nodejs`)**
+  - Depends on `playwright` and `chromium-bidi`
+  - Provides `BrowserAgent`, `FileAgent` for Node-based automation
+  - Example usage: `example/nodejs/src/index.ts`
+    - Configures `LLMs`, creates `Eko`, registers `BrowserAgent` + `FileAgent`, and runs a natural-language task
+
+- **Web Runtime (`packages/ai-agent-web`)**
+  - Uses `html2canvas` for screenshots
+  - Targets browser SPA usage (see `example/web`)
+
+- **Browser Extension Runtime (`packages/ai-agent-extension`)**
+  - Integrates with Chrome extension APIs (`@types/chrome`)
+  - Example extension implementation under `example/extension`
+
+- **Electron Runtime (`packages/ai-agent-electron`)**
+  - Depends on `electron`
+  - Provides bindings/hooks for Electron main/preload/renderer (see `example/electron`)
+
+## Testing
+
+Per-package Jest configs (all use `ts-jest`):
+
+- Core: `packages/ai-agent-core/jest.config.js`
+  - `preset: "ts-jest"`, `testEnvironment: "node"`
+  - Roots: `<rootDir>/src`, `<rootDir>/test`
+  - `setupFiles`: `dotenv/config`, `test/jest.polyfills.ts`
+  - `testMatch`: `**/*.test.ts`
+- Other packages (`ai-agent-nodejs`, `ai-agent-web`, `ai-agent-extension`, `ai-agent-electron`) have simple Jest configs co-located in each package.
+
+Run a single test file (example for core):
+
+```bash
+cd packages/ai-agent-core
+pnpm test -- src/core/eko.test.ts
+```
+
+## Examples & Getting Started
+
+Look at `example/` for end-to-end usage:
+
+- **Node.js**: `example/nodejs/src/index.ts` – minimal setup for `Eko` with `BrowserAgent` + `FileAgent`
+- **Electron**: `example/electron/src/main/*`, `preload`, `renderer`
+- **Web**: `example/web/src/main.ts`
+- **Extension**: `example/extension/src/*`
+
+These examples are the fastest way to understand how `Eko`, `Agent`, tools, and callbacks are wired together in each environment.
+
+## Style & Conventions
+
+- TypeScript with strict typing; 2-space indentation, single quotes, semicolons
+- Named exports from modules; default export only where it improves DX (e.g., `Eko`)
+- Core types live under `src/types/` (`core.types.ts`, `llm.types.ts`, `tools.types.ts`, `hooks.types.ts`)
+- Keep new hooks, tools, and agents consistent with existing patterns in:
+  - `src/agent/base.ts`, `src/agent/browser/*`
+  - `src/tools/*`
+  - `src/core/*` (planning, dialogue, context)
+
+When adding new features, prefer extending the core primitives (Agent, Tool, Hooks, MCP clients) rather than introducing ad-hoc orchestration logic in environment packages.

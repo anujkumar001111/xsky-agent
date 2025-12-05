@@ -186,6 +186,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return frameResults[0].result;
   }
 
+  /**
+   * Helper method to get the ID of the active tab in the target window.
+   * Falls back to normal window types if no active tab is found.
+   * @param agentContext - The agent context.
+   * @returns A promise that resolves to the tab ID or null.
+   */
   private async getTabId(agentContext: AgentContext): Promise<number | null> {
     let windowId = await this.getWindowId(agentContext);
     let tabs = (await chrome.tabs.query({
@@ -202,6 +208,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return tabs[tabs.length - 1].id as number;
   }
 
+  /**
+   * Helper method to get the target window ID.
+   * Tries to use the window ID from the context variables, otherwise finds the last focused or current window.
+   * @param agentContext - The agent context.
+   * @returns A promise that resolves to the window ID or null.
+   */
   private async getWindowId(
     agentContext: AgentContext
   ): Promise<number | null> {
@@ -233,6 +245,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return tabs[tabs.length - 1].windowId as number;
   }
 
+  /**
+   * Waits for a tab to complete loading.
+   * @param tabId - The ID of the tab to wait for.
+   * @param timeout - The maximum time to wait in milliseconds (default: 8000ms).
+   * @returns A promise that resolves to the tab object when loading is complete or timeout occurs.
+   */
   private async waitForTabComplete(
     tabId: number,
     timeout: number = 8000
@@ -264,6 +282,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     });
   }
 
+  /**
+   * Pauses execution for a specified amount of time.
+   * @param time - The duration to sleep in milliseconds.
+   * @returns A promise that resolves after the specified time.
+   */
   private sleep(time: number): Promise<void> {
     return new Promise((resolve) => setTimeout(() => resolve(), time));
   }

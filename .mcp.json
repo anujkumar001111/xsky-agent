@@ -1,11 +1,72 @@
 {
   "mcpServers": {
     "google-jules": {
+      "type": "stdio",
       "command": "bash",
       "args": [
         "-c",
         "export JULES_API_KEY=$(grep '^JULES_API_KEY=' .env 2>/dev/null | cut -d= -f2- || echo '') && npx -y @amitdeshmukh/google-jules-mcp"
       ]
+    },
+    "playwright-automation": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "playwright-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/microsoft/playwright"]
+    },
+    "electron-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/electron/electron"]
+    },
+    "nodejs-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-server-nodejs-api-docs"]
+    },
+    "nodejs-repo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/nodejs/node"]
+    },
+    "eslint": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@eslint/mcp@latest"]
+    },
+    "typescript-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/microsoft/TypeScript"]
+    },
+    "chrome-extension-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/GoogleChrome/chrome-extensions-samples"]
+    },
+    "react-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/facebook/react"]
+    },
+    "antd-components": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@jzone-mcp/antd-components-mcp"]
+    },
+    "webpack-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/webpack/webpack"]
+    },
+    "rollup-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gitmcp.io/rollup/rollup"]
     }
   }
 }

@@ -29,6 +29,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
       const coordinateTools = this.buildCoordinateTools();
       coordinateTools.forEach(tool => this.tools.push(tool));
     }
+
+    // Add keyboard tools (always enabled)
+    const keyboardTools = this.buildKeyboardTools();
+    keyboardTools.forEach(tool => this.tools.push(tool));
   }
 
   /**
@@ -69,6 +73,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     this.options = options;
   }
 
+  /**
+   * Takes a JPEG screenshot of the current page and returns it as base64-encoded string.
+   * @param agentContext - The current agent context containing execution state.
+   * @returns A promise that resolves to an object containing the base64-encoded image and image type.
+   */
   protected async screenshot(
     agentContext: AgentContext
   ): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png" }> {
@@ -85,6 +94,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Navigates to a specified URL in the browser.
+   * @param agentContext - The current agent context containing execution state.
+   * @param url - The URL to navigate to.
+   * @returns A promise that resolves to an object containing the final URL, page title, and optional tab ID.
+   */
   protected async navigate_to(
     agentContext: AgentContext,
     url: string
@@ -101,6 +116,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Retrieves a list of all open browser tabs with their metadata.
+   * @param agentContext - The current agent context containing execution state.
+   * @returns A promise that resolves to an array of tab objects containing tabId, URL, and title for each open tab.
+   */
   protected async get_all_tabs(
     agentContext: AgentContext
   ): Promise<Array<{ tabId: number; url: string; title: string }>> {
@@ -120,6 +140,13 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return result;
   }
 
+  /**
+   * Switches the active browser tab to the specified tab ID.
+   * @param agentContext - The current agent context containing execution state.
+   * @param tabId - The numeric ID of the tab to switch to.
+   * @returns A promise that resolves to an object containing the tab ID, URL, and title of the switched tab.
+   * @throws Error if the specified tab ID does not exist.
+   */
   protected async switch_tab(
     agentContext: AgentContext,
     tabId: number
@@ -140,6 +167,14 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     };
   }
 
+  /**
+   * Inputs text into an element by index after clearing existing content.
+   * @param agentContext - The current agent context containing execution state.
+   * @param index - The numeric index of the element to interact with.
+   * @param text - The text to input into the element.
+   * @param enter - Whether to press Enter after inputting the text (default: false).
+   * @returns A promise that resolves when the text has been input.
+   */
   protected async input_text(
     agentContext: AgentContext,
     index: number,
@@ -159,24 +194,41 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     }
   }
 
+  /**
+   * Clicks on an element by index with optional modifiers and multiple clicks.
+   * @param agentContext - The current agent context containing execution state.
+   * @param index - The numeric index of the element to click.
+   * @param num_clicks - The number of times to click (default: 1).
+   * @param button - The mouse button to use: "left", "right", or "middle" (default: "left").
+   * @param modifiers - Optional keyboard modifiers to press while clicking (e.g., ["Control", "Shift"]).
+   * @returns A promise that resolves when the click has been performed.
+   */
   protected async click_element(
     agentContext: AgentContext,
     index: number,
     num_clicks: number,
-    button: "left" | "right" | "middle"
+    button: "left" | "right" | "middle",
+    modifiers: string[] = []
   ): Promise<any> {
     try {
       let elementHandle = await this.get_element(index, true);
       await elementHandle.click({
         button,
         clickCount: num_clicks,
+        modifiers: modifiers as any,
         force: true,
       });
     } catch (e) {
-      await super.click_element(agentContext, index, num_clicks, button);
+      await super.click_element(agentContext, index, num_clicks, button, modifiers);
     }
   }
 
+  /**
+   * Hovers the mouse over an element by index.
+   * @param agentContext - The current agent context containing execution state.
+   * @param index - The numeric index of the element to hover over.
+   * @returns A promise that resolves when the hover action has been completed.
+   */
   protected async hover_to_element(
     agentContext: AgentContext,
     index: number
@@ -196,10 +248,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     x: number,
     y: number,
     button: "left" | "right" | "middle" = "left",
-    clickCount: number = 1
+    clickCount: number = 1,
+    modifiers: string[] = []
   ): Promise<void> {
     const page = await this.currentPage();
-    await page.mouse.click(x, y, { button, clickCount });
+    await page.mouse.click(x, y, { button, clickCount, modifiers } as any);
   }
 
   /**
@@ -217,13 +270,24 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     x1: number,
     y1: number,
     x2: number,
-    y2: number
+    y2: number,
+    modifiers: string[] = []
   ): Promise<void> {
     const page = await this.currentPage();
+    const modifierKeys = modifiers as ("Alt" | "Control" | "Meta" | "Shift")[];
+
+    for (const key of modifierKeys) {
+      await page.keyboard.down(key);
+    }
+
     await page.mouse.move(x1, y1);
     await page.mouse.down();
     await page.mouse.move(x2, y2);
     await page.mouse.up();
+
+    for (const key of modifierKeys) {
+      await page.keyboard.up(key);
+    }
   }
 
   /**
@@ -233,11 +297,22 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     x: number,
     y: number,
     deltaX: number,
-    deltaY: number
+    deltaY: number,
+    modifiers: string[] = []
   ): Promise<void> {
     const page = await this.currentPage();
+    const modifierKeys = modifiers as ("Alt" | "Control" | "Meta" | "Shift")[];
+
+    for (const key of modifierKeys) {
+      await page.keyboard.down(key);
+    }
+
     await page.mouse.move(x, y);
     await page.mouse.wheel(deltaX, deltaY);
+
+    for (const key of modifierKeys) {
+      await page.keyboard.up(key);
+    }
   }
 
   /**
@@ -260,141 +335,284 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Sends keyboard shortcuts or single keys.
+   * Performs keyboard actions: press, down, up, type, insert.
    */
-  protected async send_keys(keys: string): Promise<void> {
+  protected async keyboard_action(
+    action: "press" | "down" | "up" | "type" | "insert",
+    key?: string,
+    text?: string
+  ): Promise<void> {
     const page = await this.currentPage();
-    await page.keyboard.press(keys);
+    switch (action) {
+      case "press":
+        if (key) await page.keyboard.press(key);
+        break;
+      case "down":
+        if (key) await page.keyboard.down(key);
+        break;
+      case "up":
+        if (key) await page.keyboard.up(key);
+        break;
+      case "type":
+        if (text) await page.keyboard.type(text);
+        break;
+      case "insert":
+        if (text) await page.keyboard.insertText(text);
+        break;
+    }
   }
 
   private buildCoordinateTools(): Tool[] {
     return [
       {
         name: "click_at_coordinates",
-        description: "Click at specific X,Y coordinates in the browser viewport. Use when element labels are unavailable (canvas, SVG, video players, custom widgets).",
+        description:
+          "Click at specific X,Y coordinates in the browser viewport. Use when element labels are unavailable (canvas, SVG, video players, custom widgets).",
         parameters: {
           type: "object",
           properties: {
             x: { type: "number", description: "X coordinate from screenshot" },
             y: { type: "number", description: "Y coordinate from screenshot" },
-            button: { type: "string", enum: ["left", "right", "middle"], default: "left" },
-            clicks: { type: "number", minimum: 1, maximum: 3, default: 1 }
+            button: {
+              type: "string",
+              enum: ["left", "right", "middle"],
+              default: "left",
+            },
+            clicks: { type: "number", minimum: 1, maximum: 3, default: 1 },
+            modifiers: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["Alt", "Control", "Meta", "Shift"],
+              },
+              description: "Modifier keys to hold during click",
+            },
           },
-          required: ["x", "y"]
+          required: ["x", "y"],
         },
         execute: async (args, agentContext) => {
-          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
-          return await this.callInnerTool(() =>
-            this.click_at_coordinates(scaled.x, scaled.y, args.button as any || "left", args.clicks as number || 1)
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
           );
-        }
+          return await this.callInnerTool(() =>
+            this.click_at_coordinates(
+              scaled.x,
+              scaled.y,
+              (args.button as any) || "left",
+              (args.clicks as number) || 1,
+              (args.modifiers || []) as any
+            )
+          );
+        },
       },
       {
         name: "hover_at_coordinates",
-        description: "Move cursor to X,Y coordinates to trigger hover states and reveal dynamic content (tooltips, dropdowns, menus).",
+        description:
+          "Move cursor to X,Y coordinates to trigger hover states and reveal dynamic content (tooltips, dropdowns, menus).",
         parameters: {
           type: "object",
           properties: {
             x: { type: "number", description: "X coordinate from screenshot" },
-            y: { type: "number", description: "Y coordinate from screenshot" }
+            y: { type: "number", description: "Y coordinate from screenshot" },
           },
-          required: ["x", "y"]
+          required: ["x", "y"],
         },
         execute: async (args, agentContext) => {
-          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
+          );
           return await this.callInnerTool(() =>
             this.hover_at_coordinates(scaled.x, scaled.y)
           );
-        }
+        },
       },
       {
         name: "drag_to_coordinates",
-        description: "Drag from one position to another. Useful for sliders, resizing, reordering, drawing on canvas.",
+        description:
+          "Drag from one position to another. Useful for sliders, resizing, reordering, drawing on canvas.",
         parameters: {
           type: "object",
           properties: {
             start_x: { type: "number", description: "Starting X coordinate" },
             start_y: { type: "number", description: "Starting Y coordinate" },
             end_x: { type: "number", description: "Ending X coordinate" },
-            end_y: { type: "number", description: "Ending Y coordinate" }
+            end_y: { type: "number", description: "Ending Y coordinate" },
+            modifiers: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["Alt", "Control", "Meta", "Shift"],
+              },
+              description: "Modifier keys to hold during drag",
+            },
           },
-          required: ["start_x", "start_y", "end_x", "end_y"]
+          required: ["start_x", "start_y", "end_x", "end_y"],
         },
         execute: async (args, agentContext) => {
-          const start = scaleCoordinates(args.start_x as number, args.start_y as number, this.lastScaleFactor);
-          const end = scaleCoordinates(args.end_x as number, args.end_y as number, this.lastScaleFactor);
-          return await this.callInnerTool(() =>
-            this.drag_to_coordinates(start.x, start.y, end.x, end.y)
+          const start = scaleCoordinates(
+            args.start_x as number,
+            args.start_y as number,
+            this.lastScaleFactor
           );
-        }
+          const end = scaleCoordinates(
+            args.end_x as number,
+            args.end_y as number,
+            this.lastScaleFactor
+          );
+          return await this.callInnerTool(() =>
+            this.drag_to_coordinates(
+              start.x,
+              start.y,
+              end.x,
+              end.y,
+              (args.modifiers || []) as any
+            )
+          );
+        },
       },
       {
         name: "scroll_at_coordinates",
-        description: "Scroll at specific coordinates using mouse wheel. Useful for scrolling within specific containers.",
+        description:
+          "Scroll at specific coordinates using mouse wheel. Useful for scrolling within specific containers.",
         parameters: {
           type: "object",
           properties: {
-            x: { type: "number", description: "X coordinate to position cursor" },
-            y: { type: "number", description: "Y coordinate to position cursor" },
-            direction: { type: "string", enum: ["up", "down", "left", "right"] },
-            amount: { type: "number", minimum: 1, maximum: 10, default: 3 }
+            x: {
+              type: "number",
+              description: "X coordinate to position cursor",
+            },
+            y: {
+              type: "number",
+              description: "Y coordinate to position cursor",
+            },
+            direction: {
+              type: "string",
+              enum: ["up", "down", "left", "right"],
+            },
+            amount: { type: "number", minimum: 1, maximum: 10, default: 3 },
+            modifiers: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["Alt", "Control", "Meta", "Shift"],
+              },
+              description: "Modifier keys to hold during scroll",
+            },
           },
-          required: ["x", "y", "direction"]
+          required: ["x", "y", "direction"],
         },
         execute: async (args, agentContext) => {
-          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
-          const amount = (args.amount as number || 3) * 100;
-          let deltaX = 0, deltaY = 0;
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
+          );
+          const amount = ((args.amount as number) || 3) * 100;
+          let deltaX = 0,
+            deltaY = 0;
           switch (args.direction) {
-            case "up": deltaY = -amount; break;
-            case "down": deltaY = amount; break;
-            case "left": deltaX = -amount; break;
-            case "right": deltaX = amount; break;
+            case "up":
+              deltaY = -amount;
+              break;
+            case "down":
+              deltaY = amount;
+              break;
+            case "left":
+              deltaX = -amount;
+              break;
+            case "right":
+              deltaX = amount;
+              break;
           }
           return await this.callInnerTool(() =>
-            this.scroll_at_coordinates(scaled.x, scaled.y, deltaX, deltaY)
+            this.scroll_at_coordinates(
+              scaled.x,
+              scaled.y,
+              deltaX,
+              deltaY,
+              (args.modifiers || []) as any
+            )
           );
-        }
+        },
       },
       {
         name: "type_at_coordinates",
-        description: "Click at coordinates and type text. Use for inputs not accessible via element labels.",
+        description:
+          "Click at coordinates and type text. Use for inputs not accessible via element labels.",
         parameters: {
           type: "object",
           properties: {
             x: { type: "number", description: "X coordinate to click" },
             y: { type: "number", description: "Y coordinate to click" },
             text: { type: "string", description: "Text to type" },
-            clear_first: { type: "boolean", description: "Clear existing text before typing", default: true }
+            clear_first: {
+              type: "boolean",
+              description: "Clear existing text before typing",
+              default: true,
+            },
           },
-          required: ["x", "y", "text"]
+          required: ["x", "y", "text"],
         },
         execute: async (args, agentContext) => {
-          const scaled = scaleCoordinates(args.x as number, args.y as number, this.lastScaleFactor);
-          return await this.callInnerTool(() =>
-            this.type_at_coordinates(scaled.x, scaled.y, args.text as string, args.clear_first !== false)
+          const scaled = scaleCoordinates(
+            args.x as number,
+            args.y as number,
+            this.lastScaleFactor
           );
-        }
+          return await this.callInnerTool(() =>
+            this.type_at_coordinates(
+              scaled.x,
+              scaled.y,
+              args.text as string,
+              args.clear_first !== false
+            )
+          );
+        },
       },
+    ];
+  }
+
+  private buildKeyboardTools(): Tool[] {
+    return [
       {
-        name: "send_keys",
-        description: "Send keyboard shortcuts or single keys. Use for system commands (Copy/Paste), navigation (Tab/Arrows), or closing modals (Escape).",
+        name: "keyboard_action",
+        description:
+          "Perform low-level keyboard operations. Use this for complex interactions like holding keys, shortcuts, or typing.",
         parameters: {
           type: "object",
           properties: {
-            keys: {
+            action: {
               type: "string",
-              description: "Key combination (e.g., 'Enter', 'Control+C', 'Meta+v', 'ArrowDown', 'Escape'). Follows Playwright key format."
-            }
+              enum: ["press", "down", "up", "type", "insert"],
+              description:
+                "Action to perform. 'press' for single key/shortcut, 'down/up' for holding/releasing, 'type' for typing text, 'insert' for pasting text.",
+            },
+            key: {
+              type: "string",
+              description:
+                "Key to operate on (for press/down/up). e.g. 'Enter', 'Control', 'Shift', 'a'.",
+            },
+            text: {
+              type: "string",
+              description: "Text to type or insert (for type/insert actions).",
+            },
           },
-          required: ["keys"]
+          required: ["action"],
         },
         execute: async (args, agentContext) => {
           return await this.callInnerTool(() =>
-            this.send_keys(args.keys as string)
+            this.keyboard_action(
+              args.action as any,
+              args.key as string,
+              args.text as string
+            )
           );
-        }
-      }
+        },
+      },
     ];
   }
 
@@ -430,6 +648,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return page;
   }
 
+  /**
+   * Gets the currently active page instance, waiting for it to reach "domcontentloaded" state.
+   * @returns A promise that resolves to the currently active Playwright Page object.
+   * @throws Error if no page exists yet (navigate_to must be called first).
+   */
   protected async currentPage(): Promise<Page> {
     if (this.current_page == null) {
       throw new Error("There is no page, please call navigate_to first");
@@ -441,6 +664,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return page;
   }
 
+  /**
+   * Retrieves a DOM element by its highlighted index from the page, optionally finding input elements within it.
+   * @param index - The numeric index of the highlighted element.
+   * @param findInput - If true, searches for input or textarea elements within the highlighted element.
+   * @returns A promise that resolves to the ElementHandle of the requested element.
+   */
   private async get_element(
     index: number,
     findInput?: boolean
@@ -467,10 +696,21 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     );
   }
 
+  /**
+   * Pauses execution for a specified duration in milliseconds.
+   * @param time - The duration to pause in milliseconds.
+   * @returns A promise that resolves after the specified time has elapsed.
+   */
   private sleep(time: number): Promise<void> {
     return new Promise((resolve) => setTimeout(() => resolve(), time));
   }
 
+  /**
+   * Initializes and retrieves the browser context, creating a new one if necessary.
+   * Sets up the browser based on configuration (CDP endpoint, persistent context, or standard launch).
+   * Applies bot-detection evasion scripts to bypass anti-crawling mechanisms.
+   * @returns A promise that resolves to the initialized BrowserContext.
+   */
   protected async getBrowserContext() {
     if (!this.browser_context) {
       this.current_page = null;
@@ -527,6 +767,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return this.browser_context;
   }
 
+  /**
+   * Generates JavaScript code to evade bot detection and bypass anti-crawling mechanisms.
+   * Spoofs navigator properties and adds Chrome runtime detection that mimics real user browsing.
+   * @returns A promise that resolves to an object containing the evasion script content.
+   */
   protected async initScript(): Promise<{ path?: string; content?: string }> {
     return {
       content: `

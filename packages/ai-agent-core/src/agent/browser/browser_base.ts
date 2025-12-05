@@ -2,7 +2,7 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2ToolCallPart,
 } from "@ai-sdk/provider";
-import { Agent } from "../base";
+import { Agent, AgentParams } from "../base";
 import { sleep } from "../../common/utils";
 import { AgentContext } from "../../core/context";
 import { ToolExecuter, ToolResult, IMcpClient } from "../../types";
@@ -21,6 +21,8 @@ export default abstract class BaseBrowserAgent extends Agent {
    * A value of 0.5 means the screenshot was scaled to 50% of original size.
    */
   public lastScaleFactor: number = 1;
+
+
 
   /**
    * Takes a screenshot of the current browser window.

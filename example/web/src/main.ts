@@ -5,11 +5,11 @@ export async function auto_test_case() {
   // Initialize LLM provider
   const llms: LLMs = {
     default: {
-      provider: "anthropic",
-      model: "claude-sonnet-4-20250514",
-      apiKey: "your_api_key",
+      provider: "openai-compatible",
+      model: "qwen3-coder-flash",
+      apiKey: process.env.OPENAI_COMPATABLE_API_KEY || "sk-anything",
       config: {
-        baseURL: "https://api.anthropic.com/v1",
+        baseURL: process.env.OPENAI_COMPATABLE_BASE_URL || "http://143.198.174.251:8317/v1",
       },
     },
   };

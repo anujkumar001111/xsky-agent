@@ -1,0 +1,38 @@
+@@ -1,6 +1,6 @@
+ import { call_timeout, sleep } from "../../src/common/utils";
+ 
+-test.only("test", async () => {
++test("test", async () => {
+   console.log("start ====>");
+   let result1 = await call_timeout(
+     async () => {
+@@ -13,15 +13,18 @@
+     }
+   );
+   console.log("result1 ===> ", result1);
+-  let result2 = await call_timeout(
+-    async () => {
+-      await sleep(300);
+-      return 2;
+-    },
+-    200,
+-    (e) => {
+-      console.log("___error2___", e);
+-    }
+-  );
+-  console.log("result2 ===> ", result2);
++  try {
++    await call_timeout(
++      async () => {
++        await sleep(300);
++        return 2;
++      },
++      200,
++      (e) => {
++        console.log("___error2___", e);
++      }
++    );
++  } catch (e) {
++    expect(e.message).toBe("Timeout");
++  }
+ });

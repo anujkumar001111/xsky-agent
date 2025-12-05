@@ -12,6 +12,10 @@ import {
   ChildProcessWithoutNullStreams,
 } from "child_process";
 
+/**
+ * A simple MCP (Model Context Protocol) client that communicates via standard I/O (stdio).
+ * Spawns a child process and communicates using JSON-RPC 2.0 over stdin/stdout.
+ */
 export class SimpleStdioMcpClient implements IMcpClient {
   private command: string;
   private args?: string[];
@@ -19,6 +23,12 @@ export class SimpleStdioMcpClient implements IMcpClient {
   private process: ChildProcessWithoutNullStreams | null = null;
   private requestMap: Map<string, (messageData: any) => void>;
 
+  /**
+   * Creates a new SimpleStdioMcpClient instance.
+   * @param command - The command to spawn (e.g., 'node', 'python').
+   * @param args - Arguments to pass to the command.
+   * @param options - Spawn options for the child process.
+   */
   constructor(
     command: string,
     args?: string[],
@@ -32,6 +42,12 @@ export class SimpleStdioMcpClient implements IMcpClient {
     this.requestMap = new Map();
   }
 
+  /**
+   * Connects to the MCP server by spawning the child process.
+   * Sets up event listeners for stdout (messages) and error handling.
+   * @param signal - Optional AbortSignal to cancel the connection attempt.
+   * @returns A promise that resolves when the connection is established.
+   */
   async connect(signal?: AbortSignal): Promise<void> {
     if (this.process) {
       try {
@@ -59,6 +75,14 @@ export class SimpleStdioMcpClient implements IMcpClient {
     Log.info("MCP Client, connection successful:", this.command, this.args);
   }
 
+  /**
+   * Sends a JSON-RPC request to the MCP server.
+   * @param method - The MCP method name to call.
+   * @param params - Parameters for the method call.
+   * @param signal - Optional AbortSignal to cancel the request.
+   * @returns A promise that resolves with the response from the server.
+   * @throws Error if connection fails or request is aborted.
+   */
   async sendMessage(
     method: string,
     params: Record<string, any> = {},
@@ -101,6 +125,13 @@ export class SimpleStdioMcpClient implements IMcpClient {
     }
   }
 
+  /**
+   * Lists available tools from the MCP server.
+   * @param param - Parameters for listing tools (e.g., cursor, limit).
+   * @param signal - Optional AbortSignal to cancel the request.
+   * @returns A promise that resolves to the list of available tools.
+   * @throws Error if the tool list request fails.
+   */
   async listTools(
     param: McpListToolParam,
     signal?: AbortSignal
@@ -119,6 +150,13 @@ export class SimpleStdioMcpClient implements IMcpClient {
     return message.result.tools || [];
   }
 
+  /**
+   * Calls a specific tool on the MCP server.
+   * @param param - Parameters including tool name and arguments.
+   * @param signal - Optional AbortSignal to cancel the execution.
+   * @returns A promise that resolves to the tool execution result.
+   * @throws Error if the tool execution fails.
+   */
   async callTool(
     param: McpCallToolParam,
     signal?: AbortSignal
@@ -137,12 +175,20 @@ export class SimpleStdioMcpClient implements IMcpClient {
     return message.result;
   }
 
+  /**
+   * Checks if the MCP client is currently connected and the process is running.
+   * @returns True if connected and process is active, false otherwise.
+   */
   isConnected(): boolean {
     return (
       this.process != null && !this.process.killed && !this.process.exitCode
     );
   }
 
+  /**
+   * Closes the connection and terminates the child process.
+   * @returns A promise that resolves when the process is killed.
+   */
   async close(): Promise<void> {
     this.process && this.process.kill();
   }

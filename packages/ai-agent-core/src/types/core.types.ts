@@ -11,6 +11,7 @@ import type {
   ApprovalConfig,
   RateLimitConfig,
 } from "./hooks.types";
+import type { SecurityConfig } from "./security.types";
 
 /**
  * Configuration options for initializing an Eko instance.
@@ -25,6 +26,7 @@ import type {
  * @property stateConfig - Optional configuration for state persistence.
  * @property approvalConfig - Optional configuration for approval workflows.
  * @property rateLimits - Optional rate limiting configuration.
+ * @property security - Optional security and sandboxing configuration.
  */
 export type EkoConfig = {
   llms: LLMs;
@@ -42,6 +44,8 @@ export type EkoConfig = {
   approvalConfig?: ApprovalConfig;
   /** Rate limiting configuration for tools/actions */
   rateLimits?: RateLimitConfig;
+  /** Security and sandboxing configuration */
+  security?: SecurityConfig;
 };
 
 /**

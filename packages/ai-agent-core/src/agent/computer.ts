@@ -1,4 +1,5 @@
 import { Agent } from "./base";
+import { AgentParams } from "./base";
 import config from "../config";
 import { AgentContext } from "../core/context";
 import { Tool, ToolResult, IMcpClient } from "../types";
@@ -11,13 +12,12 @@ export const AGENT_NAME = "Computer";
  * An agent that interacts with a computer using the mouse and keyboard.
  */
 export default abstract class BaseComputerAgent extends Agent {
-
   /**
    * Creates an instance of the BaseComputerAgent.
    * @param llms - A list of language models to use.
    * @param ext_tools - A list of external tools to add to the agent.
    * @param mcpClient - The MCP client to use.
-   * @param keyboardKeys - A list of keyboard keys to support.
+   * @param keyboardKeys - A list of keyboard keys to use.
    */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient, keyboardKeys?: string[]) {
     const _tools_ = [] as Tool[];

@@ -83,6 +83,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return func(args[0]);
   }
 
+  /**
+   * Helper method to get the size of the viewport.
+   * Calculates width and height considering different browser properties.
+   * @returns A tuple containing [width, height] in pixels.
+   */
   private size(): [number, number] {
     return [
       window.innerWidth ||
@@ -94,6 +99,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     ];
   }
 
+  /**
+   * Pauses execution for a specified amount of time.
+   * @param time - The duration to sleep in milliseconds.
+   * @returns A promise that resolves after the specified time.
+   */
   private sleep(time: number): Promise<void> {
     return new Promise((resolve) => setTimeout(() => resolve(), time));
   }

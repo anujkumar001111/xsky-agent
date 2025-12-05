@@ -5,6 +5,7 @@ import { AgentChain, ToolChain } from "../../src/core/chain";
 import { AgentContext } from "../../src/core/context";
 import { Tool, ToolResult, IMcpClient } from "../../src/types";
 import { LanguageModelV2ToolCallPart, LanguageModelV2TextPart } from "@ai-sdk/provider";
+import { ResourceAccess } from "../../src/types/security.types";
 
 // Mock implementations for testing
 class TestAgent extends Agent {
@@ -714,6 +715,152 @@ describe("Agent Base Class", () => {
 
         expect(customAgent.Name).toBe("Agent-123_@#$");
       });
+    });
+  });
+
+  describe("Resource extraction from tool arguments", () => {
+    it("should extract file paths from arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("file_read", {
+        path: "/home/user/document.txt",
+        encoding: "utf8"
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0]).toEqual({
+        type: "file_system",
+        identifier: "/home/user/document.txt",
+        accessType: "read",
+        permission: "allow",
+        allowed: true
+      });
+    });
+
+    it("should extract URLs from arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("navigate_to", {
+        url: "https://example.com/page",
+        waitUntil: "domcontentloaded"
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0]).toEqual({
+        type: "network",
+        identifier: "https://example.com/page",
+        accessType: "read",
+        permission: "allow",
+        allowed: true
+      });
+    });
+
+    it("should extract domains from arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("some_tool", {
+        domain: "api.example.com",
+        port: 443
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0]).toEqual({
+        type: "network",
+        identifier: "api.example.com",
+        accessType: "read",
+        permission: "allow",
+        allowed: true
+      });
+    });
+
+    it("should extract shell commands from arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("run_command", {
+        command: "ls -la /tmp",
+        timeout: 5000
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0]).toEqual({
+        type: "system_command",
+        identifier: "ls -la /tmp",
+        accessType: "execute",
+        permission: "allow",
+        allowed: true
+      });
+    });
+
+    it("should handle browser navigation URLs", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("browser_navigate", {
+        url: "https://google.com",
+        waitCondition: "networkidle"
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].type).toBe("network");
+      expect(resources[0].identifier).toBe("https://google.com");
+    });
+
+    it("should handle nested object arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("complex_tool", {
+        config: {
+          filePath: "./config.json",
+          urls: ["https://api1.com", "https://api2.com"]
+        },
+        output: "/tmp/result.txt"
+      });
+
+      expect(resources).toHaveLength(4);
+      const fileResources = resources.filter(r => r.type === "file_system");
+      const urlResources = resources.filter(r => r.type === "network");
+
+      expect(fileResources).toHaveLength(2);
+      expect(urlResources).toHaveLength(2);
+    });
+
+    it("should remove duplicate resources", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("duplicate_test", {
+        file1: "/tmp/test.txt",
+        file2: "/tmp/test.txt",
+        config: { path: "/tmp/test.txt" }
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].identifier).toBe("/tmp/test.txt");
+    });
+
+    it("should determine write access for write-related arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("file_write", {
+        outputPath: "/tmp/output.txt",
+        content: "test data"
+      });
+
+      expect(resources).toHaveLength(1);
+      expect(resources[0].accessType).toBe("write");
+    });
+
+    it("should handle array arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("batch_files", {
+        files: ["/file1.txt", "/file2.txt"],
+        output: "/tmp/result.txt"
+      });
+
+      expect(resources).toHaveLength(3);
+      const fileResources = resources.filter(r => r.type === "file_system");
+      expect(fileResources).toHaveLength(3);
+    });
+
+    it("should return empty array for no resource arguments", () => {
+      const agent = new TestAgent();
+      const resources = agent.extractResourcesFromArgs("simple_math", {
+        a: 1,
+        b: 2,
+        operation: "add"
+      });
+
+      expect(resources).toHaveLength(0);
     });
   });
 });
