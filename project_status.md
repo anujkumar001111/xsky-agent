@@ -1,9 +1,9 @@
 # XSky AI Agent - Project Status
 
-**Last Updated:** 2025-12-04T20:00:00Z
+**Last Updated:** 2025-12-05T23:30:00Z
 **Current Branch:** main
 **Build Status:** Passing ✅
-**Test Status:** Passing ✅ (12/12 coordinate tool tests)
+**Test Status:** Passing ✅ (50/50 tests - 43 unit + 7 integration)
 
 ---
 
@@ -25,6 +25,99 @@
 ---
 
 ## Recently Completed Features
+
+### Enhanced Keyboard Automation for BrowserAgent
+
+**Status:** Complete (Production-Ready)
+**Implementation:** Comprehensive Playwright keyboard mapping with 179 key mappings (158 unique Playwright keys)
+
+#### New Keyboard Tools Added
+
+| Tool | Purpose | Key Features |
+|------|---------|--------------|
+| `keyboard_action` | Low-level keyboard operations | Enhanced with automatic key normalization |
+| `keyboard_combination` | Key combinations with modifiers | Auto-detects modifiers, proper sequencing (Ctrl+C, Shift+A) |
+| `press_keys_sequence` | Sequential key presses | Each key pressed individually (a, b, c) |
+| `type_text_enhanced` | Realistic text typing | Configurable delays for human-like simulation |
+
+#### Key Mapping Features
+
+- **Complete Coverage**: 179 key mappings covering 158 unique Playwright keys:
+  - All 26 lowercase letters (a-z)
+  - All 10 digits (0-9)
+  - 40+ common symbols and punctuation
+  - Function keys (F1-F12)
+  - Navigation keys (arrows, home, end, page up/down)
+  - Modifier keys (Shift, Control, Alt, Meta with variants)
+  - Numpad keys (0-9, operators, decimal, enter)
+  - International keys (IntlBackslash, IntlRo, IntlYen, IME keys)
+- **Smart Normalization**: 
+  - Single characters pass through unchanged per Playwright spec
+  - Special keys mapped to PascalCase with case-insensitive lookup
+  - Unknown keys throw descriptive errors (fail-fast approach)
+- **Input Validation**: `validateKey()` function checks against known mappings
+- **Multiple Aliases**: User-friendly names (`'enter'`/`'return'`, `'esc'`/`'escape'`, `'ctrl'`/`'control'`)
+- **Cross-Platform**: `ControlOrMeta` for platform-agnostic shortcuts
+
+#### Usage Examples
+
+```javascript
+// Automatic key normalization
+await agent.callTool("keyboard_action", { action: "press", key: "return" }); // → "Enter"
+
+// Modifier combinations
+await agent.callTool("keyboard_combination", { keys: ["Control", "c"] }); // Ctrl+C
+await agent.callTool("keyboard_combination", { keys: ["Control", "Shift", "a"] }); // Ctrl+Shift+A
+
+// Sequential key presses
+await agent.callTool("press_keys_sequence", { keys: ["a", "b", "c"] }); // Types 'abc'
+
+// Human-like typing
+await agent.callTool("type_text_enhanced", { text: "Hello", delay: 100 });
+```
+
+#### Bug Fixes & Validation
+
+**Critical Bugs Fixed (2025-12-05):**
+
+1. **keyCombination() Modifier Detection**
+   - **Issue**: Originally treated all keys except last as modifiers
+   - **Impact**: Non-modifier keys like `ArrowDown` would be held down instead of pressed
+   - **Fix**: Intelligent modifier detection using explicit MODIFIER_KEYS list
+   - **Validation**: 2 regression tests verify correct behavior
+
+2. **All-Modifier Edge Case**
+   - **Issue**: Could call keyCombination with only modifiers (invalid)
+   - **Fix**: Now throws descriptive error when no action keys provided
+   - **Validation**: Edge case test verifies error is thrown
+
+3. **normalizeKey() Fallback Handling**
+   - **Issue**: Unmapped keys previously passed through or only warned
+   - **Fix**: Now throws descriptive errors for unknown multi-character keys (fail-fast)
+   - **Validation**: Edge case and integration tests verify errors are thrown
+
+4. **Incomplete Key Mappings**
+   - **Issue**: Missing a-z, 0-9, and many symbols
+   - **Fix**: Added all 26 letters, 10 digits, and 40+ symbols
+   - **Result**: 161 total mapped keys (up from 98)
+
+**Test Coverage:**
+- **50 total tests** (43 unit + 7 integration)
+  - 22 keyboard unit tests (actions, combinations, sequences, normalization)
+  - 13 coordinate tool unit tests
+  - 8 edge case unit tests (all-modifier error, single-key, uppercase, unknown keys, etc.)
+  - 7 integration tests with real Playwright browser (typing, shortcuts, sequences, errors)
+- **All tests passing** including regression and integration tests
+- **Edge cases validated**: 
+  - All-modifier combinations (throws error)
+  - Single key press (no modifiers)
+  - Uppercase/lowercase letters (pass through)
+  - Numeric characters (pass through)
+  - Symbols (pass through)
+  - Unknown keys (throws error with suggestions)
+  - Case-insensitive special keys (normalized)
+
+---
 
 ### Coordinate-Based Mouse Operations for BrowserAgent
 
@@ -132,9 +225,12 @@ pnpm build
 cd packages/ai-agent-core && pnpm test
 # Result: 26 test suites, all passing
 
-# Node.js package coordinate tools tests - PASSED
-cd packages/ai-agent-nodejs && pnpm test -- test/browser-coordinate-tools.test.ts
-# Result: 12 tests, all passing
+# Node.js package keyboard & coordinate tools tests - PASSED
+cd packages/ai-agent-nodejs && pnpm test
+# Result: 50 tests, all passing
+#   - 43 unit tests (keyboard actions, combinations, sequences, edge cases)
+#   - 7 integration tests with real Playwright browser
+# Includes regression tests and strict error handling validation
 ```
 
 ---
@@ -171,3 +267,6 @@ cd packages/ai-agent-nodejs && pnpm test -- test/browser-coordinate-tools.test.t
 2. **Use package imports, not relative paths** - Relative paths like `../../other-package/src` break when packages are published to npm
 3. **Use `callInnerTool()` wrapper** - Maintains consistency with existing browser tool patterns
 4. **`scaleCoordinates()` already exists** - Exported from `@xsky/ai-agent-core` for mapping screenshot coordinates to page coordinates
+5. **Single character keys remain unchanged** - Playwright API expects 'a', not 'KeyA' for single characters
+6. **Modifier detection must be explicit** - Can't assume all-but-last keys are modifiers; must check against known modifier list
+7. **Regression tests prevent re-introduction of bugs** - Tests that fail with old logic and pass with new logic document the fix
