@@ -44,6 +44,20 @@ import { doTaskResultCheck } from "../tools/task_result_check";
 import { doTodoListManager } from "../tools/todo_list_manager";
 import { getAgentSystemPrompt, getAgentUserPrompt } from "../prompt/agent";
 
+/**
+ * @file base.ts
+ * @description Defines the foundational Agent class for the Eko framework.
+ * This class implements the core React-like loop (Thought -> Action -> Observation)
+ * and manages interactions with LLMs, Tools, and the Model Context Protocol (MCP).
+ *
+ * Core Responsibilities:
+ * - Executing the agent loop (runWithContext).
+ * - Managing tool execution and results (including MCP tools).
+ * - Constructing prompts (System, User, History).
+ * - Handling lifecycle hooks for production controls (blocks, approvals, retries).
+ * - Managing context window optimization (memory).
+ */
+
 export type AgentParams = {
   name: string;
   description: string;
@@ -55,7 +69,11 @@ export type AgentParams = {
 };
 
 /**
- * Represents an AI agent that can run tasks, interact with tools, and communicate with language models.
+ * The base Agent class. All specialized agents (Browser, Shell, etc.) should inherit from this
+ * or be instantiated as generic agents with specific toolsets.
+ *
+ * It encapsulates the "brain" of an autonomous entity, managing its own state,
+ * decisions, and external interactions.
  */
 export class Agent {
   protected name: string;
@@ -68,15 +86,15 @@ export class Agent {
   protected callback?: StreamCallback & HumanCallback;
   protected agentContext?: AgentContext;
 
-  // Static instances to avoid allocation overhead
+  // Static instances of core system tools to avoid repeated instantiation overhead
   private static variableStorageTool = new VariableStorageTool();
   private static foreachTaskTool = new ForeachTaskTool();
   private static watchTriggerTool = new WatchTriggerTool();
   private static humanInteractTool = new HumanInteractTool();
 
   /**
-   * Creates an instance of the Agent.
-   * @param params - The parameters for creating the agent.
+   * Initializes a new Agent instance.
+   * @param params - Configuration parameters including name, tools, and optional MCP client.
    */
   constructor(params: AgentParams) {
     this.name = params.name;
@@ -89,10 +107,13 @@ export class Agent {
   }
 
   /**
-   * Runs the agent with the given context and agent chain.
-   * @param context - The context for the agent to run in.
-   * @param agentChain - The agent chain to run.
-   * @returns A promise that resolves to the result of the agent's run.
+   * Entry point for agent execution.
+   * Sets up the execution context, connects to MCP (if needed), and triggers the main run loop.
+   *
+   * @param context - The global execution context from the orchestrator.
+   * @param agentChain - The history tracking chain for this specific agent execution.
+   * @returns A promise resolving to the final text result of the agent's task.
+   * @throws Errors if blocked by hooks or if critical failures occur.
    */
   public async run(context: Context, agentChain: AgentChain): Promise<string> {
     const mcpClient = this.mcpClient || context.config.defaultMcpClient;
@@ -103,7 +124,7 @@ export class Agent {
       this.agentContext = agentContext;
 
       // ============ BEFORE AGENT START HOOK ============
-      // Called here because AgentContext is now available
+      // Allows for validation, preparation, or blocking of agent execution based on policy
       if (hooks?.beforeAgentStart) {
         try {
           const hookResult = await hooks.beforeAgentStart(agentContext);
@@ -117,30 +138,41 @@ export class Agent {
             throw hookError;
           }
           Log.error("beforeAgentStart hook error:", hookError);
-          // Continue if hook fails (non-blocking)
+          // Non-critical hook errors should not stop execution unless explicitly blocking
         }
       }
 
+      // Ensure MCP connection is active before starting
       mcpClient &&
         !mcpClient.isConnected() &&
         (await mcpClient.connect(context.controller.signal));
+
+      // Enter the main execution loop
       return await this.runWithContext(
         agentContext,
         mcpClient,
         config.maxReactNum
       );
     } finally {
+      // Cleanup: Always close MCP connection to prevent resource leaks
       mcpClient && (await mcpClient.close());
     }
   }
 
   /**
-   * Runs the agent with the given context and optional MCP client.
-   * @param agentContext - The context for the agent to run in.
-   * @param mcpClient - The MCP client to use.
-   * @param maxReactNum - The maximum number of reactions to perform.
-   * @param historyMessages - The history of messages to start with.
-   * @returns A promise that resolves to the result of the agent's run.
+   * The core "React" loop (Reasoning + Acting) of the agent.
+   * Iteratively:
+   * 1. Constructs context (messages + tools).
+   * 2. Calls LLM to generate thought/action.
+   * 3. Executes tools.
+   * 4. Observes results.
+   * 5. Repeats until completion or max loops.
+   *
+   * @param agentContext - Local context for this run.
+   * @param mcpClient - Optional Model Context Protocol client for dynamic tools.
+   * @param maxReactNum - Maximum allowed iterations (prevent infinite loops).
+   * @param historyMessages - Initial conversation history.
+   * @returns The final result string.
    */
   public async runWithContext(
     agentContext: AgentContext,
@@ -153,7 +185,11 @@ export class Agent {
     this.agentContext = agentContext;
     const context = agentContext.context;
     const agentNode = agentContext.agentChain.agent;
+
+    // Merge static tools with system-injected automatic tools (variables, loops, human help)
     const tools = [...this.tools, ...this.system_auto_tools(agentNode)];
+
+    // Construct initial prompts
     const systemPrompt = await this.buildSystemPrompt(agentContext, tools);
     const userPrompt = await this.buildUserPrompt(agentContext, tools);
     const messages: LanguageModelV2Prompt = [
@@ -170,11 +206,17 @@ export class Agent {
       },
     ];
     agentContext.messages = messages;
+
     const rlm = new RetryLanguageModel(context.config.llms, this.llms);
     rlm.setContext(agentContext);
     let agentTools = tools;
+
+    // --- MAIN LOOP ---
     while (loopNum < maxReactNum) {
+      // Check for cancellation signals
       await context.checkAborted();
+
+      // Dynamic Tool Discovery via MCP
       if (mcpClient) {
         const controlMcp = await this.controlMcpTools(
           agentContext,
@@ -182,19 +224,26 @@ export class Agent {
           loopNum
         );
         if (controlMcp.mcpTools) {
+          // Fetch relevant tools from external MCP servers
           const mcpTools = await this.listTools(
             context,
             mcpClient,
             agentNode,
             controlMcp.mcpParams
           );
+          // Optimize context window: only keep tools that are actually used or relevant
           const usedTools = memory.extractUsedTool(messages, agentTools);
           const _agentTools = mergeTools(tools, usedTools);
           agentTools = mergeTools(_agentTools, mcpTools);
         }
       }
+
+      // Memory Management: Compress or truncate large history
       await this.handleMessages(agentContext, messages, tools);
+
       const llm_tools = convertTools(agentTools);
+
+      // LLM Call: Generate next step (Thought + Action)
       const results = await callAgentLLM(
         agentContext,
         rlm,
@@ -206,23 +255,33 @@ export class Agent {
         this.callback,
         this.requestHandler
       );
+
+      // Check for immediate stop signal from context variables
       const forceStop = agentContext.variables.get("forceStop");
       if (forceStop) {
         return forceStop;
       }
+
+      // Execute Tools and Process Results (Observation)
       const finalResult = await this.handleCallResult(
         agentContext,
         messages,
         agentTools,
         results
       );
+
       loopNum++;
+
+      // If no final result (task continuing), handle expert mode checks
       if (!finalResult) {
         if (config.expertMode && loopNum % config.expertModeTodoLoopNum == 0) {
+          // Periodically re-evaluate todo list in expert mode
           await doTodoListManager(agentContext, rlm, messages, llm_tools);
         }
         continue;
       }
+
+      // If result found, perform verification in expert mode
       if (config.expertMode && checkNum == 0) {
         checkNum++;
         const { completionStatus } = await doTaskResultCheck(
@@ -231,22 +290,27 @@ export class Agent {
           messages,
           llm_tools
         );
+        // If check fails, continue loop
         if (completionStatus == "incomplete") {
           continue;
         }
       }
+
       return finalResult;
     }
     return "Unfinished";
   }
 
   /**
-   * Handles the result of a language model call, processing tool calls and text responses.
-   * @param agentContext - The context for the agent to run in.
-   * @param messages - The history of messages.
-   * @param agentTools - The tools available to the agent.
-   * @param results - The results from the language model call.
-   * @returns A promise that resolves to the final result of the agent's run, or null if the run should continue.
+   * Processes the LLM's response.
+   * If tools are called, executes them and appends results to history.
+   * If text is returned, treats it as the final answer or thought.
+   *
+   * @param agentContext - Current execution context.
+   * @param messages - Conversation history.
+   * @param agentTools - Available tools.
+   * @param results - Raw output content from LLM.
+   * @returns The final answer string if task is done, or null if loop should continue.
    */
   protected async handleCallResult(
     agentContext: AgentContext,
@@ -257,17 +321,26 @@ export class Agent {
     const user_messages: LanguageModelV2Prompt = [];
     const toolResults: LanguageModelV2ToolResultPart[] = [];
     // results = memory.removeDuplicateToolUse(results);
+
+    // Append assistant's response to history
     messages.push({
       role: "assistant",
       content: results,
     });
+
     if (results.length == 0) {
       return null;
     }
+
+    // If only text, return it (end of turn)
     if (results.every((s) => s.type == "text")) {
       return results.map((s) => s.text).join("\n\n");
     }
+
+    // Handle tool calls
     const toolCalls = results.filter((s) => s.type == "tool-call");
+
+    // Parallel Execution Logic
     if (
       toolCalls.length > 1 &&
       this.canParallelToolCalls(toolCalls) &&
@@ -275,6 +348,7 @@ export class Agent {
         (s) => agentTools.find((t) => t.name == s.toolName)?.supportParallelCalls
       )
     ) {
+      // Execute all compatible tools in parallel
       const results = await Promise.all(
         toolCalls.map((toolCall) =>
           this.callToolCall(agentContext, agentTools, toolCall, user_messages)
@@ -284,6 +358,7 @@ export class Agent {
         toolResults.push(results[i]);
       }
     } else {
+      // Sequential Execution
       for (let i = 0; i < toolCalls.length; i++) {
         const toolCall = toolCalls[i];
         const toolResult = await this.callToolCall(
@@ -295,6 +370,8 @@ export class Agent {
         toolResults.push(toolResult);
       }
     }
+
+    // If tools were executed, update history and return null to continue loop
     if (toolResults.length > 0) {
       messages.push({
         role: "tool",
@@ -303,6 +380,7 @@ export class Agent {
       user_messages.forEach((message) => messages.push(message));
       return null;
     } else {
+      // Fallback: extract text if no tools ran (should rarely happen here)
       return results
         .filter((s) => s.type == "text")
         .map((s) => s.text)
@@ -311,14 +389,16 @@ export class Agent {
   }
 
   /**
-   * Calls a tool with the given arguments and context.
-   * Supports beforeToolCall and afterToolCall hooks for production-ready control.
-   * @param agentContext - The context for the agent to run in.
-   * @param agentTools - The tools available to the agent.
-   * @param result - The tool call to execute.
-   * @param user_messages - The user messages to append to.
-   * @param retryCount - Internal retry counter to prevent infinite loops.
-   * @returns A promise that resolves to the result of the tool call.
+   * Executes a single tool call with comprehensive hook support.
+   * Checks `beforeToolCall` for blocks/modifications, and `onApprovalRequired` for human-in-the-loop.
+   * Handles errors via `onToolError` hook (retry, skip, escalate).
+   *
+   * @param agentContext - Execution context.
+   * @param agentTools - List of available tools.
+   * @param result - The specific tool call request.
+   * @param user_messages - Accumulator for side-channel user messages.
+   * @param retryCount - Recursion depth for retries.
+   * @returns The structured tool result for the LLM.
    */
   protected async callToolCall(
     agentContext: AgentContext,
@@ -330,12 +410,15 @@ export class Agent {
     const MAX_TOOL_RETRIES = 3;
     const context = agentContext.context;
     const hooks = context.config.hooks;
+
+    // Initialize tool chain tracking
     const toolChain = new ToolChain(
       result,
       agentContext.agentChain.agentRequest as LLMRequest
     );
     agentContext.agentChain.push(toolChain);
 
+    // Parse arguments safely
     let args =
       typeof result.input == "string"
         ? JSON.parse(result.input || "{}")
@@ -351,14 +434,13 @@ export class Agent {
           args
         );
 
-        // Handle hook result
         if (!hookResult.allow) {
-          // Tool call blocked by hook
+          // Handle Blocked Execution
           const blockReason = hookResult.reason || "Tool call blocked by beforeToolCall hook";
           Log.warn(`Tool ${result.toolName} blocked: ${blockReason}`);
 
           if (hookResult.escalate) {
-            // ============ ON APPROVAL REQUIRED HOOK ============
+            // ============ ON APPROVAL REQUIRED HOOK (Escalation) ============
             if (hooks?.onApprovalRequired) {
               try {
                 const approvalRequest: ApprovalRequest = {
@@ -374,11 +456,10 @@ export class Agent {
                 const approval = await hooks.onApprovalRequired(agentContext, approvalRequest);
 
                 if (approval.approved) {
-                  // Approval granted - continue with tool execution
                   Log.info(`Tool ${result.toolName} approved by ${approval.approver || "user"}`);
-                  // Fall through to execute the tool
+                  // Proceed with execution
                 } else {
-                  // Approval denied
+                  // Approval Denied
                   const deniedResult: ToolResult = {
                     content: [
                       {
@@ -393,10 +474,9 @@ export class Agent {
                 }
               } catch (approvalError) {
                 Log.error("onApprovalRequired hook error:", approvalError);
-                // Fall through to default escalate behavior
               }
             } else {
-              // No approval hook - use default escalate behavior
+              // Default Escalation (User Info)
               const escalateResult: ToolResult = {
                 content: [
                   {
@@ -410,7 +490,7 @@ export class Agent {
               return convertToolResult(result, escalateResult, user_messages);
             }
           } else if (hookResult.skip) {
-            // Skip without error (for batch/scraping scenarios)
+            // Silent Skip
             const skipResult: ToolResult = {
               content: [
                 {
@@ -424,7 +504,7 @@ export class Agent {
             return convertToolResult(result, skipResult, user_messages);
           }
 
-          // Return as error to LLM
+          // Blocking Error
           const blockedResult: ToolResult = {
             content: [
               {
@@ -438,14 +518,13 @@ export class Agent {
           return convertToolResult(result, blockedResult, user_messages);
         }
 
-        // Apply modified args if provided
+        // Apply parameter modifications from hook
         if (hookResult.modifiedArgs) {
           args = hookResult.modifiedArgs;
           toolChain.params = args;
         }
       } catch (hookError) {
         Log.error("beforeToolCall hook error:", hookError);
-        // Continue with original args if hook fails
       }
     }
 
@@ -455,9 +534,11 @@ export class Agent {
       if (!tool) {
         throw new Error(result.toolName + " tool does not exist");
       }
+
+      // Execute the tool implementation
       toolResult = await tool.execute(args, agentContext, result);
       toolChain.updateToolResult(toolResult);
-      agentContext.consecutiveErrorNum = 0;
+      agentContext.consecutiveErrorNum = 0; // Reset error counter on success
 
       // ============ AFTER TOOL CALL HOOK (SUCCESS) ============
       if (hooks?.afterToolCall) {
@@ -465,7 +546,6 @@ export class Agent {
           await hooks.afterToolCall(agentContext, result.toolName, args, toolResult);
         } catch (afterHookError) {
           Log.error("afterToolCall hook error:", afterHookError);
-          // Don't fail the tool call if hook fails
         }
       }
     } catch (e: any) {
@@ -483,13 +563,11 @@ export class Agent {
 
           switch (errorAction) {
             case "retry":
-              // Retry the tool call with retry limit
               if (retryCount < MAX_TOOL_RETRIES) {
                 Log.info(`Retrying tool ${result.toolName} after error (attempt ${retryCount + 1}/${MAX_TOOL_RETRIES})`);
                 return this.callToolCall(agentContext, agentTools, result, user_messages, retryCount + 1);
               } else {
                 Log.warn(`Max retries (${MAX_TOOL_RETRIES}) reached for tool ${result.toolName}, falling through to error`);
-                // Fall through to default error handling
                 toolResult = {
                   content: [
                     {
@@ -504,32 +582,19 @@ export class Agent {
               break;
 
             case "skip":
-              // Skip without error
               toolResult = {
-                content: [
-                  {
-                    type: "text",
-                    text: `Skipped due to error: ${e.message}`,
-                  },
-                ],
+                content: [{ type: "text", text: `Skipped due to error: ${e.message}` }],
                 isError: false,
               };
               toolChain.updateToolResult(toolResult);
               break;
 
             case "abort":
-              // Re-throw to abort the task
-              throw e;
+              throw e; // Critical failure
 
             case "escalate":
-              // Escalate to human
               toolResult = {
-                content: [
-                  {
-                    type: "text",
-                    text: `Error requires human assistance: ${e.message}. Please use human_interact tool to request help.`,
-                  },
-                ],
+                content: [{ type: "text", text: `Error requires human assistance: ${e.message}.` }],
                 isError: true,
               };
               toolChain.updateToolResult(toolResult);
@@ -537,14 +602,8 @@ export class Agent {
 
             case "continue":
             default:
-              // Standard error handling
               toolResult = {
-                content: [
-                  {
-                    type: "text",
-                    text: e + "",
-                  },
-                ],
+                content: [{ type: "text", text: e + "" }],
                 isError: true,
               };
               toolChain.updateToolResult(toolResult);
@@ -552,20 +611,11 @@ export class Agent {
           }
         } catch (errorHookError) {
           Log.error("onToolError hook failed:", errorHookError);
-          // Fall back to standard error handling
-          toolResult = {
-            content: [
-              {
-                type: "text",
-                text: e + "",
-              },
-            ],
-            isError: true,
-          };
+          toolResult = { content: [{ type: "text", text: e + "" }], isError: true };
           toolChain.updateToolResult(toolResult);
         }
       } else {
-        // No error hook, standard error handling
+        // Standard error handling (no hook)
         toolResult = {
           content: [
             {
@@ -578,11 +628,13 @@ export class Agent {
         toolChain.updateToolResult(toolResult);
       }
 
+      // Circuit Breaker: Prevent infinite error loops
       if (++agentContext.consecutiveErrorNum >= 10) {
         throw e;
       }
     }
 
+    // Stream result to client
     const callback = this.callback || context.config.callback;
     if (callback) {
       await callback.onMessage(
@@ -603,9 +655,14 @@ export class Agent {
   }
 
   /**
-   * Returns a list of system tools that are automatically added to the agent.
-   * @param agentNode - The workflow agent node.
-   * @returns A list of system tools.
+   * Injects automatic system tools based on agent configuration.
+   * - VariableStorage: If agent handles input/output.
+   * - Foreach: If workflow has loop nodes.
+   * - Watch: If workflow has triggers.
+   * - HumanInteract: Always included for fallback.
+   *
+   * @param agentNode - The workflow definition for this agent.
+   * @returns Array of system tools to append.
    */
   protected system_auto_tools(agentNode: WorkflowAgent): Tool[] {
     let tools: Tool[] = [];
@@ -625,15 +682,17 @@ export class Agent {
       tools.push(Agent.watchTriggerTool);
     }
     tools.push(Agent.humanInteractTool);
+
+    // Deduplicate: Don't add if already present in custom tools
     let toolNames = this.tools.map((tool) => tool.name);
     return tools.filter((tool) => toolNames.indexOf(tool.name) == -1);
   }
 
   /**
-   * Builds the system prompt for the agent.
-   * @param agentContext - The context for the agent to run in.
-   * @param tools - The tools available to the agent.
-   * @returns A promise that resolves to the system prompt.
+   * Constructs the System Prompt based on agent identity and capabilities.
+   * @param agentContext - Execution context.
+   * @param tools - Available tools (used to describe capabilities).
+   * @returns The formatted system prompt string.
    */
   protected async buildSystemPrompt(
     agentContext: AgentContext,
@@ -649,10 +708,10 @@ export class Agent {
   }
 
   /**
-   * Builds the user prompt for the agent.
-   * @param agentContext - The context for the agent to run in.
-   * @param tools - The tools available to the agent.
-   * @returns A promise that resolves to the user prompt.
+   * Constructs the initial User Prompt defining the specific task.
+   * @param agentContext - Execution context.
+   * @param tools - Available tools.
+   * @returns The prompt parts.
    */
   protected async buildUserPrompt(
     agentContext: AgentContext,
@@ -672,10 +731,7 @@ export class Agent {
   }
 
   /**
-   * Returns an extended system prompt for the agent.
-   * @param agentContext - The context for the agent to run in.
-   * @param tools - The tools available to the agent.
-   * @returns A promise that resolves to the extended system prompt.
+   * Extension point for subclasses to inject custom system prompt instructions.
    */
   protected async extSysPrompt(
     agentContext: AgentContext,
@@ -684,6 +740,14 @@ export class Agent {
     return "";
   }
 
+  /**
+   * Discovers tools from the connected MCP server.
+   * @param context - Global context.
+   * @param mcpClient - Connected MCP client.
+   * @param agentNode - Current agent node info (for filtering/context).
+   * @param mcpParams - Additional parameters for tool filtering.
+   * @returns Array of wrapped MCP tools.
+   */
   private async listTools(
     context: Context,
     mcpClient: IMcpClient,
@@ -721,11 +785,8 @@ export class Agent {
   }
 
   /**
-   * Controls the MCP tools.
-   * @param agentContext - The context for the agent to run in.
-   * @param messages - The history of messages.
-   * @param loopNum - The current loop number.
-   * @returns A promise that resolves to an object indicating whether to use MCP tools and any additional parameters.
+   * Determines if MCP tools should be refreshed/loaded for the current step.
+   * By default, only loads on the first loop iteration (0).
    */
   protected async controlMcpTools(
     agentContext: AgentContext,
@@ -741,10 +802,10 @@ export class Agent {
   }
 
   /**
-   * Returns a tool executer for the given MCP client and tool name.
-   * @param mcpClient - The MCP client to use.
-   * @param name - The name of the tool.
-   * @returns A tool executer.
+   * Creates an execution closure for an MCP tool.
+   * @param mcpClient - The client to execute the call.
+   * @param name - Tool name.
+   * @returns An object conforming to the ToolExecuter interface.
    */
   protected toolExecuter(mcpClient: IMcpClient, name: string): ToolExecuter {
     return {
@@ -767,24 +828,22 @@ export class Agent {
   }
 
   /**
-   * Handles the messages in the agent's context, including memory management.
-   * @param agentContext - The context for the agent to run in.
-   * @param messages - The history of messages.
-   * @param tools - The tools available to the agent.
+   * Manages context window by trimming or compressing message history.
+   * Delegates to memory module.
    */
   protected async handleMessages(
     agentContext: AgentContext,
     messages: LanguageModelV2Prompt,
     tools: Tool[]
   ): Promise<void> {
-    // Only keep the last image / file, large tool-text-result
+    // Strategy: retain system prompts, recent context, and relevant tool outputs.
+    // Truncate older messages or large file/image payloads.
     memory.handleLargeContextMessages(messages);
   }
 
   /**
-   * Calls an inner tool and returns the result as a ToolResult.
-   * @param fun - The function to call.
-   * @returns A promise that resolves to the tool result.
+   * Helper to execute a function as a tool result.
+   * Useful for internal pseudo-tools.
    */
   protected async callInnerTool(fun: () => Promise<any>): Promise<ToolResult> {
     let result = await fun();
@@ -803,9 +862,7 @@ export class Agent {
   }
 
   /**
-   * Loads the tools for the agent.
-   * @param context - The context for the agent to run in.
-   * @returns A promise that resolves to a list of tools.
+   * Public API to explicitly load tools (e.g. for inspection).
    */
   public async loadTools(context: Context): Promise<Tool[]> {
     if (this.mcpClient) {
@@ -818,17 +875,15 @@ export class Agent {
   }
 
   /**
-   * Adds a tool to the agent.
-   * @param tool - The tool to add.
+   * Registers a new tool with the agent instance.
    */
   public addTool(tool: Tool) {
     this.tools.push(tool);
   }
 
   /**
-   * Handles the task status changes.
-   * @param status - The new status of the task.
-   * @param reason - The reason for the status change.
+   * Lifecycle handler for task status changes (pause/abort).
+   * Cleans up local state if task is aborted.
    */
   protected async onTaskStatus(
     status: "pause" | "abort" | "resume-pause",
@@ -840,9 +895,7 @@ export class Agent {
   }
 
   /**
-   * Returns whether the agent can handle parallel tool calls.
-   * @param toolCalls - The tool calls to check.
-   * @returns Whether the agent can handle parallel tool calls.
+   * Configuration check for parallel execution support.
    */
   public canParallelToolCalls(
     toolCalls?: LanguageModelV2ToolCallPart[]
@@ -850,51 +903,32 @@ export class Agent {
     return config.parallelToolCalls;
   }
 
-  /**
-   * The language models used by the agent.
-   */
+  // --- GETTERS ---
+
   get Llms(): string[] | undefined {
     return this.llms;
   }
 
-  /**
-   * The name of the agent.
-   */
   get Name(): string {
     return this.name;
   }
 
-  /**
-   * The description of the agent.
-   */
   get Description(): string {
     return this.description;
   }
 
-  /**
-   * The tools used by the agent.
-   */
   get Tools(): Tool[] {
     return this.tools;
   }
 
-  /**
-   * The description of the agent's plan.
-   */
   get PlanDescription() {
     return this.planDescription;
   }
 
-  /**
-   * The MCP client used by the agent.
-   */
   get McpClient() {
     return this.mcpClient;
   }
 
-  /**
-   * The context of the agent.
-   */
   get AgentContext(): AgentContext | undefined {
     return this.agentContext;
   }

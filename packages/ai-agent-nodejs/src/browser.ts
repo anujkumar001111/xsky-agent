@@ -10,7 +10,22 @@ import {
 import { getDefaultChromeUserDataDir } from "./utils";
 
 /**
- * A browser agent that uses Playwright to interact with a browser.
+ * @file browser.ts
+ * @description Implementation of the BrowserAgent for Node.js environments using Playwright.
+ * This class extends the core browser agent logic to provide concrete browser automation
+ * capabilities on the server/desktop side.
+ *
+ * Capabilities:
+ * - Headless and headful browser automation via Chromium.
+ * - Persistent sessions via User Data Directory.
+ * - CDP (Chrome DevTools Protocol) connection support.
+ * - Anti-bot detection evasion techniques.
+ * - Coordinate-based interaction (click, scroll, drag).
+ */
+
+/**
+ * A specialized Agent that controls a real browser instance using Playwright.
+ * Can connect to existing browser sessions or launch new ones.
  */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private cdpWsEndpoint?: string;
@@ -21,6 +36,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private current_page: Page | null = null;
   private headless: boolean = false;
 
+  /**
+   * Initializes the BrowserAgent with optional LLMs, tools, and MCP client.
+   * @param llms - List of LLM identifiers.
+   * @param ext_tools - Additional tools to register.
+   * @param mcpClient - MCP client for external tools.
+   */
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
     super(llms, ext_tools, mcpClient);
 
@@ -40,7 +61,7 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Sets the CDP websocket endpoint to connect to.
+   * Sets the CDP websocket endpoint to connect to an existing browser instance.
    * @param cdpWsEndpoint - The CDP websocket endpoint.
    */
   public setCdpWsEndpoint(cdpWsEndpoint: string) {
@@ -48,9 +69,9 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Initializes the user data directory for the browser.
-   * @param userDataDir - The user data directory to use.
-   * @returns The user data directory.
+   * Initializes the user data directory for session persistence.
+   * @param userDataDir - Custom path for user data (defaults to system default if not provided).
+   * @returns The resolved user data directory path.
    */
   public initUserDataDir(userDataDir?: string): string | undefined {
     if (userDataDir) {
@@ -62,13 +83,18 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   }
 
   /**
-   * Sets the options for the browser.
-   * @param options - The options to set.
+   * Sets additional Playwright launch options.
+   * @param options - Dictionary of Playwright options.
    */
   public setOptions(options?: Record<string, any>) {
     this.options = options;
   }
 
+  /**
+   * Captures a screenshot of the current page.
+   * @param agentContext - Execution context.
+   * @returns Base64 encoded JPEG image.
+   */
   protected async screenshot(
     agentContext: AgentContext
   ): Promise<{ imageBase64: string; imageType: "image/jpeg" | "image/png" }> {
@@ -471,6 +497,11 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return new Promise((resolve) => setTimeout(() => resolve(), time));
   }
 
+  /**
+   * Initializes or retrieves the browser context.
+   * Handles CDP connection, persistent context launch, or temporary context launch.
+   * Injects anti-bot scripts.
+   */
   protected async getBrowserContext() {
     if (!this.browser_context) {
       this.current_page = null;
@@ -527,6 +558,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     return this.browser_context;
   }
 
+  /**
+   * Generates a script to evade browser fingerprinting and bot detection.
+   * Overrides navigator properties to mimic a standard user browser.
+   */
   protected async initScript(): Promise<{ path?: string; content?: string }> {
     return {
       content: `

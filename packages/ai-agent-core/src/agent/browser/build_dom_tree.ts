@@ -1,6 +1,18 @@
 // @ts-nocheck
 /**
+ * @file build_dom_tree.ts
+ * @description Injected script that analyzes the DOM to create a structural representation
+ * for the AI agent. It handles:
+ * - Identification of interactive elements (buttons, links, inputs).
+ * - Visibility checks (is the element actually seen by the user?).
+ * - Visual highlighting of interactive elements with unique indices.
+ * - Shadow DOM and IFrame traversal.
+ * - XPath generation for element location.
+ */
+
+/**
  * Runs the DOM tree builder.
+ * Defines global functions on the window object for the agent to interact with.
  */
 export function run_build_dom_tree() {
   var computedStyleCache = new WeakMap();
@@ -27,25 +39,33 @@ export function run_build_dom_tree() {
   }
 
   /**
-   * Get clickable elements on the page
+   * Get clickable elements on the page.
+   * This is the main entry point called by the agent to analyze the page.
    *
-   * @param doHighlightElements - Whether to highlight the elements.
-   * @param includeAttributes - A list of attributes to include in the element string.
-   * @returns An object containing the element string and a map of selectors.
+   * @param doHighlightElements - Whether to visually highlight the elements with overlays.
+   * @param includeAttributes - A list of attributes to include in the element string representation.
+   * @returns An object containing the string representation of elements and a map of selectors.
    */
   function get_clickable_elements(doHighlightElements = true, includeAttributes) {
     window.clickable_elements = {};
     computedStyleCache = new WeakMap();
+    // Clean up previous highlights
     document.querySelectorAll("[eko-user-highlight-id]").forEach(ele => ele.removeAttribute("eko-user-highlight-id"));
+
+    // Build the tree and highlight elements
     let page_tree = build_dom_tree(doHighlightElements);
+
+    // Convert the tree to a flat structure and string representation for the LLM
     let element_tree = parse_node(page_tree);
     let selector_map = create_selector_map(element_tree);
     let element_str = clickable_elements_to_string(element_tree, includeAttributes);
+
     return { element_str, selector_map };
   }
 
   /**
    * Gets the highlighted element with the given index.
+   * Used by the agent to retrieve the actual DOM element for interaction.
    * @param highlightIndex - The index of the highlighted element to get.
    * @returns The highlighted element.
    */
@@ -55,7 +75,7 @@ export function run_build_dom_tree() {
   }
 
   /**
-   * Removes the highlight from the page.
+   * Removes the highlight container and cleans up the cache.
    */
   function remove_highlight() {
     let highlight = document.getElementById('eko-highlight-container');
@@ -65,6 +85,10 @@ export function run_build_dom_tree() {
     computedStyleCache = new WeakMap();
   }
 
+  /**
+   * Converts the element tree into a string representation for the LLM.
+   * Formats the output as pseudo-HTML with indices.
+   */
   function clickable_elements_to_string(element_tree, includeAttributes) {
     if (!includeAttributes) {
       includeAttributes = [
@@ -84,6 +108,10 @@ export function run_build_dom_tree() {
       ];
     }
 
+    /**
+     * Helper to collect text content until the next interactive element.
+     * Prevents text duplications and ensures context is associated with the correct element.
+     */
     function get_all_text_till_next_clickable_element(element_node) {
       let text_parts = [];
       function collect_text(node) {
@@ -116,12 +144,15 @@ export function run_build_dom_tree() {
     let formatted_text = [];
     function process_node(node, depth) {
       if (node.text == null) {
+        // Element Node
         if (node.highlightIndex != null) {
           let attributes_str = '';
           if (includeAttributes) {
             for (let i = 0; i < includeAttributes.length; i++) {
               let key = includeAttributes[i];
               let value = node.attributes[key];
+
+              // Truncate long class lists and URLs to save tokens
               if (key == "class" && value && value.length > 30) {
                 let classList = value.split(" ").slice(0, 3);
                 value = classList.join(" ");
@@ -146,6 +177,7 @@ export function run_build_dom_tree() {
           process_node(child, depth + 1);
         }
       } else if (!has_parent_with_highlight_index(node)) {
+        // Text Node not belonging to a highlighted parent
         formatted_text.push(`[]:${node.text}`);
       }
     }
@@ -208,9 +240,17 @@ export function run_build_dom_tree() {
     return element_node;
   }
 
+  /**
+   * Traverses the DOM to build a tree of interactive and visible elements.
+   * Applies highlights if requested.
+   */
   function build_dom_tree(doHighlightElements) {
     let highlightIndex = 0; // Reset highlight index
 
+    /**
+     * Creates a visual overlay and label for a DOM element.
+     * Uses absolute positioning and high z-index to overlay on the page.
+     */
     function highlightElement(element, index, parentIframe = null) {
       // Create or get highlight container
       let container = document.getElementById('eko-highlight-container');
@@ -227,7 +267,7 @@ export function run_build_dom_tree() {
         document.documentElement.appendChild(container);
       }
 
-      // Generate a color based on the index
+      // Generate a color based on the index to distinguish nearby elements
       const colors = [
         '#FF0000',
         '#00FF00',
@@ -258,6 +298,7 @@ export function run_build_dom_tree() {
       let top = rect.top;
       let left = rect.left;
 
+      // Add background color for large elements
       if (rect.width < window.innerWidth / 2 || rect.height < window.innerHeight / 2) {
         overlay.style.backgroundColor = backgroundColor;
       }
@@ -314,7 +355,7 @@ export function run_build_dom_tree() {
       container.appendChild(overlay);
       container.appendChild(label);
 
-      // Store reference for cleanup
+      // Store reference for cleanup and lookup
       element.setAttribute('eko-user-highlight-id', `eko-highlight-${index}`);
 
       return index + 1;
@@ -357,13 +398,13 @@ export function run_build_dom_tree() {
       return segments.join('/');
     }
 
-    // Helper function to check if element is accepted
+    // Helper function to check if element is accepted (filtering out scripts, styles, etc.)
     function isElementAccepted(element) {
       const leafElementDenyList = new Set(['svg', 'script', 'style', 'link', 'meta', 'noscript', 'template']);
       return !leafElementDenyList.has(element.tagName.toLowerCase());
     }
 
-    // Helper function to check if element is interactive
+    // Helper function to check if element is interactive based on tag, role, events, or styling
     function isInteractiveElement(element) {
       if (!element || element.nodeType !== Node.ELEMENT_NODE) {
         return false;
@@ -527,7 +568,7 @@ export function run_build_dom_tree() {
       );
     }
 
-    // Helper function to check if element is visible
+    // Helper function to check if element is visible on screen
     function isElementVisible(element) {
       if (element.offsetWidth === 0 && element.offsetHeight === 0) {
         return false;
@@ -539,12 +580,12 @@ export function run_build_dom_tree() {
       );
     }
 
-    // Helper function to check if element is the top element at its position
+    // Helper function to check if element is the top element at its position (not covered by others)
     function isTopElement(element) {
       // Find the correct document context and root element
       let doc = element.ownerDocument;
 
-      // If we're in an iframe, elements are considered top by default
+      // If we're in an iframe, elements are considered top by default (simplification)
       if (doc !== window.document) {
         return true;
       }

@@ -8,6 +8,18 @@ import {
   McpListToolResult,
 } from "../types";
 
+/**
+ * @file sse.ts
+ * @description Implements a Model Context Protocol (MCP) client using Server-Sent Events (SSE).
+ * The MCP protocol allows agents to discover and execute tools hosted on external servers.
+ *
+ * Protocol Overview:
+ * 1. Connect to SSE endpoint to receive events (server -> client).
+ * 2. Receive 'endpoint' event containing the POST URL for requests (client -> server).
+ * 3. Send JSON-RPC 2.0 requests via POST (Initialize -> ListTools -> CallTool).
+ * 4. Receive JSON-RPC responses via SSE 'message' events.
+ */
+
 type SseEventData = {
   id?: string;
   event?: string;
@@ -23,6 +35,10 @@ type SseHandler = {
   close?: Function;
 };
 
+/**
+ * Client implementation for MCP over SSE (Server-Sent Events).
+ * Manages the full lifecycle of the connection: handshake, initialization, heartbeats, and request routing.
+ */
 export class SimpleSseMcpClient implements IMcpClient {
   private sseUrl: string;
   private clientName: string;
@@ -34,6 +50,12 @@ export class SimpleSseMcpClient implements IMcpClient {
   private protocolVersion: string = "2024-11-05";
   private requestMap: Map<string, (messageData: any) => void>;
 
+  /**
+   * Initializes the MCP client.
+   * @param sseServerUrl - The URL of the SSE endpoint.
+   * @param clientName - Name identifier for this client.
+   * @param headers - Optional HTTP headers for the connection.
+   */
   constructor(
     sseServerUrl: string,
     clientName: string = "EkoMcpClient",
@@ -45,16 +67,24 @@ export class SimpleSseMcpClient implements IMcpClient {
     this.requestMap = new Map();
   }
 
+  /**
+   * Establishes the SSE connection and handles the handshake.
+   * @param signal - Optional abort signal.
+   */
   async connect(signal?: AbortSignal): Promise<void> {
     Log.info("MCP Client, connecting...", this.sseUrl);
+
+    // Cleanup existing connection
     if (this.sseHandler && this.sseHandler.readyState == 1) {
       this.sseHandler.close && this.sseHandler.close();
       this.sseHandler = undefined;
     }
     this.pingTimer && clearInterval(this.pingTimer);
     this.reconnectTimer && clearTimeout(this.reconnectTimer);
+
     await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, 15000);
+      const timer = setTimeout(resolve, 15000); // Connection timeout
+
       this.sseHandler = {
         onopen: () => {
           Log.info("MCP Client, connection successful", this.sseUrl);
@@ -65,6 +95,7 @@ export class SimpleSseMcpClient implements IMcpClient {
         onerror: (e) => {
           Log.error("MCP Client, error: ", e);
           clearTimeout(timer);
+          // Auto-reconnect logic
           if (this.sseHandler?.readyState === 2) {
             this.pingTimer && clearInterval(this.pingTimer);
             this.reconnectTimer = setTimeout(() => {
@@ -76,12 +107,20 @@ export class SimpleSseMcpClient implements IMcpClient {
       };
       connectSse(this.sseUrl, this.sseHandler, this.headers, signal);
     });
+
+    // Start heartbeat
     this.pingTimer = setInterval(() => this.ping(), 10000);
   }
 
+  /**
+   * Handles incoming SSE events.
+   * Routes 'message' events to pending requests and processes 'endpoint' discovery.
+   */
   onmessage(data: SseEventData) {
     Log.debug("MCP Client, onmessage", this.sseUrl, data);
+
     if (data.event == "endpoint") {
+      // Discovery phase: Server sends the POST endpoint for requests
       let uri = data.data as string;
       let msgUrl: string;
       let idx = this.sseUrl.indexOf("/", 10);
@@ -91,14 +130,19 @@ export class SimpleSseMcpClient implements IMcpClient {
         msgUrl = this.sseUrl + uri;
       }
       this.msgUrl = msgUrl;
-      this.initialize();
+      this.initialize(); // Proceed to protocol initialization
     } else if (data.event == "message") {
+      // JSON-RPC response
       let message = JSON.parse(data.data as string);
       let _resolve = this.requestMap.get(message.id);
       _resolve && _resolve(message);
     }
   }
 
+  /**
+   * Performs the MCP initialization handshake.
+   * Negotiates capabilities and protocol version.
+   */
   private async initialize() {
     await this.request("initialize", {
       protocolVersion: this.protocolVersion,
@@ -118,10 +162,16 @@ export class SimpleSseMcpClient implements IMcpClient {
     } catch(ignored) {}
   }
 
+  /**
+   * Sends a ping request to keep the connection alive.
+   */
   private ping() {
     this.request("ping", {});
   }
 
+  /**
+   * Lists available tools from the MCP server.
+   */
   async listTools(
     param: McpListToolParam,
     signal?: AbortSignal
@@ -136,6 +186,9 @@ export class SimpleSseMcpClient implements IMcpClient {
     return message.result.tools || [];
   }
 
+  /**
+   * Executes a specific tool on the MCP server.
+   */
   async callTool(
     param: McpCallToolParam,
     signal?: AbortSignal
@@ -150,13 +203,20 @@ export class SimpleSseMcpClient implements IMcpClient {
     return message.result;
   }
 
+  /**
+   * Low-level JSON-RPC request handler.
+   * Sends request via POST and waits for response via SSE (using ID correlation).
+   */
   private async request(
     method: string,
     params: Record<string, any>,
     signal?: AbortSignal
   ): Promise<any> {
+    // Notifications don't need IDs
     const id = method.startsWith("notifications/") ? undefined : uuidv4();
+
     try {
+      // Create promise to await response via SSE
       const callback = new Promise<any>((resolve, reject) => {
         if (signal) {
           signal.addEventListener("abort", () => {
@@ -167,7 +227,9 @@ export class SimpleSseMcpClient implements IMcpClient {
         }
         id && this.requestMap.set(id, resolve);
       });
+
       Log.debug(`MCP Client, ${method}`, id, params);
+
       const response = await fetch(this.msgUrl as string, {
         method: "POST",
         headers: {
@@ -184,7 +246,10 @@ export class SimpleSseMcpClient implements IMcpClient {
         }),
         signal: signal,
       });
+
       const body = await response.text();
+
+      // MCP Standard: Server returns "Accepted" for valid requests
       if (body == "Accepted") {
         const message = await callback;
         if (message.error) {
@@ -242,6 +307,10 @@ export class SimpleSseMcpClient implements IMcpClient {
   }
 }
 
+/**
+ * Internal helper to handle SSE stream reading and parsing.
+ * Uses native fetch and ReadableStream.
+ */
 async function connectSse(
   sseUrl: string,
   hander: SseHandler,
@@ -254,6 +323,7 @@ async function connectSse(
     const signal = _signal
       ? AbortSignal.any([controller.signal, _signal])
       : controller.signal;
+
     const response = await fetch(sseUrl, {
       method: "GET",
       headers: {
@@ -265,16 +335,21 @@ async function connectSse(
       keepalive: true,
       signal: signal,
     });
+
     const reader = response.body?.getReader() as ReadableStreamDefaultReader;
+
     hander.close = () => {
       controller.abort();
       hander.readyState = 2;
       Log.debug("McpClient close abort.", sseUrl);
     };
+
     let str = "";
     const decoder = new TextDecoder();
     hander.readyState = 1;
     hander.onopen();
+
+    // Stream reading loop
     while (hander.readyState == 1) {
       const { value, done } = await reader?.read();
       if (done) {
@@ -282,6 +357,8 @@ async function connectSse(
       }
       const text = decoder.decode(value);
       str += text;
+
+      // Process complete events delimited by double newline
       if (str.indexOf("\n\n") > -1) {
         const chunks = str.split("\n\n");
         for (let i = 0; i < chunks.length - 1; i++) {
@@ -289,7 +366,7 @@ async function connectSse(
           const chunkData = parseChunk(chunk);
           hander.onmessage(chunkData);
         }
-        str = chunks[chunks.length - 1];
+        str = chunks[chunks.length - 1]; // Keep partial chunk for next iteration
       }
     }
   } catch (e: any) {
@@ -302,6 +379,10 @@ async function connectSse(
   }
 }
 
+/**
+ * Parses a raw SSE text chunk into structured data.
+ * Handles 'id', 'event', and 'data' fields.
+ */
 function parseChunk(chunk: string): SseEventData {
   const lines = chunk.split("\n");
   const chunk_obj: SseEventData = {};
