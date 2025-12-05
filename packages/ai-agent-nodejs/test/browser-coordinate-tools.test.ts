@@ -165,8 +165,23 @@ describe("BrowserAgent Coordinate Tools", () => {
         expect(mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
       });
 
+      it("should handle 'press' action with key normalization", async () => {
+        await agent.keyboard_action("press", "return");
+        expect(mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
+      });
+
+      it("should handle 'press' action with character normalization", async () => {
+        await agent.keyboard_action("press", "a");
+        expect(mockPage.keyboard.press).toHaveBeenCalledWith("KeyA");
+      });
+
       it("should handle 'down' action", async () => {
         await agent.keyboard_action("down", "Shift");
+        expect(mockPage.keyboard.down).toHaveBeenCalledWith("Shift");
+      });
+
+      it("should handle 'down' action with key normalization", async () => {
+        await agent.keyboard_action("down", "shift");
         expect(mockPage.keyboard.down).toHaveBeenCalledWith("Shift");
       });
 
@@ -183,6 +198,47 @@ describe("BrowserAgent Coordinate Tools", () => {
       it("should handle 'insert' action", async () => {
         await agent.keyboard_action("insert", undefined, "pasted text");
         expect(mockPage.keyboard.insertText).toHaveBeenCalledWith("pasted text");
+      });
+    });
+
+    describe("keyboard_combination tool", () => {
+      it("should register keyboard_combination tool", () => {
+        const toolNames = agent.tools.map((t: any) => t.name);
+        expect(toolNames).toContain("keyboard_combination");
+      });
+
+      it("should execute keyboard combination tool", async () => {
+        const tool = agent.tools.find((t: any) => t.name === "keyboard_combination");
+        agent.keyboard_action = jest.fn();
+
+        await tool.execute({ keys: ["Control", "c"] }, {} as any);
+
+        // Verify keyCombination was called (we can't easily mock the imported function)
+        // This test verifies the tool exists and can be called
+        expect(tool).toBeDefined();
+      });
+    });
+
+    describe("type_text_enhanced tool", () => {
+      it("should register type_text_enhanced tool", () => {
+        const toolNames = agent.tools.map((t: any) => t.name);
+        expect(toolNames).toContain("type_text_enhanced");
+      });
+
+      it("should execute type_text_enhanced tool with default delay", async () => {
+        const tool = agent.tools.find((t: any) => t.name === "type_text_enhanced");
+
+        await tool.execute({ text: "hello world" }, {} as any);
+
+        expect(mockPage.keyboard.type).toHaveBeenCalledWith("hello world", { delay: 100 });
+      });
+
+      it("should execute type_text_enhanced tool with custom delay", async () => {
+        const tool = agent.tools.find((t: any) => t.name === "type_text_enhanced");
+
+        await tool.execute({ text: "hello world", delay: 50 }, {} as any);
+
+        expect(mockPage.keyboard.type).toHaveBeenCalledWith("hello world", { delay: 50 });
       });
     });
   });

@@ -81,6 +81,13 @@ export {
 } from "./common/utils";
 
 export {
+  PLAYWRIGHT_KEY_MAP,
+  normalizeKey,
+  keyCombination,
+  typeText,
+} from "./common/keyboard";
+
+export {
   parseWorkflow,
   resetWorkflowXml,
   buildSimpleAgentWorkflow,

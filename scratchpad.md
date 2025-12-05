@@ -46,6 +46,17 @@
     - Coordinate tools tests: 22/22 passing
     - Login automation test: 6/6 test cases passed
     - Project status: Stable and ready for production
+[2025-12-05T17:00:00Z] [OpenCode] Completed comprehensive keyboard mapping integration
+    - Created PLAYWRIGHT_KEY_MAP with all 155 Playwright keyboard keys and aliases
+    - Added normalizeKey() function for automatic key name normalization
+    - Added keyCombination() helper for complex multi-key shortcuts
+    - Added typeText() helper for realistic human-like typing with delays
+    - Enhanced BrowserAgent keyboard_action method to use key normalization
+    - Added keyboard_combination tool for complex shortcuts (Ctrl+C, Shift+Click, etc.)
+    - Added type_text_enhanced tool for human-like typing simulation
+    - Updated tests: 30/30 passing including key normalization and new tools
+    - Exported keyboard utilities from core package for cross-agent use
+    - Full backward compatibility maintained
 [2025-12-05T10:30:00Z] [Claude Code] Implemented comprehensive keyboard/mouse interactions
     - Replaced send_keys with keyboard_action tool (press, down, up, type, insert)
     - Added modifier key support to all mouse tools (click, drag, scroll) and labeled click

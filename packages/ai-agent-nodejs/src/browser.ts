@@ -1,5 +1,6 @@
 import { AgentContext, BaseBrowserLabelsAgent, config, scaleCoordinates } from "@xsky/ai-agent-core";
 import { Tool, IMcpClient } from "@xsky/ai-agent-core/types";
+import { normalizeKey, keyCombination, typeText } from "@xsky/ai-agent-core";
 import {
   chromium,
   Browser,
@@ -345,13 +346,13 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     const page = await this.currentPage();
     switch (action) {
       case "press":
-        if (key) await page.keyboard.press(key);
+        if (key) await page.keyboard.press(normalizeKey(key));
         break;
       case "down":
-        if (key) await page.keyboard.down(key);
+        if (key) await page.keyboard.down(normalizeKey(key));
         break;
       case "up":
-        if (key) await page.keyboard.up(key);
+        if (key) await page.keyboard.up(normalizeKey(key));
         break;
       case "type":
         if (text) await page.keyboard.type(text);
@@ -594,7 +595,7 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
             key: {
               type: "string",
               description:
-                "Key to operate on (for press/down/up). e.g. 'Enter', 'Control', 'Shift', 'a'.",
+                "Key to operate on (for press/down/up). Supports common names like 'Enter', 'Control', 'Shift', 'a', etc.",
             },
             text: {
               type: "string",
@@ -611,6 +612,56 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
               args.text as string
             )
           );
+        },
+      },
+      {
+        name: "keyboard_combination",
+        description:
+          "Execute complex key combinations with proper modifier sequencing. Use this for shortcuts like Ctrl+C, Shift+Click, etc.",
+        parameters: {
+          type: "object",
+          properties: {
+            keys: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of keys to press in sequence (e.g., ['Control', 'c'] for Ctrl+C). Supports common key names.",
+              minItems: 1,
+            },
+          },
+          required: ["keys"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(async () => {
+            const page = await this.currentPage();
+            await keyCombination(page, args.keys as string[]);
+          });
+        },
+      },
+      {
+        name: "type_text_enhanced",
+        description:
+          "Type text with realistic human-like delays. Use this for more natural text input simulation.",
+        parameters: {
+          type: "object",
+          properties: {
+            text: {
+              type: "string",
+              description: "Text to type into the focused element.",
+            },
+            delay: {
+              type: "number",
+              description: "Delay between keystrokes in milliseconds (default: 100 for human-like typing).",
+              minimum: 0,
+              default: 100,
+            },
+          },
+          required: ["text"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(async () => {
+            const page = await this.currentPage();
+            await typeText(page, args.text as string, args.delay as number || 100);
+          });
         },
       },
     ];
