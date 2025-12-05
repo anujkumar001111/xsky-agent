@@ -57,17 +57,38 @@ export type AgentParams = {
 };
 
 /**
- * Represents an AI agent that can run tasks, interact with tools, and communicate with language models.
+ * Base class for all AI agents in the XSky framework.
+ *
+ * An Agent encapsulates the core intelligence loop that:
+ * 1. Receives tasks and builds appropriate prompts for language models
+ * 2. Executes tool calls to interact with external systems (browsers, files, APIs)
+ * 3. Manages conversation state and memory across multiple LLM interactions
+ * 4. Handles errors, retries, and recovery strategies through configurable hooks
+ * 5. Supports streaming callbacks for real-time execution monitoring
+ * 6. Integrates with MCP (Model Context Protocol) for dynamic tool discovery
+ * 7. Implements security sandboxing and permission-based tool execution
+ *
+ * Agents are specialized by extending this base class (e.g., BrowserAgent, FileAgent)
+ * and providing domain-specific tools and prompt engineering.
  */
 export class Agent {
+  /** Unique identifier for this agent type (e.g., "Browser", "File", "Shell") */
   protected name!: string;
+  /** Human-readable description of what this agent can accomplish */
   protected description!: string;
+  /** Array of tools this agent can use to interact with external systems */
   protected tools: Tool[] = [];
+  /** Optional list of preferred LLM names for this agent (overrides global defaults) */
   protected llms?: string[];
+  /** Optional MCP client for dynamic tool discovery and execution */
   protected mcpClient?: IMcpClient;
+  /** Optional description of the agent's planning/decision making approach */
   protected planDescription?: string;
+  /** Optional handler for intercepting and modifying LLM requests */
   protected requestHandler?: (request: LLMRequest) => void;
+  /** Optional callbacks for streaming execution updates and human interaction */
   protected callback?: StreamCallback & HumanCallback;
+  /** Runtime context available during agent execution (set during run()) */
   protected agentContext?: AgentContext;
 
   // Static instances to avoid allocation overhead
@@ -245,12 +266,23 @@ export class Agent {
   }
 
   /**
-   * Runs the agent with the given context and optional MCP client.
-   * @param agentContext - The context for the agent to run in.
-   * @param mcpClient - The MCP client to use.
-   * @param maxReactNum - The maximum number of reactions to perform.
-   * @param historyMessages - The history of messages to start with.
-   * @returns A promise that resolves to the result of the agent's run.
+   * Core agent execution loop implementing the ReAct (Reasoning + Acting) pattern.
+   *
+   * This method orchestrates the agent's intelligence cycle:
+   * 1. Builds system and user prompts with available tools and context
+   * 2. Calls LLM to reason about next actions and generate tool calls
+   * 3. Executes tools (potentially in parallel) and handles results
+   * 4. Continues iteration until task completion or max loops reached
+   * 5. Applies expert mode features like todo list management and task validation
+   *
+   * The loop continues until the LLM returns only text (no tool calls) indicating completion,
+   * or until maxReactNum iterations are reached (failsafe against infinite loops).
+   *
+   * @param agentContext - Execution context containing workflow state and configuration
+   * @param mcpClient - Optional MCP client for dynamic tool loading
+   * @param maxReactNum - Maximum number of reasoning-action cycles (default: 100)
+   * @param historyMessages - Previous conversation messages to continue from
+   * @returns Final result string from completed task execution
    */
   public async runWithContext(
     agentContext: AgentContext,
@@ -258,12 +290,16 @@ export class Agent {
     maxReactNum: number = 100,
     historyMessages: LanguageModelV2Prompt = []
   ): Promise<string> {
-    let loopNum = 0;
-    let checkNum = 0;
+    let loopNum = 0; // Current iteration in the reasoning loop
+    let checkNum = 0; // Counter for expert mode task completion checks
     this.agentContext = agentContext;
     const context = agentContext.context;
     const agentNode = agentContext.agentChain.agent;
+
+    // Combine agent-specific tools with automatically injected system tools
     const tools = [...this.tools, ...this.system_auto_tools(agentNode)];
+
+    // Build prompts that will guide the LLM's behavior for this specific task
     const systemPrompt = await this.buildSystemPrompt(agentContext, tools);
     const userPrompt = await this.buildUserPrompt(agentContext, tools);
     const messages: LanguageModelV2Prompt = [
@@ -280,11 +316,15 @@ export class Agent {
       },
     ];
     agentContext.messages = messages;
+
+    // Initialize retry-capable language model wrapper for robust LLM interactions
     const rlm = new RetryLanguageModel(context.config.llms, this.llms);
     rlm.setContext(agentContext);
     let agentTools = tools;
+
+    // Main ReAct (Reasoning + Acting) loop - continues until task completion or iteration limit
     while (loopNum < maxReactNum) {
-      await context.checkAborted();
+      await context.checkAborted(); // Check for user cancellation requests
       if (mcpClient) {
         const controlMcp = await this.controlMcpTools(
           agentContext,
@@ -561,12 +601,14 @@ export class Agent {
 
     let toolResult: ToolResult;
     try {
+      // Resolve tool by name from available tools
       let tool = getTool(agentTools, result.toolName);
       if (!tool) {
         throw new Error(result.toolName + " tool does not exist");
       }
 
-      // Security Sandboxing
+      // ============ SECURITY SANDBOXING ============
+      // Apply permission-based access control and resource restrictions
       const securityConfig = context.config.security;
       if (securityConfig && securityConfig.enabled) {
         const sandbox = ToolSandboxFactory.createDefault(securityConfig);

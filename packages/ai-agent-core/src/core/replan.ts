@@ -1,20 +1,29 @@
-import { Planner } from "./plan";
-import { AgentChain } from "./chain";
-import { sub } from "../common/utils";
-import { AgentContext } from "./context";
-import { RetryLanguageModel } from "../llm";
+// Workflow replanning system - dynamically adjusts execution plans based on runtime results
+import { Planner } from "./plan";                    // Workflow planning engine
+import { AgentChain } from "./chain";               // Agent execution chain tracking
+import { sub } from "../common/utils";              // String truncation utility
+import { AgentContext } from "./context";           // Agent execution context
+import { RetryLanguageModel } from "../llm";        // LLM wrapper with retry logic
 import {
-  Workflow,
-  LLMRequest,
-  WorkflowAgent,
-  LanguageModelV2Prompt,
+  Workflow,                          // Workflow structure definition
+  LLMRequest,                        // LLM request interface
+  WorkflowAgent,                     // Agent configuration in workflow
+  LanguageModelV2Prompt,             // LLM conversation format
 } from "../types";
-import Log from "../common/log";
+import Log from "../common/log";      // Logging utility
 
 /**
- * Checks if a task needs to be replanned.
- * @param agentContext - The context for the agent.
- * @returns A promise that resolves to whether the task needs to be replanned.
+ * Expert mode task replanning check.
+ *
+ * Analyzes partial execution results to determine if the original workflow plan
+ * is still optimal. This enables adaptive workflows that can adjust strategy
+ * based on real-world execution outcomes, improving success rates for complex tasks.
+ *
+ * The function uses LLM analysis to evaluate whether unexecuted tasks in the plan
+ * still align with the original requirements given the results of completed tasks.
+ *
+ * @param agentContext - Current agent execution context containing workflow state
+ * @returns Promise resolving to true if replanning is needed, false otherwise
  */
 export async function checkTaskReplan(
   agentContext: AgentContext
@@ -96,8 +105,20 @@ If after executing some subtasks it is found that the previous plan has issues o
 }
 
 /**
- * Replans a workflow.
- * @param agentContext - The context for the agent.
+ * Dynamically replans the workflow when execution reveals plan inadequacies.
+ *
+ * This function is called when checkTaskReplan determines that the original plan
+ * is no longer optimal. It generates a new plan for remaining tasks based on
+ * partial execution results, enabling adaptive workflows that learn from
+ * real-world outcomes.
+ *
+ * The replanning process:
+ * 1. Identifies the current execution point in the workflow
+ * 2. Uses LLM to generate a new plan for unexecuted tasks
+ * 3. Merges the new plan with the existing workflow
+ * 4. Updates dependencies to maintain execution continuity
+ *
+ * @param agentContext - Current agent execution context with workflow state
  */
 export async function replanWorkflow(agentContext: AgentContext) {
   let currentIndex = 0;
@@ -156,10 +177,21 @@ Please do not output nodes that have already been executed. The new plan is an i
 }
 
 /**
- * Merges a new workflow into an existing workflow.
- * @param workflow - The existing workflow.
- * @param newWorkflow - The new workflow.
- * @param currentIndex - The index of the current agent.
+ * Merges a newly planned workflow segment into the existing workflow.
+ *
+ * This function handles the complex task of integrating a replanned workflow
+ * with an already partially executed one. It ensures proper dependency management
+ * and ID assignment while preserving execution history.
+ *
+ * Key operations:
+ * - Replaces unexecuted agents with new plan
+ * - Updates agent IDs to maintain uniqueness
+ * - Adjusts dependency relationships to reference correct parent agents
+ * - Preserves workflow metadata (name, thought process)
+ *
+ * @param workflow - The existing workflow being modified
+ * @param newWorkflow - The newly generated workflow segment
+ * @param currentIndex - Index of the last executed agent in the original workflow
  */
 function mergeWorkflow(
   workflow: Workflow,
@@ -193,9 +225,19 @@ function mergeWorkflow(
 }
 
 /**
- * Gets the execution prompt for an agent.
- * @param currentAgentContext - The context for the current agent.
- * @returns The execution prompt for the agent.
+ * Generates a comprehensive execution status summary for replanning decisions.
+ *
+ * This function creates a detailed prompt showing the current state of all agents
+ * in the workflow, including completed executions, in-progress tasks, and pending
+ * work. This context enables the LLM to make informed replanning decisions.
+ *
+ * The summary includes:
+ * - Completed agent results with their outputs
+ * - Currently executing agents with conversation progress
+ * - Unstarted agents marked as pending
+ *
+ * @param currentAgentContext - Context of the agent requesting replanning
+ * @returns Formatted string summarizing the entire workflow execution state
  */
 function getAgentExecutionPrompt(currentAgentContext: AgentContext) {
   let prompt = "";
@@ -233,9 +275,19 @@ function getAgentExecutionPrompt(currentAgentContext: AgentContext) {
 }
 
 /**
- * Gets the execution messages from a list of messages.
- * @param messages - The list of messages to get the execution messages from.
- * @returns The execution messages.
+ * Extracts and formats conversation messages for execution status reporting.
+ *
+ * Converts the raw LLM conversation format into a human-readable summary
+ * suitable for replanning analysis. Applies length limits to prevent
+ * excessive context while preserving essential information.
+ *
+ * Message processing:
+ * - User messages: Truncated to show intent (longer for initial messages)
+ * - Assistant messages: Tool calls and responses with length limits
+ * - Tool results: Execution outcomes with controlled verbosity
+ *
+ * @param messages - Raw LLM conversation messages
+ * @returns Array of formatted message strings for status reporting
  */
 function getExecutionMessages(messages: LanguageModelV2Prompt): string[] {
   const messagesContents: string[] = [];

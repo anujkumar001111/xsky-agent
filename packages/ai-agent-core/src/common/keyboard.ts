@@ -1,10 +1,17 @@
 /**
  * Complete Playwright Keyboard Key Mapping
  * Based on official Playwright USKeyboardLayout
+ * 
+ * Mapping Strategy:
+ * - Single characters (a-z, 0-9, symbols) pass through unchanged per Playwright spec
+ * - Special keys map to PascalCase names (e.g., "enter" -> "Enter")
+ * - Case-insensitive lookup for special keys (e.g., "ENTER" -> "Enter")
+ * - Unmapped keys are validated with warning
  */
-export const PLAYWRIGHT_KEY_MAP = {
+export const PLAYWRIGHT_KEY_MAP: Record<string, string> = {
   // Function keys
   "escape": "Escape",
+  "esc": "Escape",
   "f1": "F1",
   "f2": "F2",
   "f3": "F3",
@@ -18,124 +25,116 @@ export const PLAYWRIGHT_KEY_MAP = {
   "f11": "F11",
   "f12": "F12",
 
-  // Number row
+  // Letter keys (lowercase explicit mapping for validation)
+  "a": "a",
+  "b": "b",
+  "c": "c",
+  "d": "d",
+  "e": "e",
+  "f": "f",
+  "g": "g",
+  "h": "h",
+  "i": "i",
+  "j": "j",
+  "k": "k",
+  "l": "l",
+  "m": "m",
+  "n": "n",
+  "o": "o",
+  "p": "p",
+  "q": "q",
+  "r": "r",
+  "s": "s",
+  "t": "t",
+  "u": "u",
+  "v": "v",
+  "w": "w",
+  "x": "x",
+  "y": "y",
+  "z": "z",
+
+  // Number keys (0-9)
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+
+  // Symbol keys (number row)
   "backquote": "Backquote",
-  "`": "Backquote",
-  "digit1": "Digit1",
-  "1": "Digit1",
-  "digit2": "Digit2",
-  "2": "Digit2",
-  "digit3": "Digit3",
-  "3": "Digit3",
-  "digit4": "Digit4",
-  "4": "Digit4",
-  "digit5": "Digit5",
-  "5": "Digit5",
-  "digit6": "Digit6",
-  "6": "Digit6",
-  "digit7": "Digit7",
-  "7": "Digit7",
-  "digit8": "Digit8",
-  "8": "Digit8",
-  "digit9": "Digit9",
-  "9": "Digit9",
-  "digit0": "Digit0",
-  "0": "Digit0",
+  "`": "`",
+  "~": "~",
+  "!": "!",
+  "@": "@",
+  "#": "#",
+  "$": "$",
+  "%": "%",
+  "^": "^",
+  "&": "&",
+  "*": "*",
+  "(": "(",
+  ")": ")",
   "minus": "Minus",
-  "-": "Minus",
+  "-": "-",
+  "_": "_",
   "equal": "Equal",
-  "=": "Equal",
+  "=": "=",
+  "+": "+",
   "backslash": "Backslash",
-  "\\": "Backslash",
+  "\\": "\\",
+  "|": "|",
   "backspace": "Backspace",
 
   // First row
   "tab": "Tab",
-  "keyq": "KeyQ",
-  "q": "KeyQ",
-  "keyw": "KeyW",
-  "w": "KeyW",
-  "keye": "KeyE",
-  "e": "KeyE",
-  "keyr": "KeyR",
-  "r": "KeyR",
-  "keyt": "KeyT",
-  "t": "KeyT",
-  "keyy": "KeyY",
-  "y": "KeyY",
-  "keyu": "KeyU",
-  "u": "KeyU",
-  "keyi": "KeyI",
-  "i": "KeyI",
-  "keyo": "KeyO",
-  "o": "KeyO",
-  "keyp": "KeyP",
-  "p": "KeyP",
   "bracketleft": "BracketLeft",
-  "[": "BracketLeft",
+  "[": "[",
+  "{": "{",
   "bracketright": "BracketRight",
-  "]": "BracketRight",
+  "]": "]",
+  "}": "}",
 
   // Second row
   "capslock": "CapsLock",
-  "keya": "KeyA",
-  "a": "KeyA",
-  "keys": "KeyS",
-  "s": "KeyS",
-  "keyd": "KeyD",
-  "d": "KeyD",
-  "keyf": "KeyF",
-  "f": "KeyF",
-  "keyg": "KeyG",
-  "g": "KeyG",
-  "keyh": "KeyH",
-  "h": "KeyH",
-  "keyj": "KeyJ",
-  "j": "KeyJ",
-  "keyk": "KeyK",
-  "k": "KeyK",
-  "keyl": "KeyL",
-  "l": "KeyL",
   "semicolon": "Semicolon",
-  ";": "Semicolon",
+  ";": ";",
+  ":": ":",
   "quote": "Quote",
-  "'": "Quote",
+  "'": "'",
+  "\"": "\"",
   "enter": "Enter",
   "return": "Enter",
 
   // Third row
   "shiftleft": "ShiftLeft",
   "shift": "Shift",
-  "keyz": "KeyZ",
-  "z": "KeyZ",
-  "keyx": "KeyX",
-  "x": "KeyX",
-  "keyc": "KeyC",
-  "c": "KeyC",
-  "keyv": "KeyV",
-  "v": "KeyV",
-  "keyb": "KeyB",
-  "b": "KeyB",
-  "keyn": "KeyN",
-  "n": "KeyN",
-  "keym": "KeyM",
-  "m": "KeyM",
   "comma": "Comma",
-  ",": "Comma",
+  ",": ",",
+  "<": "<",
   "period": "Period",
-  ".": "Period",
+  ".": ".",
+  ">": ">",
   "slash": "Slash",
-  "/": "Slash",
+  "/": "/",
+  "?": "?",
   "shiftright": "ShiftRight",
 
   // Bottom row (modifiers)
   "controlleft": "ControlLeft",
   "control": "Control",
+  "ctrl": "Control",
   "metaleft": "MetaLeft",
   "meta": "Meta",
   "command": "Meta",
+  "cmd": "Meta",
   "altleft": "AltLeft",
   "alt": "Alt",
+  "option": "Alt",
   "space": "Space",
   " ": "Space",
   "altright": "AltRight",
@@ -152,9 +151,12 @@ export const PLAYWRIGHT_KEY_MAP = {
   "scrolllock": "ScrollLock",
   "pause": "Pause",
   "pageup": "PageUp",
+  "pgup": "PageUp",
   "pagedown": "PageDown",
+  "pgdn": "PageDown",
   "insert": "Insert",
   "delete": "Delete",
+  "del": "Delete",
   "home": "Home",
   "end": "End",
 
@@ -192,42 +194,172 @@ export const PLAYWRIGHT_KEY_MAP = {
   "add": "NumpadAdd",
   "subtract": "NumpadSubtract",
   "decimal": "NumpadDecimal",
-  "divide": "NumpadDivide"
+  "divide": "NumpadDivide",
+
+  // International keys (from Playwright USKeyboardLayout)
+  "intlbackslash": "IntlBackslash",
+  "intlro": "IntlRo",
+  "intlyen": "IntlYen",
+  "nonconvert": "NonConvert",
+  "convert": "Convert",
+  "lang1": "Lang1",
+  "lang2": "Lang2",
+  "lang3": "Lang3",
+  "lang4": "Lang4",
+  "lang5": "Lang5",
+  "kana": "KanaMode",
+  "kanamode": "KanaMode",
+  "alphanum": "Alphanumeric",
+  "hiragana": "Hiragana",
+  "katakana": "Katakana",
+  "hangeul": "HangulMode",
+  "hangulmode": "HangulMode",
+  "hanja": "Hanja",
+  "junja": "Junja"
 };
 
 /**
+ * List of known modifier keys for keyCombination logic
+ */
+export const MODIFIER_KEYS = [
+  'Shift', 'Control', 'Alt', 'Meta',
+  'ShiftLeft', 'ControlLeft', 'AltLeft', 'MetaLeft',
+  'ShiftRight', 'ControlRight', 'AltRight', 'MetaRight',
+  'ControlOrMeta'
+] as const;
+
+/**
+ * Validate a key against known mappings
+ * @param key - The key to validate
+ * @returns true if key is known/valid, false otherwise
+ */
+export function validateKey(key: string): boolean {
+  if (!key) return false;
+  
+  // Single character keys pass through (a-z, A-Z, 0-9, symbols)
+  if (key.length === 1) return true;
+  
+  // Check if it's in the mapping (case-insensitive)
+  const normalized = key.toLowerCase();
+  return normalized in PLAYWRIGHT_KEY_MAP;
+}
+
+/**
  * Normalize a key name to its Playwright equivalent
+ *
+ * Behavior:
+ * - Single characters (a-z, 0-9, symbols): Pass through unchanged
+ * - Special keys (enter, tab, etc.): Map to PascalCase (case-insensitive lookup)
+ * - Unknown multi-char keys: Throw error (prevents silent failures)
+ *
  * @param key - The key name to normalize
  * @returns The normalized Playwright key name
+ * @throws Error for unknown multi-character keys
+ *
+ * @example
+ * normalizeKey("a") // "a" (single char unchanged)
+ * normalizeKey("A") // "A" (uppercase single char unchanged)
+ * normalizeKey("enter") // "Enter" (special key)
+ * normalizeKey("ENTER") // "Enter" (case-insensitive)
+ * normalizeKey("return") // "Enter" (alias)
+ * normalizeKey("unknownKey") // throws Error
  */
 export function normalizeKey(key: string): string {
   if (!key) return key;
+
+  // Single character keys pass through unchanged (Playwright spec)
+  if (key.length === 1) {
+    return key;
+  }
+
+  // Multi-character keys: case-insensitive lookup
   const normalized = key.toLowerCase();
-  return (PLAYWRIGHT_KEY_MAP as any)[normalized] || key;
+  const mapped = PLAYWRIGHT_KEY_MAP[normalized];
+
+  if (mapped) {
+    return mapped;
+  }
+
+  // Unknown key - throw error to prevent silent failures
+  throw new Error(
+    `[keyboard] Unknown key "${key}". ` +
+    `Supported keys include: ${Object.keys(PLAYWRIGHT_KEY_MAP).slice(0, 10).join(', ')}... ` +
+    `See docs/keyboard-utilities.md for complete list.`
+  );
 }
 
 /**
  * Execute keyboard combination with proper modifier sequencing
+ * 
+ * Behavior:
+ * - Separates modifiers (Shift/Control/Alt/Meta) from action keys
+ * - Holds modifiers down, presses action keys, releases modifiers
+ * - If ONLY modifiers provided: throws error (invalid combination)
+ * - If single key provided: presses it without modifiers
+ * 
  * @param page - Playwright page instance
- * @param keys - Array of key names
+ * @param keys - Array of key names (modifiers + action keys)
+ * 
+ * @example
+ * keyCombination(page, ["Control", "c"]) // Ctrl+C
+ * keyCombination(page, ["Control", "Shift", "a"]) // Ctrl+Shift+A
+ * keyCombination(page, ["a"]) // Just press "a"
+ * keyCombination(page, ["Shift", "Control"]) // ERROR: no action key
+ * keyCombination(page, ["ArrowDown", "Enter"]) // Press ArrowDown, then Enter (sequential)
  */
 export async function keyCombination(page: any, keys: string[]): Promise<void> {
-  if (!keys || keys.length === 0) return;
+  if (!keys || keys.length === 0) {
+    throw new Error('[keyboard] keyCombination requires at least one key');
+  }
 
   // Normalize all keys
   const normalizedKeys = keys.map(k => normalizeKey(k));
 
-  // Press modifiers down (all except last key)
-  for (const key of normalizedKeys.slice(0, -1)) {
+  // Single key: just press it
+  if (normalizedKeys.length === 1) {
+    await page.keyboard.press(normalizedKeys[0]);
+    return;
+  }
+
+  // Identify modifiers vs action keys
+  const modifierKeys = normalizedKeys.filter(key => MODIFIER_KEYS.includes(key as any));
+  const actionKeys = normalizedKeys.filter(key => !MODIFIER_KEYS.includes(key as any));
+
+  // All modifiers, no action keys = invalid
+  if (actionKeys.length === 0) {
+    throw new Error(
+      `[keyboard] keyCombination requires at least one action key. ` +
+      `Got only modifiers: ${keys.join(', ')}. ` +
+      `Example: ["Control", "c"] for Ctrl+C`
+    );
+  }
+
+  // Press modifiers down
+  for (const key of modifierKeys) {
     await page.keyboard.down(key);
   }
 
-  // Press the final key (complete action)
-  await page.keyboard.press(normalizedKeys[normalizedKeys.length - 1]);
+  // Press action keys
+  for (const key of actionKeys) {
+    await page.keyboard.press(key);
+  }
 
   // Release modifiers in reverse order
-  for (const key of normalizedKeys.slice(0, -1).reverse()) {
+  for (const key of [...modifierKeys].reverse()) {
     await page.keyboard.up(key);
+  }
+}
+
+/**
+ * Press keys in sequence (each key pressed and released individually)
+ * @param page - Playwright page instance
+ * @param keys - Array of key names to press in sequence
+ */
+export async function pressKeysInSequence(page: any, keys: string[]): Promise<void> {
+  if (!keys || keys.length === 0) return;
+
+  for (const key of keys) {
+    await page.keyboard.press(normalizeKey(key));
   }
 }
 

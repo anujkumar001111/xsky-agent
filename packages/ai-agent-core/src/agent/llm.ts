@@ -64,9 +64,20 @@ export function defaultMessageProviderOptions(): SharedV2ProviderOptions {
 }
 
 /**
- * Converts a list of tools to a list of language model function tools.
- * @param tools - The tools to convert.
- * @returns The converted tools.
+ * Converts internal tool definitions to LLM provider format.
+ *
+ * This function bridges the framework's tool interface with the specific
+ * format required by LLM providers (like OpenAI, Anthropic, etc.). It
+ * transforms our Tool objects into LanguageModelV2FunctionTool format
+ * that providers expect for function calling.
+ *
+ * The conversion includes:
+ * - Tool name and description
+ * - Parameter schema (JSON Schema format)
+ * - Provider-specific options (currently commented out)
+ *
+ * @param tools - Array of tools to convert (can be regular tools or dialogue tools)
+ * @returns Array of tools in LLM provider format
  */
 export function convertTools(
   tools: Tool[] | DialogueTool[]

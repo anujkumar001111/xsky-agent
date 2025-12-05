@@ -268,4 +268,131 @@ describe('common/coordinate-scaling', () => {
       expect(result).toEqual({ x: 200, y: 200 });
     });
   });
+
+  describe('Viewport scaling edge cases', () => {
+    describe('Very small viewports', () => {
+      test('should handle 320x240 (QVGA) viewport', () => {
+        // Assume screenshot scaled to fit 320x240 at 50%
+        const result = scaleCoordinates(160, 120, 0.5);
+        expect(result).toEqual({ x: 320, y: 240 });
+      });
+
+      test('should handle 176x144 (QCIF) viewport', () => {
+        const result = scaleCoordinates(88, 72, 0.5);
+        expect(result).toEqual({ x: 176, y: 144 });
+      });
+
+      test('should handle 1x1 minimum viewport', () => {
+        const result = scaleCoordinates(1, 1, 1);
+        expect(result).toEqual({ x: 1, y: 1 });
+      });
+    });
+
+    describe('Very large viewports (8K and beyond)', () => {
+      test('should handle 7680x4320 (8K UHD) viewport', () => {
+        // 8K scaled to 25%
+        const result = scaleCoordinates(1920, 1080, 0.25);
+        expect(result).toEqual({ x: 7680, y: 4320 });
+      });
+
+      test('should handle 10240x4320 (Ultra-wide 8K) viewport', () => {
+        // Ultra-wide 8K scaled to 20%
+        const result = scaleCoordinates(2048, 864, 0.2);
+        expect(result).toEqual({ x: 10240, y: 4320 });
+      });
+
+      test('should handle 15360x8640 (16K) viewport', () => {
+        // 16K scaled to 10%
+        const result = scaleCoordinates(1536, 864, 0.1);
+        expect(result).toEqual({ x: 15360, y: 8640 });
+      });
+    });
+
+    describe('Rounding behavior for fractional coordinates', () => {
+      test('should round 0.5 up (standard rounding)', () => {
+        // 1.5 should round to 2
+        const result = scaleCoordinate(3, 2);
+        expect(result).toBe(2); // 3/2 = 1.5, rounds to 2
+      });
+
+      test('should round consistently for precision edge cases', () => {
+        // Test scale factor that causes floating point issues
+        const scaleFactor = 1 / 3;
+        const result = scaleCoordinates(100, 100, scaleFactor);
+
+        // Should be close to 300 (100 / (1/3) = 300)
+        expect(result.x).toBe(300);
+        expect(result.y).toBe(300);
+      });
+
+      test('should handle coordinates that result in x.49999... (floating point)', () => {
+        // This tests floating point precision handling
+        const result = scaleCoordinate(99, 0.33);
+        expect(Number.isInteger(result)).toBe(true);
+        expect(result).toBe(Math.round(99 / 0.33));
+      });
+
+      test('should handle coordinates that result in x.50001... (floating point)', () => {
+        const result = scaleCoordinate(101, 0.33);
+        expect(Number.isInteger(result)).toBe(true);
+        expect(result).toBe(Math.round(101 / 0.33));
+      });
+    });
+
+    describe('Common resolution scaling scenarios', () => {
+      test('should correctly scale 1366x768 (HD) to 1024x768 bounds', () => {
+        // 1366x768 scaled to fit within 1024x768
+        // Width is the constraint: 1024/1366 ≈ 0.75
+        const scaleFactor = 1024 / 1366;
+        const screenshotX = Math.round(1366 * scaleFactor);
+        const screenshotY = Math.round(768 * scaleFactor);
+
+        const result = scaleCoordinates(screenshotX, screenshotY, scaleFactor);
+        expect(result.x).toBeCloseTo(1366, 0);
+        expect(result.y).toBeCloseTo(768, 0);
+      });
+
+      test('should correctly scale 2560x1440 (QHD) to 1024x768 bounds', () => {
+        const scaleFactor = 1024 / 2560; // 0.4
+        const screenshotX = Math.round(2560 * scaleFactor);
+        const screenshotY = Math.round(1440 * scaleFactor);
+
+        const result = scaleCoordinates(screenshotX, screenshotY, scaleFactor);
+        expect(result.x).toBe(2560);
+        expect(result.y).toBe(1440);
+      });
+
+      test('should correctly scale 3440x1440 (Ultrawide QHD)', () => {
+        const scaleFactor = 1024 / 3440;
+        const screenshotX = Math.round(3440 * scaleFactor);
+        const screenshotY = Math.round(1440 * scaleFactor);
+
+        const result = scaleCoordinates(screenshotX, screenshotY, scaleFactor);
+        // Allow for rounding differences (±1 pixel)
+        expect(Math.abs(result.x - 3440)).toBeLessThanOrEqual(1);
+        expect(Math.abs(result.y - 1440)).toBeLessThanOrEqual(1);
+      });
+    });
+
+    describe('Boundary dimension tests', () => {
+      test('should handle exactly-at-boundary width', () => {
+        // Original: 1024x600, max: 1024x768
+        // Width is exactly at boundary, height is within
+        const result = scaleCoordinates(1024, 600, 1);
+        expect(result).toEqual({ x: 1024, y: 600 });
+      });
+
+      test('should handle exactly-at-boundary height', () => {
+        // Original: 800x768, max: 1024x768
+        // Height is exactly at boundary, width is within
+        const result = scaleCoordinates(800, 768, 1);
+        expect(result).toEqual({ x: 800, y: 768 });
+      });
+
+      test('should handle exactly-at-boundary both dimensions', () => {
+        const result = scaleCoordinates(1024, 768, 1);
+        expect(result).toEqual({ x: 1024, y: 768 });
+      });
+    });
+  });
 });

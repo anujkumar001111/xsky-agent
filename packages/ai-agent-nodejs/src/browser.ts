@@ -1,6 +1,6 @@
 import { AgentContext, BaseBrowserLabelsAgent, config, scaleCoordinates } from "@xsky/ai-agent-core";
 import { Tool, IMcpClient } from "@xsky/ai-agent-core/types";
-import { normalizeKey, keyCombination, typeText } from "@xsky/ai-agent-core";
+import { normalizeKey, keyCombination, pressKeysInSequence, typeText } from "@xsky/ai-agent-core";
 import {
   chromium,
   Browser,
@@ -11,15 +11,34 @@ import {
 import { getDefaultChromeUserDataDir } from "./utils";
 
 /**
- * A browser agent that uses Playwright to interact with a browser.
+ * BrowserAgent provides web automation capabilities using Playwright.
+ *
+ * This agent can:
+ * - Launch and control browser instances (Chrome, Firefox, Safari)
+ * - Navigate web pages and interact with DOM elements
+ * - Execute JavaScript in page context
+ * - Handle file downloads and uploads
+ * - Take screenshots and extract page content
+ * - Connect to existing browser instances via CDP
+ * - Support both headless and headed modes for debugging
+ *
+ * The agent automatically injects coordinate-based interaction tools when enabled,
+ * allowing pixel-perfect mouse and keyboard control for complex web interactions.
  */
 export default class BrowserAgent extends BaseBrowserLabelsAgent {
+  /** CDP WebSocket endpoint for connecting to existing browser instances */
   private cdpWsEndpoint?: string;
+  /** Custom user data directory for persistent browser sessions */
   private userDataDir?: string;
+  /** Additional Playwright launch options */
   private options?: Record<string, any>;
+  /** Active browser instance managed by this agent */
   protected browser: Browser | null = null;
+  /** Browser context for managing cookies, local storage, and session isolation */
   private browser_context: BrowserContext | null = null;
+  /** Currently active page for web interactions */
   private current_page: Page | null = null;
+  /** Whether browser should run headless (no visible UI) */
   private headless: boolean = false;
 
   constructor(llms?: string[], ext_tools?: Tool[], mcpClient?: IMcpClient) {
@@ -617,14 +636,14 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
       {
         name: "keyboard_combination",
         description:
-          "Execute complex key combinations with proper modifier sequencing. Use this for shortcuts like Ctrl+C, Shift+Click, etc.",
+          "Execute key combinations with modifier keys. Automatically detects modifiers (Shift, Control, Alt, Meta) and handles proper sequencing. Use this for shortcuts like Ctrl+C, Shift+A, etc.",
         parameters: {
           type: "object",
           properties: {
             keys: {
               type: "array",
               items: { type: "string" },
-              description: "Array of keys to press in sequence (e.g., ['Control', 'c'] for Ctrl+C). Supports common key names.",
+              description: "Array of keys where modifiers come first, then action keys (e.g., ['Control', 'c'] for Ctrl+C). Supports common key names.",
               minItems: 1,
             },
           },
@@ -634,6 +653,29 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
           return await this.callInnerTool(async () => {
             const page = await this.currentPage();
             await keyCombination(page, args.keys as string[]);
+          });
+        },
+      },
+      {
+        name: "press_keys_sequence",
+        description:
+          "Press multiple keys in sequence, each pressed and released individually. Use this for typing multiple characters or keys one after another.",
+        parameters: {
+          type: "object",
+          properties: {
+            keys: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of keys to press in sequence (e.g., ['a', 'b', 'c'] for typing 'abc'). Supports common key names.",
+              minItems: 1,
+            },
+          },
+          required: ["keys"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(async () => {
+            const page = await this.currentPage();
+            await pressKeysInSequence(page, args.keys as string[]);
           });
         },
       },

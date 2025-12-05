@@ -2,7 +2,7 @@ import { fileURLToPath } from 'url';
 import * as path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __dirname = path.dirname(__filename); // Unused
 
 export default {
   preset: 'ts-jest',

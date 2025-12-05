@@ -18,23 +18,41 @@ export interface AdaptiveWaitSignal {
 }
 
 /**
- * The context for a task.
+ * Execution context for a single workflow task.
+ *
+ * The Context class encapsulates all state and configuration needed for a workflow execution,
+ * providing centralized access to variables, agents, configuration, and execution control.
+ * It manages pause/resume functionality, checkpointing for fault tolerance, and
+ * coordinates between different agents and tools during workflow execution.
  */
 export default class Context {
+  /** Unique identifier for this workflow execution */
   taskId: string;
+  /** Eko configuration containing LLM settings, agents, and production hooks */
   config: EkoConfig;
+  /** Execution chain tracking the sequence of agent calls and results */
   chain: Chain;
+  /** Available agents that can be invoked during workflow execution */
   agents: Agent[];
+  /** AbortController for cancelling the entire workflow execution */
   controller: AbortController;
+  /** Key-value store for workflow variables shared between agents */
   variables: Map<string, any>;
+  /** Current workflow definition with agents and execution plan */
   workflow?: Workflow;
+  /** Conversation history for chat-style interactions */
   conversation: string[] = [];
+  /** Pause status: 0=running, 1=paused, 2=resume-pending */
   private pauseStatus: 0 | 1 | 2 = 0;
+  /** Controllers for individual execution steps that can be aborted independently */
   readonly currentStepControllers: Set<AbortController> = new Set();
 
-  // Checkpoint system
+  // ============ CHECKPOINT SYSTEM ============
+  /** Timer for periodic state checkpointing */
   private checkpointTimer?: ReturnType<typeof setInterval>;
+  /** Debounce timer for batching state change saves */
   private stateChangeDebounceTimer?: ReturnType<typeof setTimeout>;
+  /** Pending state changes waiting to be persisted */
   private pendingStateChanges: Map<string, any> = new Map();
 
   /**

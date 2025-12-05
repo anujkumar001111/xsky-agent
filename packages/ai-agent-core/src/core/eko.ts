@@ -15,10 +15,26 @@ import {
 import { checkTaskReplan, replanWorkflow } from "./replan";
 
 /**
- * The main class for the Eko AI agent.
+ * The main orchestrator class for the XSky AI Agent Framework.
+ *
+ * Eko manages the lifecycle of AI agent workflows, coordinating multiple specialized agents
+ * (BrowserAgent, FileAgent, etc.) to accomplish complex tasks. It handles workflow planning,
+ * execution, error recovery, and provides hooks for production-ready features like rate limiting,
+ * security sandboxing, and human-in-the-loop interactions.
+ *
+ * Key responsibilities:
+ * - Workflow generation from natural language prompts using LLM planning
+ * - Parallel and sequential agent execution with dependency management
+ * - State persistence and task resumption capabilities
+ * - Streaming callbacks for real-time execution monitoring
+ * - Error handling with retry, skip, and escalation strategies
+ * - Integration with external MCP (Model Context Protocol) tools
+ * - Agent-to-Agent communication for distributed workflows
  */
 export class Eko {
+  /** Configuration object containing LLM settings, registered agents, and production hooks */
   protected config: EkoConfig;
+  /** Map storing active task contexts indexed by task ID for concurrent workflow execution */
   protected taskMap: Map<string, Context>;
 
   /**
@@ -164,10 +180,25 @@ export class Eko {
     return context;
   }
 
+  /**
+   * Executes a workflow by traversing the agent execution tree and running agents sequentially or in parallel.
+   *
+   * This method implements the core workflow execution algorithm:
+   * 1. Builds an execution tree from workflow agents with dependency resolution
+   * 2. Executes agents in topological order (respecting dependsOn relationships)
+   * 3. Supports parallel execution of independent agents when agentParallel is enabled
+   * 4. Handles dynamic replanning when agents detect task changes in expert mode
+   * 5. Provides comprehensive error handling and recovery through hooks
+   *
+   * @param context - The execution context containing workflow, agents, and state
+   * @returns Promise resolving to execution result with success status and final output
+   */
   private async doRunWorkflow(context: Context): Promise<EkoResult> {
     const hooks = this.config.hooks;
     const agents = context.agents as Agent[];
     const workflow = context.workflow as Workflow;
+
+    // Validate workflow has at least one agent to execute
     if (!workflow || workflow.agents.length == 0) {
       throw new Error("Workflow error");
     }
@@ -181,15 +212,22 @@ export class Eko {
       }
     }
 
+    // Create lookup map for O(1) agent resolution by name during execution
     const agentNameMap = agents.reduce((map, item) => {
       map[item.Name] = item;
       return map;
     }, {} as { [key: string]: Agent });
+
+    // Build execution tree from workflow agents, resolving dependencies into sequential/parallel structure
     let agentTree = buildAgentTree(workflow.agents);
     const results: string[] = [];
+
+    // Main execution loop: traverse agent tree until all agents complete
     while (true) {
-      await context.checkAborted();
+      await context.checkAborted(); // Check for user cancellation or pause requests
       let lastAgent: Agent | undefined;
+
+      // Execute single agent node
       if (agentTree.type === "normal") {
         // normal agent
         const agent = agentNameMap[agentTree.agent.name];
@@ -208,8 +246,10 @@ export class Eko {
         );
         results.push(agentTree.result);
       } else {
-        // parallel agent
+        // Execute parallel agent group - multiple independent agents that can run concurrently
         const parallelAgents = agentTree.agents;
+
+        // Helper function to execute a single agent in the parallel group
         const doRunAgent = async (
           agentNode: NormalAgentNode,
           index: number
@@ -220,7 +260,7 @@ export class Eko {
           }
           lastAgent = agent;
           const agentChain = new AgentChain(agentNode.agent);
-          // context.chain.push(agentChain); // Removed to prevent race conditions/duplication
+          // Note: agentChain added to context later to prevent race conditions in parallel execution
           const result = await this.runAgent(
             context,
             agent,
@@ -229,23 +269,28 @@ export class Eko {
           );
           return { result: result, agentChain, index };
         };
+
         let agent_results: string[] = [];
+
+        // Check if parallel execution is enabled (can be overridden per task via context variables)
         let agentParallel = context.variables.get("agentParallel");
         if (agentParallel === undefined) {
-          agentParallel = config.agentParallel;
+          agentParallel = config.agentParallel; // Use global config default
         }
+
         if (agentParallel) {
-          // parallel execution
+          // Execute all parallel agents concurrently using Promise.all for maximum throughput
           const parallelResults = await Promise.all(
             parallelAgents.map((agent, index) => doRunAgent(agent, index))
           );
+          // Sort results back to original order and add agent chains to execution history
           parallelResults.sort((a, b) => a.index - b.index);
           parallelResults.forEach(({ agentChain }) => {
             context.chain.push(agentChain);
           });
           agent_results = parallelResults.map(({ result }) => result);
         } else {
-          // serial execution
+          // Execute agents sequentially when parallel execution is disabled
           for (let i = 0; i < parallelAgents.length; i++) {
             const { result, agentChain } = await doRunAgent(
               parallelAgents[i],
@@ -255,25 +300,33 @@ export class Eko {
             agent_results.push(result);
           }
         }
+
+        // Combine all parallel agent results with double newlines for readability
         results.push(agent_results.join("\n\n"));
       }
+      // Clear conversation history after each agent completes to prevent context pollution
       context.conversation.splice(0, context.conversation.length);
+
+      // Expert mode: dynamically replan workflow if agent detects significant task changes
+      // This enables adaptive workflows that can adjust strategy based on execution results
       if (
-        config.expertMode &&
-        !workflow.modified &&
-        agentTree.nextAgent &&
-        lastAgent?.AgentContext &&
-        (await checkTaskReplan(lastAgent.AgentContext))
+        config.expertMode && // Expert mode must be enabled globally
+        !workflow.modified && // Don't replan if already modified
+        agentTree.nextAgent && // Only replan if more agents remain
+        lastAgent?.AgentContext && // Agent must have execution context
+        (await checkTaskReplan(lastAgent.AgentContext)) // Agent signals replanning needed
       ) {
-        // replan
         await replanWorkflow(lastAgent.AgentContext);
       }
+
+      // Handle workflow modifications from replanning or external changes
       if (workflow.modified) {
-        workflow.modified = false;
+        workflow.modified = false; // Reset modification flag
+        // Rebuild execution tree with only unstarted agents, effectively restarting from current point
         agentTree = buildAgentTree(
           workflow.agents.filter((agent) => agent.status == "init")
         );
-        continue;
+        continue; // Restart execution loop with new plan
       }
       if (!agentTree.nextAgent) {
         break;
@@ -300,6 +353,22 @@ export class Eko {
     return ekoResult;
   }
 
+  /**
+   * Executes a single agent within the workflow, handling lifecycle hooks, error recovery, and callbacks.
+   *
+   * This method manages the complete agent execution lifecycle:
+   * 1. Updates agent status and sends execution start callbacks
+   * 2. Executes the agent with its specific tools and logic
+   * 3. Applies post-execution hooks for validation and retry logic
+   * 4. Handles errors with configurable recovery strategies (retry/skip/abort/escalate)
+   * 5. Sends completion or error callbacks to track execution progress
+   *
+   * @param context - The workflow execution context
+   * @param agent - The agent instance to execute
+   * @param agentNode - The workflow node containing agent configuration
+   * @param agentChain - Execution chain for tracking agent steps and results
+   * @returns Promise resolving to the agent's execution result string
+   */
   protected async runAgent(
     context: Context,
     agent: Agent,
@@ -309,6 +378,7 @@ export class Eko {
     const hooks = this.config.hooks;
 
     try {
+      // Mark agent as actively running for status tracking and UI updates
       agentNode.agent.status = "running";
 
       // Note: beforeAgentStart hook is called inside agent.run() where AgentContext is available
@@ -366,33 +436,39 @@ export class Eko {
         ));
       return agentNode.result;
     } catch (e: any) {
+      // Mark agent as failed for status tracking
       agentNode.agent.status = "error";
 
-      // AgentContext may be available even if agent.run() failed
+      // AgentContext may still be available even after failure, useful for error analysis
       const agentContext = agent.AgentContext;
 
       // ============ ON AGENT ERROR HOOK ============
+      // Allow production hooks to implement custom error recovery strategies
       if (hooks?.onAgentError && agentContext) {
         try {
           const errorAction = await hooks.onAgentError(agentContext, e);
           switch (errorAction) {
             case "retry":
+              // Reset agent status and retry execution - useful for transient failures
               Log.info(`Retrying agent ${agentNode.agent.name} after error`);
               agentNode.agent.status = "init";
               return this.runAgent(context, agent, agentNode, agentChain);
             case "skip":
+              // Mark as completed with error message - allows workflow to continue despite failure
               agentNode.result = `Skipped due to error: ${e.message}`;
               agentNode.agent.status = "done";
               return agentNode.result;
             case "abort":
+              // Immediately terminate workflow execution
               throw e;
             case "escalate":
             case "continue":
             default:
-              // Continue with error callback
+              // Continue with normal error handling and callbacks
               break;
           }
         } catch (errorHookError) {
+          // Log hook failures but don't let them break error handling
           Log.error("onAgentError hook failed:", errorHookError);
         }
       }
