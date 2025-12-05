@@ -1,86 +1,86 @@
-# Product: XSky AI Agent Framework
+# Product Steering
 
-## Purpose
+This document defines the XSky AI Agent framework's purpose, core features, and business logic rules.
 
-XSky is an AI agent framework that enables natural language task automation across multiple runtime environments. The core `Eko` orchestrator plans and executes workflows using LLM-powered agents.
+## Product Purpose
 
-## Documentation
+Build **production-grade AI agents** that convert natural language tasks into **deterministic, auditable workflows** across multiple environments (Node.js, browser, Electron, browser extension).
 
-> **See [`docs/intro/overview.md`](../docs/intro/overview.md) for a full product overview.**
+Use `Eko` (core orchestrator in `packages/ai-agent-core/src/core/eko.ts`) to **plan and execute XML workflows**:
+- Use `Eko.run()` for simple generate+execute flows
+- Use `Eko.generate()` + `Eko.execute()` when workflows need inspection or modification before execution
+
+Treat XSky as an **SDK with environment runtimes**, not a single application. Design all changes to be reusable across Node.js, web, extension, and Electron packages.
 
 ## Core Features
 
-- **Workflow Planning**: Generate XML-based workflows from natural language prompts via `Eko.generate()`
-- **Multi-Agent Execution**: Coordinate multiple specialized agents (BrowserAgent, FileAgent, custom agents)
-- **Browser Automation**: DOM manipulation, navigation, screenshots, element labeling across environments
-- **MCP Integration**: Extend agent capabilities via Model Context Protocol servers (SSE, HTTP)
-- **Dialogue Interface**: Conversational task execution through `EkoDialogue`
-- **Human-in-the-Loop**: Approval hooks and `HumanInteractTool` for supervised automation
+### XML Workflow System
+Preserve XML as the central workflow abstraction:
+- Use `<agent>`, `<forEach>`, `<watch>` elements defined in `packages/ai-agent-core/src/core/plan.ts`, `replan.ts`, and `common/xml.ts`
+- Extend the existing XML schema rather than introducing parallel formats
+- Avoid custom workflow formats that bypass the XML system
 
-## User Value
+### Multi-LLM Support
+Maintain provider-agnostic LLM configuration via `LLMs` from `packages/ai-agent-core/src/index.ts`:
+- Support Anthropic, OpenAI, Google, DeepSeek, OpenRouter through `RetryLanguageModel` in `src/llm/index.ts`
+- Never hardcode a single provider or model in shared code
 
-- Automate browser-based workflows with natural language
-- Build AI agents for Node.js, Electron, browser extensions, or in-page SPAs
-- Extend capabilities via MCP servers and custom tools
-- Maintain control with checkpointing, pause/resume, and approval hooks
+### Tool-Centric Execution
+Use tools in `packages/ai-agent-core/src/tools/` as the primary mechanism for agent actions:
+- Create new tools under `src/tools/` with exports from `src/tools/index.ts`
+- Avoid embedding side effects directly inside agent logic
 
-## Key Business Logic Rules
+### Environment Runtimes
+Keep runtime-specific code in the appropriate package:
+- **Node.js**: `packages/ai-agent-nodejs` (`BrowserAgent`, `FileAgent` with Playwright)
+- **Web**: `packages/ai-agent-web` (in-page automation with `html2canvas`)
+- **Extension**: `packages/ai-agent-extension` (Chrome APIs, sidebars, content scripts)
+- **Electron**: `packages/ai-agent-electron` (desktop IPC, windows)
 
-- Use `Eko.run()` for simple generate+execute flows; use `Eko.generate()` + `Eko.execute()` for workflows needing inspection or modification
-- Register agents via `context.setAgent()` before execution
-- Configure LLM providers in `LLMs` before instantiating Eko
-- Workflows use XML format with `<agent>`, `<forEach>`, and `<watch>` constructs
-- Hooks (`AgentHooks`) drive observability, approval, and persistence
+## User Workflows
 
-## Strategic Roadmap (V2)
+Optimize for **developers building automation agents**, not end-users:
+- Assume TypeScript integration into custom applications
+- Provide clear extension points (agents, tools, hooks, MCP servers)
 
-### 1. Security Sandboxing and Trust Boundaries
+### Canonical Workflows
+- **Node.js automation**: `BrowserAgent` + `FileAgent` for headless browser tasks
+- **Web in-page**: Control DOM and capture screenshots within browser sandbox
+- **Browser extension**: Content-script and sidebar agents for active tab automation
+- **Electron desktop**: Agents integrated into desktop apps with embedded browsers
 
-**Status**: Integration Phase (Core implemented, pending integration)
+## Business Logic Rules
 
-- **Permission System**: `DefaultPermissionEvaluator` with pattern-based resource permissions
-- **Tool Isolation**: `ToolExecutionSandbox` wraps all tool calls with security checks
-- **Audit Logging**: `InMemoryAuditLogger` tracks all tool executions with approval workflow
-- **Approval Gates**: Integration hooks for human-in-the-loop on high-risk operations
-- **Constraints**: Rate limiting, timeouts, argument validation, output filtering
+### Workflow Transparency
+- Ensure `Eko.generate()` returns human-readable, debuggable workflows
+- Avoid opaque single-call LLM prompts for multi-step tasks
 
-**Implementation files**:
-- `src/types/security.types.ts` - Type definitions
-- `src/security/permission-evaluator.ts` - Permission evaluation engine
-- `src/security/audit-logger.ts` - Audit logging system
-- `src/security/tool-sandbox.ts` - Tool execution sandbox wrapper
-- `src/security/index.ts` - Module exports
+### Auditability
+- Preserve `Chain` and `Context` tracking for tool and LLM call observability
+- Integrate new agents/tools into the existing chain/state system
 
-**API Usage**:
-```typescript
-import { ToolSandboxFactory } from '@xsky/ai-agent-core';
+### Security as Requirement
+Route dangerous operations through the security layer in `packages/ai-agent-core/src/security/`:
+- `ToolExecutionSandbox` for sandboxed execution
+- `DefaultPermissionEvaluator` with permission levels: `allow`, `require_approval`, `sandbox`, `deny`
+- `InMemoryAuditLogger` for audit trails
+- Apply tool constraints: `rate_limit`, `timeout`, `size_limit`
 
-const sandbox = ToolSandboxFactory.createDefault(securityConfig);
-const result = await sandbox.execute(
-  agentContext,
-  'read_file',
-  { path: '/data/users.json' },
-  () => readFile('/data/users.json'),
-  [{ type: 'file_system', identifier: '/data/users.json', accessType: 'read' }]
-);
-```
+### Input Validation
+- Validate tool arguments with Zod schemas in `packages/ai-agent-core/src/types/tools.types.ts`
+- Use `secure-json-parse` for untrusted JSON
+- Never create tools with arbitrary shell/file access without permission evaluation
 
-### 2. Multi-Modal Input/Output Capabilities
+### MCP Integration
+- Register MCP servers through `packages/ai-agent-core/src/mcp/`
+- Ensure MCP tools respect permission evaluation and audit logging
 
-**Status**: Planned
+## Good vs Bad Changes
 
-- Vision model integration for multi-page document analysis
-- PDF extraction with layout preservation
-- Screenshot analysis with OCR
-- Video frame extraction and analysis
-- Audio transcription support
+### Prefer
+- Extending XML workflow support with a new tag (e.g., `<retry>`) in `common/xml.ts` and `core/plan.ts`
+- Adding tools like `download_file.ts` under `src/tools/` with `require_approval` for untrusted URLs
 
-### 3. Enterprise Observability and Compliance Infrastructure
-
-**Status**: Planned
-
-- Comprehensive audit trail with tamper-proof logging
-- GDPR/HIPAA compliance helpers
-- Rate limiting and quota management
-- Cost tracking and budget alerts
-- Performance profiling and optimization recommendations
+### Avoid
+- Adding separate JSON-only workflow modes hardcoded in a single runtime
+- Embedding file download logic inside `BrowserAgent` without permission checks
