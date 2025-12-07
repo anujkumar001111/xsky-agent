@@ -9,6 +9,8 @@ import {
   BrowserContext,
 } from "playwright";
 import { getDefaultChromeUserDataDir } from "./utils";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * BrowserAgent provides web automation capabilities using Playwright.
@@ -30,6 +32,8 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   private cdpWsEndpoint?: string;
   /** Custom user data directory for persistent browser sessions */
   private userDataDir?: string;
+  /** Path to storage state file for session persistence */
+  private storageStatePath?: string;
   /** Additional Playwright launch options */
   private options?: Record<string, any>;
   /** Active browser instance managed by this agent */
@@ -53,6 +57,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     // Add keyboard tools (always enabled)
     const keyboardTools = this.buildKeyboardTools();
     keyboardTools.forEach(tool => this.tools.push(tool));
+
+    // Add utility tools (save_screenshot, wait_for_element, wait_for_navigation)
+    const utilityTools = this.buildUtilityTools();
+    utilityTools.forEach(tool => this.tools.push(tool));
   }
 
   /**
@@ -255,7 +263,7 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
   ): Promise<void> {
     try {
       let elementHandle = await this.get_element(index, true);
-      elementHandle.hover({ force: true });
+      await elementHandle.hover({ force: true });
     } catch (e) {
       await super.hover_to_element(agentContext, index);
     }
@@ -382,6 +390,633 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     }
   }
 
+  /**
+   * Saves the current page screenshot to a file.
+   * @param filename - The filename to save the screenshot as (optional, defaults to timestamp).
+   * @param directory - The directory to save the screenshot in (optional, defaults to cwd).
+   * @returns The full path to the saved screenshot.
+   */
+  protected async save_screenshot(
+    filename?: string,
+    directory?: string
+  ): Promise<{ path: string; success: boolean }> {
+    const page = await this.currentPage();
+    const dir = directory || process.cwd();
+    const fname = filename || `screenshot_${Date.now()}.png`;
+    const fullPath = path.join(dir, fname);
+
+    // Ensure directory exists
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    await page.screenshot({
+      path: fullPath,
+      fullPage: false,
+      type: "png",
+    });
+
+    return { path: fullPath, success: true };
+  }
+
+  /**
+   * Waits for an element matching the selector to appear on the page.
+   * @param selector - CSS selector to wait for.
+   * @param timeout - Maximum time to wait in milliseconds (default: 10000).
+   * @returns Success status and optional error message.
+   */
+  protected async wait_for_element(
+    selector: string,
+    timeout: number = 10000
+  ): Promise<{ found: boolean; message: string }> {
+    const page = await this.currentPage();
+    try {
+      await page.waitForSelector(selector, { timeout, state: "visible" });
+      return { found: true, message: `Element '${selector}' found` };
+    } catch (e) {
+      return { found: false, message: `Element '${selector}' not found within ${timeout}ms` };
+    }
+  }
+
+  /**
+   * Waits for navigation to complete or for a specific URL pattern.
+   * @param urlPattern - Optional regex pattern for URL to wait for.
+   * @param timeout - Maximum time to wait in milliseconds (default: 30000).
+   * @returns Success status with current URL.
+   */
+  protected async wait_for_navigation(
+    urlPattern?: string,
+    timeout: number = 30000
+  ): Promise<{ success: boolean; url: string; message: string }> {
+    const page = await this.currentPage();
+    try {
+      if (urlPattern) {
+        await page.waitForURL(new RegExp(urlPattern), { timeout });
+      } else {
+        await page.waitForLoadState("networkidle", { timeout });
+      }
+      return {
+        success: true,
+        url: page.url(),
+        message: "Navigation completed successfully"
+      };
+    } catch (e) {
+      return {
+        success: false,
+        url: page.url(),
+        message: `Navigation timeout after ${timeout}ms`
+      };
+    }
+  }
+
+  /**
+   * Extracts structured data from multiple elements matching a selector.
+   * @param selector - CSS selector for the container elements.
+   * @param fields - Map of field names to CSS selectors within each container.
+   * @param limit - Maximum number of elements to extract (optional).
+   * @returns Array of extracted data objects.
+   */
+  protected async extract_elements(
+    selector: string,
+    fields: Record<string, string>,
+    limit?: number
+  ): Promise<{ data: Record<string, string | null>[]; count: number }> {
+    const page = await this.currentPage();
+
+    const data = await page.$$eval(
+      selector,
+      (elements, args) => {
+        const { fields, limit } = args;
+        const results: Record<string, string | null>[] = [];
+        const maxItems = limit || elements.length;
+
+        for (let i = 0; i < Math.min(elements.length, maxItems); i++) {
+          const el = elements[i];
+          const item: Record<string, string | null> = {};
+
+          for (const [fieldName, fieldSelector] of Object.entries(fields)) {
+            // Support @attr syntax for attributes (e.g., "a@href")
+            // Uses lastIndexOf to handle selectors that might contain @ within attribute values
+            const atIndex = (fieldSelector as string).lastIndexOf('@');
+            let sel = fieldSelector as string;
+            let attr: string | undefined;
+
+            if (atIndex > 0) {
+              sel = (fieldSelector as string).substring(0, atIndex);
+              attr = (fieldSelector as string).substring(atIndex + 1);
+            }
+
+            const target = el.querySelector(sel);
+
+            if (target) {
+              if (attr) {
+                item[fieldName] = target.getAttribute(attr);
+              } else {
+                item[fieldName] = target.textContent?.trim() || null;
+              }
+            } else {
+              item[fieldName] = null;
+            }
+          }
+          results.push(item);
+        }
+        return results;
+      },
+      { fields, limit }
+    );
+
+    const result = { data, count: data.length };
+    if (result.count === 0) {
+      console.warn(`extract_elements found 0 elements matching selector: ${selector}`);
+    }
+    return result;
+  }
+
+  /**
+   * Counts elements matching a selector.
+   * @param selector - CSS selector to count.
+   * @returns The count of matching elements.
+   */
+  protected async count_elements(
+    selector: string
+  ): Promise<{ count: number; selector: string }> {
+    const page = await this.currentPage();
+    const count = await page.locator(selector).count();
+    return { count, selector };
+  }
+
+  /**
+   * Scrolls the page until a target element count is reached or max scrolls exceeded.
+   * @param selector - CSS selector to count elements.
+   * @param targetCount - Target number of elements to load.
+   * @param maxScrolls - Maximum scroll attempts (default: 20).
+   * @param scrollDelay - Delay between scrolls in ms (default: 1000).
+   * @returns Final count and success status.
+   */
+  protected async scroll_until(
+    selector: string,
+    targetCount: number,
+    maxScrolls: number = 20,
+    scrollDelay: number = 1000
+  ): Promise<{ count: number; success: boolean; scrolls: number }> {
+    const page = await this.currentPage();
+    let currentCount = 0;
+    let scrolls = 0;
+    let prevCount = 0;
+    let stuckCount = 0;
+
+    while (scrolls < maxScrolls) {
+      currentCount = await page.locator(selector).count();
+
+      // Check if target reached
+      if (currentCount >= targetCount) {
+        return { count: currentCount, success: true, scrolls };
+      }
+
+      // Detect stuck state (no new content loading)
+      if (currentCount === prevCount) {
+        stuckCount++;
+        if (stuckCount >= 3) {
+          // No new content for 3 consecutive scrolls, stop
+          return { count: currentCount, success: false, scrolls };
+        }
+      } else {
+        stuckCount = 0;
+      }
+
+      prevCount = currentCount;
+
+      // Scroll down by viewport height
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await this.sleep(scrollDelay);
+      scrolls++;
+    }
+
+    // Final count check
+    currentCount = await page.locator(selector).count();
+    return {
+      count: currentCount,
+      success: currentCount >= targetCount,
+      scrolls
+    };
+  }
+
+  /**
+   * Saves data to a file (CSV or JSON format).
+   * @param data - Array of objects to save.
+   * @param filename - Output filename (supports {{date}} template).
+   * @param format - Output format: 'csv' or 'json'.
+   * @returns Path to saved file.
+   */
+  protected async save_to_file(
+    data: Record<string, any>[],
+    filename: string,
+    format: 'csv' | 'json' = 'csv'
+  ): Promise<{ path: string; success: boolean; rows: number }> {
+    // Replace {{date}} with current date
+    const dateStr = new Date().toISOString().split('T')[0];
+    const finalFilename = filename.replace('{{date}}', dateStr);
+    const fullPath = path.resolve(process.cwd(), finalFilename);
+
+    // Ensure directory exists
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    let content: string;
+
+    if (format === 'csv') {
+      if (data.length === 0) {
+        content = '';  // Empty file for empty data
+      } else {
+        const headers = Object.keys(data[0]);
+        const rows = data.map(row =>
+          headers.map(h => {
+            const val = row[h];
+            // Escape quotes and wrap in quotes if contains comma, newline, or quotes
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          }).join(',')
+        );
+        content = [headers.join(','), ...rows].join('\n');
+      }
+    } else {
+      content = JSON.stringify(data, null, 2);
+    }
+
+    fs.writeFileSync(fullPath, content, 'utf-8');
+
+    return { path: fullPath, success: true, rows: data.length };
+  }
+
+  /**
+   * Saves the current browser session (cookies, localStorage) to a file.
+   * @param filename - Path to save the session state.
+   * @returns Success status and path.
+   */
+  protected async save_session(
+    filename: string
+  ): Promise<{ path: string; success: boolean }> {
+    if (!this.browser_context) {
+      return { path: '', success: false };
+    }
+    const fullPath = path.resolve(process.cwd(), filename);
+    const dir = path.dirname(fullPath);
+
+    // Ensure directory exists
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    await this.browser_context.storageState({ path: fullPath });
+    return { path: fullPath, success: true };
+  }
+
+  /**
+   * Loads a previously saved browser session from a file.
+   * IMPORTANT: This closes the current browser context and creates a new one.
+   * All existing pages will be closed.
+   * @param filename - Path to the session state file.
+   * @returns Success status and path.
+   */
+  protected async load_session(
+    filename: string
+  ): Promise<{ path: string; success: boolean; message: string }> {
+    const fullPath = path.resolve(process.cwd(), filename);
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return {
+        path: fullPath,
+        success: false,
+        message: `Session file not found: ${fullPath}`
+      };
+    }
+
+    // Persistent context (userDataDir) is incompatible with storageState
+    // The persistent context manages its own storage in userDataDir
+    if (this.userDataDir) {
+      return {
+        path: fullPath,
+        success: false,
+        message: "Cannot load session when using persistent context (userDataDir). Session storage is managed by the browser automatically."
+      };
+    }
+
+    // Store the path for new context creation
+    this.storageStatePath = fullPath;
+
+    // Close existing context if any
+    if (this.browser_context) {
+      await this.browser_context.close();
+      this.browser_context = null;
+      this.current_page = null;
+    }
+
+    // Immediately recreate context to avoid race conditions
+    // This ensures the session is loaded before any subsequent browser actions
+    try {
+      await this.getBrowserContext();
+      return {
+        path: fullPath,
+        success: true,
+        message: "Session loaded successfully"
+      };
+    } catch (error) {
+      // Reset state on failure
+      this.storageStatePath = undefined;
+      return {
+        path: fullPath,
+        success: false,
+        message: `Failed to create context with session: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Gets information about the current page.
+   * @returns URL, title, and domain of current page.
+   */
+  protected async get_page_info(): Promise<{ url: string; title: string; domain: string }> {
+    const page = await this.currentPage();
+    const url = page.url();
+    const title = await page.title();
+    const domain = new URL(url).hostname;
+    return { url, title, domain };
+  }
+
+  /**
+   * Builds the utility tools for screenshot and waiting operations.
+   */
+  private buildUtilityTools(): Tool[] {
+    return [
+      {
+        name: "save_screenshot",
+        description:
+          "Save the current page screenshot to a file. Useful for documentation and debugging.",
+        parameters: {
+          type: "object",
+          properties: {
+            filename: {
+              type: "string",
+              description: "Filename for the screenshot (e.g., 'chart.png'). Defaults to timestamp.",
+            },
+            directory: {
+              type: "string",
+              description: "Directory to save screenshot in. Defaults to current working directory.",
+            },
+          },
+          required: [],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.save_screenshot(args.filename as string, args.directory as string)
+          );
+        },
+      },
+      {
+        name: "wait_for_element",
+        description:
+          "Wait for a specific element to appear on the page. Use CSS selector syntax.",
+        parameters: {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector of the element to wait for (e.g., '#chart', '.button')",
+            },
+            timeout: {
+              type: "number",
+              description: "Maximum time to wait in milliseconds (default: 10000)",
+              default: 10000,
+            },
+          },
+          required: ["selector"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.wait_for_element(
+              args.selector as string,
+              (args.timeout as number) || 10000
+            )
+          );
+        },
+      },
+      {
+        name: "wait_for_navigation",
+        description:
+          "Wait for page navigation to complete. Optionally wait for a specific URL pattern.",
+        parameters: {
+          type: "object",
+          properties: {
+            url_pattern: {
+              type: "string",
+              description: "Optional regex pattern for URL to wait for (e.g., '.*tradingview.*chart.*')",
+            },
+            timeout: {
+              type: "number",
+              description: "Maximum time to wait in milliseconds (default: 30000)",
+              default: 30000,
+            },
+          },
+          required: [],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.wait_for_navigation(
+              args.url_pattern as string,
+              (args.timeout as number) || 30000
+            )
+          );
+        },
+      },
+      {
+        name: "extract_elements",
+        description:
+          "Extract structured data from multiple elements matching a selector. Useful for scraping lists of items like profiles, products, or search results.",
+        parameters: {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector for container elements (e.g., '.profile-card', '.search-result')",
+            },
+            fields: {
+              type: "object",
+              description: "Map of field names to CSS selectors. Use @attr for attributes (e.g., {'url': 'a@href', 'name': '.title'}). Uses lastIndexOf('@') to handle complex selectors.",
+              additionalProperties: { type: "string" },
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of elements to extract (optional)",
+            },
+          },
+          required: ["selector", "fields"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.extract_elements(
+              args.selector as string,
+              args.fields as Record<string, string>,
+              args.limit as number | undefined
+            )
+          );
+        },
+      },
+      {
+        name: "count_elements",
+        description:
+          "Count the number of elements matching a CSS selector on the page.",
+        parameters: {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector to count (e.g., '.profile-card', '.search-result')",
+            },
+          },
+          required: ["selector"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.count_elements(args.selector as string)
+          );
+        },
+      },
+      {
+        name: "scroll_until",
+        description:
+          "Scroll the page until a target number of elements are loaded. Perfect for infinite scroll pages like LinkedIn, Twitter, etc.",
+        parameters: {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector to count elements",
+            },
+            target_count: {
+              type: "number",
+              description: "Target number of elements to load",
+            },
+            max_scrolls: {
+              type: "number",
+              description: "Maximum scroll attempts (default: 20)",
+              default: 20,
+            },
+            scroll_delay: {
+              type: "number",
+              description: "Delay between scrolls in milliseconds (default: 1000)",
+              default: 1000,
+            },
+          },
+          required: ["selector", "target_count"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.scroll_until(
+              args.selector as string,
+              args.target_count as number,
+              (args.max_scrolls as number) || 20,
+              (args.scroll_delay as number) || 1000
+            )
+          );
+        },
+      },
+      {
+        name: "save_to_file",
+        description:
+          "Save extracted data to a file in CSV or JSON format. Supports {{date}} template in filename.",
+        parameters: {
+          type: "object",
+          properties: {
+            data: {
+              type: "array",
+              items: { type: "object" },
+              description: "Array of objects to save",
+            },
+            filename: {
+              type: "string",
+              description: "Output filename (e.g., 'leads_{{date}}.csv')",
+            },
+            format: {
+              type: "string",
+              enum: ["csv", "json"],
+              description: "Output format (default: csv)",
+              default: "csv",
+            },
+          },
+          required: ["data", "filename"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.save_to_file(
+              args.data as Record<string, any>[],
+              args.filename as string,
+              (args.format as 'csv' | 'json') || 'csv'
+            )
+          );
+        },
+      },
+      {
+        name: "save_session",
+        description:
+          "Save the current browser session (cookies, localStorage) to a file. Use for sites requiring login like LinkedIn.",
+        parameters: {
+          type: "object",
+          properties: {
+            filename: {
+              type: "string",
+              description: "Path to save session state (e.g., 'linkedin_session.json')",
+            },
+          },
+          required: ["filename"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.save_session(args.filename as string)
+          );
+        },
+      },
+      {
+        name: "load_session",
+        description:
+          "Load a previously saved browser session from a file. This will close the current context and create a new one with the saved session. Use this before navigating to LinkedIn or other auth-required sites.",
+        parameters: {
+          type: "object",
+          properties: {
+            filename: {
+              type: "string",
+              description: "Path to session state file (e.g., 'linkedin_session.json')",
+            },
+          },
+          required: ["filename"],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() =>
+            this.load_session(args.filename as string)
+          );
+        },
+      },
+      {
+        name: "get_page_info",
+        description:
+          "Get information about the current page including URL, title, and domain.",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+        execute: async (args, agentContext) => {
+          return await this.callInnerTool(() => this.get_page_info());
+        },
+      },
+    ];
+  }
   private buildCoordinateTools(): Tool[] {
     return [
       {
@@ -753,7 +1388,10 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     let page = this.current_page as Page;
     try {
       await page.waitForLoadState("domcontentloaded", { timeout: 10000 });
-    } catch (e) {}
+    } catch (e) {
+      // Log timeout but continue - page may still be usable
+      console.warn(`Page load state timeout: ${e instanceof Error ? e.message : e}`);
+    }
     return page;
   }
 
@@ -813,7 +1451,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
           this.cdpWsEndpoint,
           this.options
         );
-        this.browser_context = await this.browser.newContext();
+        // Apply storageState if available
+        const contextOptions: any = {};
+        if (this.storageStatePath) {
+          contextOptions.storageState = this.storageStatePath;
+        }
+        this.browser_context = await this.browser.newContext(contextOptions);
       } else if (this.userDataDir) {
         this.browser_context = await chromium.launchPersistentContext(
           this.userDataDir,
@@ -850,7 +1493,12 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
           ],
           ...this.options,
         });
-        this.browser_context = await this.browser.newContext();
+        // Apply storageState if available
+        const contextOptions: any = {};
+        if (this.storageStatePath) {
+          contextOptions.storageState = this.storageStatePath;
+        }
+        this.browser_context = await this.browser.newContext(contextOptions);
       }
       // Anti-crawling detection website:
       // https://bot.sannysoft.com/
@@ -901,6 +1549,52 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
 			})();
       `,
     };
+  }
+
+  /**
+   * Closes and cleans up all browser resources.
+   * This method should be called when the agent is no longer needed.
+   * @returns A promise that resolves when cleanup is complete.
+   */
+  public async close(): Promise<void> {
+    try {
+      // Close all pages in the context
+      if (this.browser_context) {
+        const pages = this.browser_context.pages();
+        await Promise.all(
+          pages.map(page => page.close().catch(err => {
+            // Log but don't fail on individual page close errors
+            console.warn(`Failed to close page: ${err.message}`);
+          }))
+        );
+
+        // Close the browser context
+        await this.browser_context.close();
+        this.browser_context = null;
+      }
+
+      // Close the browser instance (only if we own it, not CDP)
+      if (this.browser && !this.cdpWsEndpoint) {
+        await this.browser.close();
+        this.browser = null;
+      }
+
+      // Reset state
+      this.current_page = null;
+
+      // Call parent close for mcpClient cleanup
+      if (this.mcpClient) {
+        await this.mcpClient.close();
+      }
+    } catch (error) {
+      console.error('Error during BrowserAgent cleanup:', error);
+      // Still reset state even on error
+      this.browser_context = null;
+      this.browser = null;
+      this.current_page = null;
+      // Re-throw to notify caller
+      throw error;
+    }
   }
 }
 

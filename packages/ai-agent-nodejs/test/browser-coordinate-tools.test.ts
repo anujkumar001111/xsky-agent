@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, jest } from "@jest/globals";
 import { config } from "@xsky/ai-agent-core";
 import { BrowserAgent } from "../src/browser";
+import { getSharedBrowser, releaseSharedBrowser, createTestPage, setupAgent, cleanupTestContext } from "./shared-browser";
+
 
 // Mock Playwright types
 const mockPage = {
@@ -22,6 +24,8 @@ const mockPage = {
   url: () => "about:blank",
   title: async () => "New Tab"
 };
+
+
 
 describe("BrowserAgent Coordinate Tools", () => {
   // We need to cast to any to access private/protected methods for testing
@@ -462,30 +466,22 @@ describe("BrowserAgent Coordinate Tools", () => {
  */
 describe("Real Browser Coordinate Operations", () => {
   let agent: any;
-  let browser: any;
   let page: any;
 
   beforeAll(async () => {
-    // Create a real Playwright browser for integration testing
-    const { chromium } = require("playwright");
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    page = await context.newPage();
-
-    // Create agent and set up to use our real page
-    agent = new BrowserAgent();
-
-    // Override the currentPage method to return our test page
-    agent.currentPage = jest.fn().mockResolvedValue(page);
-
-    // Mock callInnerTool to just execute the callback
-    agent.callInnerTool = jest.fn().mockImplementation(async (callback: Function) => {
-      return await callback();
-    });
-
-    // Set scale factor to 1 for direct coordinate mapping
-    agent.lastScaleFactor = 1;
+    // Use shared browser instance
+    // Use shared browser instance
+    const browser = await getSharedBrowser();
+    page = await createTestPage(browser);
+    agent = setupAgent(page);
   }, 30000);
+
+  afterAll(async () => {
+    if (page) {
+      await cleanupTestContext(page);
+    }
+    await releaseSharedBrowser();
+  }, 10000);
 
   beforeEach(async () => {
     // Reset the page content before each test
@@ -507,9 +503,7 @@ describe("Real Browser Coordinate Operations", () => {
     `);
   });
 
-  afterAll(async () => {
-    await browser?.close();
-  });
+  // No afterAll - browser cleanup handled at file level
 
   describe("INTEGRATION: Click Operations", () => {
     it("INTEGRATION: should click at exact coordinates on a button", async () => {
@@ -575,6 +569,21 @@ describe("Real Browser Coordinate Operations", () => {
     });
 
     it("INTEGRATION: should trigger mouseover event on hover", async () => {
+      // Move mouse away first to ensure clean state
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(50);
+
+      // Reset page content to ensure fresh state
+      await page.setContent(`
+        <html>
+          <body style="margin: 0; padding: 0;">
+            <div id="hover-target" style="position: absolute; left: 100px; top: 300px; width: 100px; height: 50px; background: blue;">
+              Hover Me
+            </div>
+          </body>
+        </html>
+      `);
+
       await page.evaluate(() => {
         const target = document.getElementById("hover-target");
         target?.addEventListener("mouseover", () => {
@@ -682,26 +691,22 @@ describe("Real Browser Coordinate Operations", () => {
  */
 describe("Combined Keyboard + Coordinate Workflow Tests", () => {
   let agent: any;
-  let browser: any;
   let page: any;
 
   beforeAll(async () => {
-    const { chromium } = require("playwright");
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    page = await context.newPage();
-
-    agent = new BrowserAgent();
-    agent.currentPage = jest.fn().mockResolvedValue(page);
-    agent.callInnerTool = jest.fn().mockImplementation(async (callback: Function) => {
-      return await callback();
-    });
-    agent.lastScaleFactor = 1;
+    // Use shared browser instance
+    // Use shared browser instance
+    const browser = await getSharedBrowser();
+    page = await createTestPage(browser);
+    agent = setupAgent(page);
   }, 30000);
 
   afterAll(async () => {
-    await browser?.close();
-  });
+    if (page) {
+      await cleanupTestContext(page);
+    }
+    await releaseSharedBrowser();
+  }, 10000);
 
   beforeEach(async () => {
     await page.setContent(`
@@ -787,21 +792,14 @@ describe("Combined Keyboard + Coordinate Workflow Tests", () => {
  */
 describe("PERF: Performance Baselines", () => {
   let agent: any;
-  let browser: any;
   let page: any;
 
   beforeAll(async () => {
-    const { chromium } = require("playwright");
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    page = await context.newPage();
-
-    agent = new BrowserAgent();
-    agent.currentPage = jest.fn().mockResolvedValue(page);
-    agent.callInnerTool = jest.fn().mockImplementation(async (callback: Function) => {
-      return await callback();
-    });
-    agent.lastScaleFactor = 1;
+    // Use shared browser instance
+    // Use shared browser instance
+    const browser = await getSharedBrowser();
+    page = await createTestPage(browser);
+    agent = setupAgent(page);
 
     await page.setContent(`
       <html>
@@ -814,8 +812,11 @@ describe("PERF: Performance Baselines", () => {
   }, 30000);
 
   afterAll(async () => {
-    await browser?.close();
-  });
+    if (page) {
+      await cleanupTestContext(page);
+    }
+    await releaseSharedBrowser();
+  }, 10000);
 
   it("PERF: should measure click operation latency", async () => {
     const iterations = 10;

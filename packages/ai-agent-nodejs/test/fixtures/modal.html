@@ -1,4 +1,19 @@
-
+<!--
+  Fixture: modal.html
+  Purpose: Tests coordinate-based interactions with modal dialogs
+  
+  Test Scenarios:
+  - Click at coordinates within modal overlay (centered element)
+  - Type into modal input field at specific coordinates
+  - Click modal close button to dismiss overlay
+  - Verify modal overlay blocks underlying element clicks
+  
+  DOM Structure:
+  - #modal-overlay: Full-screen overlay with centered content
+  - #modal-content: Modal dialog container (300x200px)
+  - #modal-input: Text input for type_at_coordinates tests
+  - #modal-close: Button to test click coordinate accuracy
+-->
 <html>
   <body>
     <div id="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;">

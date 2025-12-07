@@ -1,29 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from "@jest/globals";
 import { BrowserAgent } from "../src/browser";
 import { PLAYWRIGHT_KEY_MAP } from "@xsky/ai-agent-core";
+import { getSharedBrowser, releaseSharedBrowser, createTestPage, setupAgent, cleanupTestContext } from "./shared-browser";
 
 describe("BrowserAgent Keyboard Integration Tests", () => {
   let agent: any; // Cast to any to access protected methods
-  let browser: any;
   let page: any;
 
   beforeAll(async () => {
-    // Create a real Playwright browser for integration testing
-    const { chromium } = require("playwright");
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    page = await context.newPage();
-
-    // Create agent and set up to use our real page
-    agent = new BrowserAgent();
-
-    // Override the currentPage method to return our test page
-    agent.currentPage = jest.fn().mockResolvedValue(page);
-
-    // Mock callInnerTool to just execute the callback
-    agent.callInnerTool = jest.fn().mockImplementation(async (callback: Function) => {
-      return await callback();
-    });
+    // Use shared browser instance
+    const browser = await getSharedBrowser();
+    page = await createTestPage(browser);
+    agent = setupAgent(page);
   });
 
   beforeEach(async () => {
@@ -38,7 +26,10 @@ describe("BrowserAgent Keyboard Integration Tests", () => {
   });
 
   afterAll(async () => {
-    await browser?.close();
+    if (page) {
+      await cleanupTestContext(page);
+    }
+    await releaseSharedBrowser();
   });
 
   describe("Real Browser Keyboard Operations", () => {

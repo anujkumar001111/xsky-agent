@@ -1,31 +1,51 @@
-
+<!--
+  Fixture: dropdown.html
+  Purpose: Tests hover-triggered dropdowns and dynamically positioned menus
+  
+  Test Scenarios:
+  - Click trigger button to reveal dropdown menu
+  - hover_at_coordinates to position cursor over menu items
+  - Click dynamically positioned menu items
+  - Verify menu positioning relative to trigger element
+  
+  DOM Structure:
+  - #dropdown-trigger: Button that toggles menu visibility
+  - #dropdown-menu: Absolutely positioned menu container
+  - .menu-item: Clickable items that add 'clicked' class and update text
+  
+  Behavior Notes:
+  - Menu position calculated from trigger's getBoundingClientRect()
+  - Menu items show "(Selected)" suffix when clicked
+-->
 <html>
-  <body>
-    <div style="padding: 50px;">
-      <button id="dropdown-trigger">Open Menu</button>
-      <div id="dropdown-menu" style="display: none; position: absolute; border: 1px solid #ccc; background: #fff;">
-        <div class="menu-item" id="item-1" style="padding: 10px;">Item 1</div>
-        <div class="menu-item" id="item-2" style="padding: 10px;">Item 2</div>
-        <div class="menu-item" id="item-3" style="padding: 10px;">Item 3</div>
-      </div>
+
+<body>
+  <div style="padding: 50px;">
+    <button id="dropdown-trigger">Open Menu</button>
+    <div id="dropdown-menu" style="display: none; position: absolute; border: 1px solid #ccc; background: #fff;">
+      <div class="menu-item" id="item-1" style="padding: 10px;">Item 1</div>
+      <div class="menu-item" id="item-2" style="padding: 10px;">Item 2</div>
+      <div class="menu-item" id="item-3" style="padding: 10px;">Item 3</div>
     </div>
-    <script>
-      const trigger = document.getElementById('dropdown-trigger');
-      const menu = document.getElementById('dropdown-menu');
+  </div>
+  <script>
+    const trigger = document.getElementById('dropdown-trigger');
+    const menu = document.getElementById('dropdown-menu');
 
-      trigger.addEventListener('click', () => {
-        const rect = trigger.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 5) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-      });
+    trigger.addEventListener('click', () => {
+      const rect = trigger.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 5) + 'px';
+      menu.style.left = rect.left + 'px';
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    });
 
-      document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', function() {
-          this.classList.add('clicked');
-          this.innerText += ' (Selected)';
-        });
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('click', function () {
+        this.classList.add('clicked');
+        this.innerText += ' (Selected)';
       });
-    </script>
-  </body>
+    });
+  </script>
+</body>
+
 </html>

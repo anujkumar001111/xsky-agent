@@ -1,56 +1,80 @@
-
+<!--
+  Fixture: form_and_drag.html
+  Purpose: Tests form input, scroll operations, and drag-drop interactions
+  
+  Test Scenarios:
+  - Form Input: Type into #name, #email, #comments fields
+  - Tab Navigation: Keyboard Tab between form fields
+  - Scroll: scroll_at_coordinates to reach #scroll-target (1500px down)
+  - Drag-Drop: drag_to_coordinates from #drag-source to #drag-target
+  
+  DOM Structure:
+  - #test-form: Form with text, email inputs and textarea
+  - #scroll-target: Element at 1500px requiring scroll to reach
+  - #drag-source: Draggable red box (100x100px) at (300, 100)
+  - #drag-target: Drop zone blue box (100x100px) at (500, 100)
+  
+  Validation Points:
+  - Drag source adds 'dragging' class on dragstart
+  - Drop target shows "Dropped!" text and 'dropped' class on successful drop
+  - Page body is 2000px tall for scroll testing
+-->
 <html>
-  <body style="height: 2000px; margin: 0; padding: 20px;">
-    <h1>Form Test</h1>
-    <form id="test-form">
-      <div style="margin-bottom: 20px;">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" />
-      </div>
-      <div style="margin-bottom: 20px;">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" />
-      </div>
-      <div style="margin-bottom: 20px;">
-        <label for="comments">Comments:</label>
-        <textarea id="comments" rows="4"></textarea>
-      </div>
-      <button type="submit" id="submit-btn">Submit</button>
-    </form>
 
-    <div id="scroll-target" style="margin-top: 1500px; background: #f0f0f0; padding: 20px;">
-      Target Element
+<body style="height: 2000px; margin: 0; padding: 20px;">
+  <h1>Form Test</h1>
+  <form id="test-form">
+    <div style="margin-bottom: 20px;">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" />
     </div>
-
-    <div id="drag-source" draggable="true" style="width: 100px; height: 100px; background: red; position: absolute; top: 100px; left: 300px;">
-      Drag Me
+    <div style="margin-bottom: 20px;">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" />
     </div>
-    <div id="drag-target" style="width: 100px; height: 100px; background: blue; position: absolute; top: 100px; left: 500px;">
-      Drop Here
+    <div style="margin-bottom: 20px;">
+      <label for="comments">Comments:</label>
+      <textarea id="comments" rows="4"></textarea>
     </div>
+    <button type="submit" id="submit-btn">Submit</button>
+  </form>
 
-    <script>
-      const source = document.getElementById('drag-source');
-      const target = document.getElementById('drag-target');
+  <div id="scroll-target" style="margin-top: 1500px; background: #f0f0f0; padding: 20px;">
+    Target Element
+  </div>
 
-      source.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', 'dragged');
-        source.classList.add('dragging');
-      });
+  <div id="drag-source" draggable="true"
+    style="width: 100px; height: 100px; background: red; position: absolute; top: 100px; left: 300px;">
+    Drag Me
+  </div>
+  <div id="drag-target"
+    style="width: 100px; height: 100px; background: blue; position: absolute; top: 100px; left: 500px;">
+    Drop Here
+  </div>
 
-      target.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        target.classList.add('drag-over');
-      });
+  <script>
+    const source = document.getElementById('drag-source');
+    const target = document.getElementById('drag-target');
 
-      target.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const data = e.dataTransfer.getData('text/plain');
-        if (data === 'dragged') {
-          target.innerText = 'Dropped!';
-          target.classList.add('dropped');
-        }
-      });
-    </script>
-  </body>
+    source.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', 'dragged');
+      source.classList.add('dragging');
+    });
+
+    target.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      target.classList.add('drag-over');
+    });
+
+    target.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const data = e.dataTransfer.getData('text/plain');
+      if (data === 'dragged') {
+        target.innerText = 'Dropped!';
+        target.classList.add('dropped');
+      }
+    });
+  </script>
+</body>
+
 </html>

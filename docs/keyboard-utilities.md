@@ -8,7 +8,7 @@ The XSky AI Agent provides comprehensive keyboard automation utilities for Playw
 
 ### Supported Keys
 
-The system supports **170+ explicitly mapped keys** covering:
+The system supports **179 explicitly mapped keys** covering:
 
 #### Letters (26)
 - All lowercase letters: `a-z`
