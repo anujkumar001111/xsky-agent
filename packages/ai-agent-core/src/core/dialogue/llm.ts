@@ -6,10 +6,10 @@ import {
 import {
   LLMRequest,
   DialogueCallback,
-  EkoMessageToolPart,
-  EkoMessageUserPart,
+  XSkyMessageToolPart,
+  XSkyMessageUserPart,
   LanguageModelV2Prompt,
-  EkoMessageAssistantPart,
+  XSkyMessageAssistantPart,
   LanguageModelV2TextPart,
   LanguageModelV2ToolChoice,
   ChatStreamCallbackMessage,
@@ -44,7 +44,7 @@ export async function callChatLLM(
   signal?: AbortSignal
 ): Promise<Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>> {
   const streamCallback = callback?.chatCallback || {
-    onMessage: async () => {},
+    onMessage: async () => { },
   };
   const request: LLMRequest = {
     tools: tools,
@@ -227,7 +227,7 @@ export async function callChatLLM(
               totalTokens:
                 chunk.usage.totalTokens ||
                 (chunk.usage.inputTokens || 0) +
-                  (chunk.usage.outputTokens || 0),
+                (chunk.usage.outputTokens || 0),
             },
           });
           break;
@@ -254,9 +254,9 @@ export async function callChatLLM(
   }
   return streamText
     ? [
-        { type: "text", text: streamText } as LanguageModelV2TextPart,
-        ...toolParts,
-      ]
+      { type: "text", text: streamText } as LanguageModelV2TextPart,
+      ...toolParts,
+    ]
     : toolParts;
 }
 
@@ -267,7 +267,7 @@ export async function callChatLLM(
  */
 export function convertAssistantToolResults(
   results: Array<LanguageModelV2TextPart | LanguageModelV2ToolCallPart>
-): EkoMessageAssistantPart[] {
+): XSkyMessageAssistantPart[] {
   return results.map((part) => {
     if (part.type == "text") {
       return {
@@ -293,7 +293,7 @@ export function convertAssistantToolResults(
  */
 export function convertToolResults(
   toolResults: LanguageModelV2ToolResultPart[]
-): EkoMessageToolPart[] {
+): XSkyMessageToolPart[] {
   return toolResults.map((part) => {
     const output = part.output;
     return {
@@ -304,8 +304,8 @@ export function convertToolResults(
         output.type == "text" || output.type == "error-text"
           ? output.value
           : output.type == "json" || output.type == "error-json"
-          ? (output.value as any)
-          : output.value
+            ? (output.value as any)
+            : output.value
               .map((s) => {
                 if (s.type == "text") {
                   return s.text;
@@ -328,7 +328,7 @@ export function convertToolResults(
  */
 export function convertUserContent(
   content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart>
-): EkoMessageUserPart[] {
+): XSkyMessageUserPart[] {
   return content.map((part) => {
     if (part.type == "text") {
       return {

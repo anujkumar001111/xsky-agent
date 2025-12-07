@@ -14,9 +14,9 @@ import type {
 import type { SecurityConfig } from "./security.types";
 
 /**
- * Configuration options for initializing an Eko instance.
+ * Configuration options for initializing an XSky instance.
  * @property llms - Language model configurations including default and named models.
- * @property agents - Optional array of custom agents to register with the Eko instance.
+ * @property agents - Optional array of custom agents to register with the XSky instance.
  * @property planLlms - Optional array of LLM names to use for workflow planning.
  * @property compressLlms - Optional array of LLM names to use for context compression.
  * @property callback - Optional callbacks for streaming messages and human interaction.
@@ -28,7 +28,7 @@ import type { SecurityConfig } from "./security.types";
  * @property rateLimits - Optional rate limiting configuration.
  * @property security - Optional security and sandboxing configuration.
  */
-export type EkoConfig = {
+export type XSkyConfig = {
   llms: LLMs;
   agents?: Agent[];
   planLlms?: string[];
@@ -60,39 +60,39 @@ export type StreamCallbackMessage = {
   agentName: string;
   nodeId?: string | null; // agent nodeId
 } & (
-  | {
+    | {
       type: "workflow";
       streamDone: boolean;
       workflow: Workflow;
     }
-  | {
+    | {
       type: "agent_start";
       agentNode: WorkflowAgent;
     }
-  | {
+    | {
       type: "text" | "thinking";
       streamId: string;
       streamDone: boolean;
       text: string;
     }
-  | {
+    | {
       type: "file";
       mimeType: string;
       data: string;
     }
-  | {
+    | {
       type: "tool_streaming";
       toolName: string;
       toolId: string;
       paramsText: string;
     }
-  | {
+    | {
       type: "tool_use";
       toolName: string;
       toolId: string;
       params: Record<string, any>;
     }
-  | {
+    | {
       type: "tool_running";
       toolName: string;
       toolId: string;
@@ -100,24 +100,24 @@ export type StreamCallbackMessage = {
       streamId: string;
       streamDone: boolean;
     }
-  | {
+    | {
       type: "tool_result";
       toolName: string;
       toolId: string;
       params: Record<string, any>;
       toolResult: ToolResult;
     }
-  | {
+    | {
       type: "agent_result";
       agentNode: WorkflowAgent;
       error?: any;
       result?: string;
     }
-  | {
+    | {
       type: "error";
       error: unknown;
     }
-  | {
+    | {
       type: "finish";
       finishReason: LanguageModelV2FinishReason;
       usage: {
@@ -126,7 +126,7 @@ export type StreamCallbackMessage = {
         totalTokens: number;
       };
     }
-);
+  );
 
 /**
  * Callback interface for receiving streaming messages during workflow execution.
@@ -306,7 +306,7 @@ export interface HumanCallback {
  * @property result - The final result or output of the task execution.
  * @property error - The error object if stopReason is "error".
  */
-export type EkoResult = {
+export type XSkyResult = {
   taskId: string;
   success: boolean;
   stopReason: "abort" | "error" | "done";

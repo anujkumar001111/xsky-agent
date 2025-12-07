@@ -161,16 +161,16 @@ const contextHooks: AgentHooks = {
 
 ## 4. Configuration
 
-Configure hooks when initializing the `Eko` instance.
+Configure hooks when initializing the `XSky` instance.
 
 ```typescript
-import { Eko, EkoConfig, AgentHooks } from '@xsky/ai-agent-core';
+import { XSky, XSkyConfig, AgentHooks } from '@xsky/ai-agent-core';
 
 const myHooks: AgentHooks = {
   // ... implementation ...
 };
 
-const config: EkoConfig = {
+const config: XSkyConfig = {
   llms: { /* ... */ },
   hooks: myHooks, // Attach hooks here
 
@@ -182,7 +182,7 @@ const config: EkoConfig = {
   }
 };
 
-const eko = new Eko(config);
+const xsky = new XSky(config);
 ```
 
 ## 5. Best Practices (12-Factor Agent)

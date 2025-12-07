@@ -1,5 +1,5 @@
 import { JSONSchema7 } from "json-schema";
-import { EkoDialogue } from "../dialogue";
+import { XSkyDialogue } from "../dialogue";
 import { DialogueTool, ToolResult } from "../../types";
 
 export const TOOL_NAME = "taskVariableStorage";
@@ -11,13 +11,13 @@ export default class TaskVariableStorageTool implements DialogueTool {
   readonly name: string = TOOL_NAME;
   readonly description: string;
   readonly parameters: JSONSchema7;
-  private ekoDialogue: EkoDialogue;
+  private xskyDialogue: XSkyDialogue;
 
   /**
    * Creates an instance of the TaskVariableStorageTool.
-   * @param ekoDialogue - The EkoDialogue instance to use.
+   * @param xskyDialogue - The XSkyDialogue instance to use.
    */
-  constructor(ekoDialogue: EkoDialogue) {
+  constructor(xskyDialogue: XSkyDialogue) {
     this.description = `Used for storing, reading, and retrieving variable data, and maintaining input/output variables in task nodes.`;
     this.parameters = {
       type: "object",
@@ -39,7 +39,7 @@ export default class TaskVariableStorageTool implements DialogueTool {
       },
       required: ["operation"],
     };
-    this.ekoDialogue = ekoDialogue;
+    this.xskyDialogue = xskyDialogue;
   }
 
   /**
@@ -60,7 +60,7 @@ export default class TaskVariableStorageTool implements DialogueTool {
           let keys = name.split(",");
           for (let i = 0; i < keys.length; i++) {
             let key = keys[i].trim();
-            let value = this.ekoDialogue.getGlobalContext().get(key);
+            let value = this.xskyDialogue.getGlobalContext().get(key);
             result[key] = value;
           }
           resultText = JSON.stringify(result);
@@ -77,12 +77,12 @@ export default class TaskVariableStorageTool implements DialogueTool {
           break;
         }
         let key = args.name as string;
-        this.ekoDialogue.getGlobalContext().set(key.trim(), args.value);
+        this.xskyDialogue.getGlobalContext().set(key.trim(), args.value);
         resultText = "success";
         break;
       }
       case "list_all_variable": {
-        resultText = JSON.stringify([...this.ekoDialogue.getGlobalContext().keys()]);
+        resultText = JSON.stringify([...this.xskyDialogue.getGlobalContext().keys()]);
         break;
       }
     }

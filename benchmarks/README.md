@@ -21,12 +21,12 @@ npx tsx benchmarks/core.bench.ts
 The benchmarks measure the overhead of the core framework components by mocking the LLM layer. This isolates the framework's performance from network latency and LLM generation time.
 
 Scenarios benchmarked:
-1. **Eko.generate (Simple)**: Measures the time to generate a workflow plan.
-2. **Eko.run (Simple)**: Measures the time to execute a simple workflow (generate + execute).
-3. **Eko.run (Complex)**: Measures the time to execute a complex workflow with 50 agents.
-4. **Eko.generate (Large Context)**: Measures overhead with a large 1000-message conversation history (~100k characters).
+1. **XSky.generate (Simple)**: Measures the time to generate a workflow plan.
+2. **XSky.run (Simple)**: Measures the time to execute a simple workflow (generate + execute).
+3. **XSky.run (Complex)**: Measures the time to execute a complex workflow with 50 agents.
+4. **XSky.generate (Large Context)**: Measures overhead with a large 1000-message conversation history (~100k characters).
 5. **Agent.run (Heavy Tools)**: Measures overhead of an agent with 50 complex tools (schema conversion & prompt building).
-6. **Eko.generate (Large Output)**: Measures parsing overhead for a large 500-agent XML workflow plan (~50KB).
+6. **XSky.generate (Large Output)**: Measures parsing overhead for a large 500-agent XML workflow plan (~50KB).
 
 ## Results Interpretation
 

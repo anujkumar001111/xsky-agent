@@ -3,7 +3,7 @@
 
   // USE CASE: Monitor competitor prices and alert when action needed
 
-  const eko = new Eko({
+  const eko = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent()],
     hooks: {
@@ -61,7 +61,7 @@
 
   // USE CASE: Auto-triage and respond to support tickets
 
-  const supportAgent = new Eko({
+  const supportAgent = new XSky({
     llms: { default: openaiConfig },
     agents: [new BrowserAgent(), new EmailAgent()],
 
@@ -144,7 +144,7 @@
 
   // USE CASE: Research leads and personalize outreach
 
-  const salesAgent = new Eko({
+  const salesAgent = new XSky({
     llms: {
       default: anthropicConfig,
       research: { provider: 'openai', model: 'gpt-4o' },
@@ -237,7 +237,7 @@
 
   // USE CASE: Process contracts and flag compliance issues
 
-  const complianceAgent = new Eko({
+  const complianceAgent = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent(), new FileAgent()],
 
@@ -333,7 +333,7 @@
 
   // USE CASE: Automated deployment with human approval gates
 
-  const deployAgent = new Eko({
+  const deployAgent = new XSky({
     llms: { default: anthropicConfig },
     agents: [new ShellAgent(), new BrowserAgent()],
 
@@ -442,7 +442,7 @@
 
   // USE CASE: Intelligent web scraping with anti-bot handling
 
-  const scraperAgent = new Eko({
+  const scraperAgent = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent()],
 
@@ -543,7 +543,7 @@
 
   // USE CASE: Monitor mentions, engage, and schedule posts
 
-  const socialAgent = new Eko({
+  const socialAgent = new XSky({
     llms: {
       default: anthropicConfig,
       content: { provider: 'openai', model: 'gpt-4o' } // For creative content
@@ -651,7 +651,7 @@
 
   // USE CASE: Automated testing and bug reproduction
 
-  const qaAgent = new Eko({
+  const qaAgent = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent()],
 
@@ -759,7 +759,7 @@
 
   // USE CASE: Automated job searching and application
 
-  const jobAgent = new Eko({
+  const jobAgent = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent(), new FileAgent()],
 
@@ -889,7 +889,7 @@
 
   // USE CASE: Automated research and report compilation
 
-  const researchAgent = new Eko({
+  const researchAgent = new XSky({
     llms: {
       default: anthropicConfig,
       summarization: { provider: 'anthropic', model: 'claude-3-haiku-20240307' },

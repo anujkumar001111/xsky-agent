@@ -12,16 +12,12 @@
  */
 
 // When using in your project:
-// import { Eko, EkoConfig, AgentHooks } from '@xsky/ai-agent-core';
+// import { XSky, XSkyConfig, AgentHooks } from '@xsky/ai-agent-core';
 // import type { AgentContext, ToolResult } from '@xsky/ai-agent-core';
 
-import {
-  Eko,
-  EkoConfig,
-  AgentHooks,
-  AgentContext,
-  ToolResult
-} from '@xsky/ai-agent-core';
+// NOTE: This is a documentation example file.
+// The actual imports are commented out to avoid build issues.
+// When using in your project, uncomment the imports above.
 
 // Mock database and external services
 const db = {
@@ -116,7 +112,7 @@ const productionHooks: AgentHooks = {
 
 // Usage Example
 async function runProductionAgent() {
-  const config: EkoConfig = {
+  const config: XSkyConfig = {
     llms: {
       default: 'claude-3-sonnet'
     },
@@ -124,10 +120,10 @@ async function runProductionAgent() {
     // Other config...
   };
 
-  const eko = new Eko(config);
+  const xsky = new XSky(config);
 
   try {
-    const result = await eko.run(
+    const result = await xsky.run(
       'Find the cheapest laptop on amazon and buy it',
       'task-123',
       { userId: 'user-001' }

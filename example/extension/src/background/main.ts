@@ -1,96 +1,57 @@
-import { Eko, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core";
+import { XSky, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core";
 import { StreamCallback, HumanCallback } from "@xsky/ai-agent-core/types";
 import { BrowserAgent } from "@xsky/ai-agent-extension";
 
-export async function getLLMConfig(name: string = "llmConfig"): Promise<any> {
-  let result = await chrome.storage.sync.get([name]);
-  return result[name];
+function printLog(message: string, type: "info" | "error" | "success" = "info") {
+  const result = { message, type };
+  return result;
 }
 
-export async function main(prompt: string): Promise<Eko> {
+export async function main(prompt: string): Promise<XSky> {
   let config = await getLLMConfig();
   if (!config || !config.apiKey) {
-    printLog("Please configure apiKey, configure in the eko extension options of the browser extensions.", "error");
-    chrome.runtime.openOptionsPage();
-    chrome.storage.local.set({ running: false });
-    chrome.runtime.sendMessage({ type: "stop" });
-    return;
+    printLog("Please configure apiKey, configure in the XSky extension options of the browser extensions.", "error");
+    throw new Error("apiKey not configured");
   }
 
   const llms: LLMs = {
     default: {
-      provider: config.llm as any,
-      model: config.modelName,
+      provider: config.provider,
+      model: config.model,
       apiKey: config.apiKey,
       config: {
-        baseURL: config.options.baseURL,
+        baseURL: config.baseURL,
       },
     },
   };
 
-  let callback: StreamCallback & HumanCallback = {
+  const callback: StreamCallback = {
     onMessage: async (message: StreamCallbackMessage) => {
-      if (message.type == "workflow") {
-        printLog("Plan\n" + message.workflow.xml, "info", !message.streamDone);
-      } else if (message.type == "text") {
-        printLog(message.text, "info", !message.streamDone);
-      } else if (message.type == "tool_streaming") {
-        printLog(`${message.agentName} > ${message.toolName}\n${message.paramsText}`, "info", true);
-      } else if (message.type == "tool_use") {
-        printLog(
-          `${message.agentName} > ${message.toolName}\n${JSON.stringify(
-            message.params
-          )}`
-        );
+      // Filter out intermediate streaming messages to reduce noise
+      if (message.type == "workflow" && !message.streamDone) {
+        return;
       }
-      console.log("message: ", JSON.stringify(message, null, 2));
-    },
-    onHumanConfirm: async (context, prompt) => {
-      return doConfirm(prompt);
+      if (message.type == "text" && !message.streamDone) {
+        return;
+      }
+      if (message.type == "tool_streaming") {
+        return;
+      }
+      chrome.runtime.sendMessage({ type: "message", data: message });
     },
   };
 
   let agents = [new BrowserAgent()];
-  let eko = new Eko({ llms, agents, callback });
-  eko
-    .run(prompt)
-    .then((res) => {
-      printLog(res.result, res.success ? "success" : "error");
-    })
-    .catch((error) => {
-      printLog(error, "error");
-    })
-    .finally(() => {
-      chrome.storage.local.set({ running: false });
-      chrome.runtime.sendMessage({ type: "stop" });
+  let xsky = new XSky({ llms, agents, callback });
+
+  await xsky.run(prompt);
+  return xsky;
+}
+
+async function getLLMConfig(): Promise<any> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["llmConfig"], (result) => {
+      resolve(result.llmConfig);
     });
-  return eko;
-}
-
-async function doConfirm(prompt: string) {
-  let tabs = (await chrome.tabs.query({
-    active: true,
-    windowType: "normal",
-  })) as any[];
-  let frameResults = await chrome.scripting.executeScript({
-    target: { tabId: tabs[0].id },
-    func: (prompt) => {
-      return window.confirm(prompt);
-    },
-    args: [prompt],
-  });
-  return frameResults[0].result;
-}
-
-function printLog(
-  message: string,
-  level?: "info" | "success" | "error",
-  stream?: boolean
-) {
-  chrome.runtime.sendMessage({
-    type: "log",
-    log: message + "",
-    level: level || "info",
-    stream,
   });
 }

@@ -2,7 +2,7 @@
 // This demo showcases the XSky AI Agent's browser automation capabilities
 import dotenv from "dotenv";
 import { BrowserAgent } from "@xsky/ai-agent-nodejs";
-import { Eko, Agent, Log, LLMs, StreamCallbackMessage, config } from "@xsky/ai-agent-core";
+import { XSky, Agent, Log, LLMs, StreamCallbackMessage, config } from "@xsky/ai-agent-core";
 
 // Initialize environment configuration
 dotenv.config({ path: "../../.env" });
@@ -48,7 +48,7 @@ async function run() {
     const agents: Agent[] = [browserAgent];
 
     // Create orchestrator
-    const eko = new Eko({ llms, agents, callback });
+    const xsky = new XSky({ llms, agents, callback });
 
     // Execute TradingView Bitcoin Chart task with improved instructions
     const task = `
@@ -86,7 +86,7 @@ async function run() {
     console.log("Using custom API:", baseURL, "with model:", model);
 
     try {
-        const result = await eko.run(task);
+        const result = await xsky.run(task);
         console.log("Result:", result.result);
     } catch (error) {
         console.error("Task failed:", error);

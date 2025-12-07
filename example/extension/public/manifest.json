@@ -1,6 +1,6 @@
 {
-  "name": "Eko agent",
-  "description": "Eko Agent Extension",
+  "name": "XSky agent",
+  "description": "XSky Agent Extension",
   "version": "3.0",
   "manifest_version": 3,
   "background": {

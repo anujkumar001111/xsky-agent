@@ -11,15 +11,15 @@ This guide shows how to integrate XSky into an Electron app so agents can automa
 ## High-Level Architecture
 
 In Electron, you typically:
-- Run **Eko** and agents in the **main process**.
+- Run **XSky** and agents in the **main process**.
 - Expose a small IPC API to the **renderer** (React/Vue/etc.).
 - Optionally stream status updates from main → renderer.
 
 ```mermaid
 graph TD
   Renderer[Renderer (UI)] -->|IPC: startTask| Main[Main Process]
-  Main --> Eko[Eko + Agents]
-  Eko --> BrowserView[Electron BrowserView / WebContents]
+  Main --> XSky[XSky + Agents]
+  XSky --> BrowserView[Electron BrowserView / WebContents]
   Main -->|IPC: status| Renderer
 ```
 
@@ -35,7 +35,7 @@ pnpm add @xsky/ai-agent-core @xsky/ai-agent-electron dotenv
 
 ```typescript
 import { app, BrowserWindow, WebContentsView, ipcMain } from 'electron';
-import { Eko, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
+import { XSky, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
 import { BrowserAgent, FileAgent, getPreloadPath } from '@xsky/ai-agent-electron';
 import dotenv from 'dotenv';
 
@@ -58,7 +58,7 @@ const callback = {
 
 let mainWindow: BrowserWindow | null = null;
 let detailView: WebContentsView | null = null;
-let eko: Eko | null = null;
+let xsky: XSky | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -88,14 +88,14 @@ function createWindow() {
   });
   const fileAgent = new FileAgent(detailView);
 
-  eko = new Eko({ llms, agents: [browserAgent, fileAgent], callback });
+  xsky = new XSky({ llms, agents: [browserAgent, fileAgent], callback });
 }
 
 app.whenReady().then(createWindow);
 
-ipcMain.handle('eko:run-task', async (_event, prompt: string) => {
-  if (!eko) throw new Error('Eko not initialized');
-  return eko.run(prompt);
+ipcMain.handle('xsky:run-task', async (_event, prompt: string) => {
+  if (!xsky) throw new Error('XSky not initialized');
+  return xsky.run(prompt);
 });
 ```
 

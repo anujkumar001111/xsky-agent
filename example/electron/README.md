@@ -6,7 +6,7 @@ A desktop application demonstrating how to integrate XSky AI Agent framework wit
 
 - **Secure Browser Automation**: Uses `contextIsolation` and secure IPC bridge
 - **Split View UI**: Real-time chat interface alongside browser automation view
-- **Task Orchestration**: Full Eko orchestrator integration
+- **Task Orchestration**: Full XSky orchestrator integration
 - **Streaming Updates**: Real-time feedback from AI agents
 
 ## Prerequisites
@@ -55,7 +55,7 @@ src/
 ├── main/              # Main process
 │   ├── index.ts       # Entry point
 │   ├── window.ts      # Window & View management
-│   ├── agent-service.ts # Eko orchestration
+│   ├── agent-service.ts # XSky orchestration
 │   └── ipc-handlers.ts # IPC communication
 ├── preload/           # Preload script
 │   └── preload.ts     # Secure API bridge

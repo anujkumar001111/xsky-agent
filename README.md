@@ -5,7 +5,7 @@ A production-ready JavaScript AI Agent framework for creating reliable agents ac
 ## Features
 
 - Cross-platform agents for browser, Node.js, Electron, and browser extensions
-- XML-based workflow planning and execution via the Eko orchestrator
+- XML-based workflow planning and execution via the XSky orchestrator
 - Integration with multiple LLM providers (Anthropic, OpenAI, Google, DeepSeek, OpenRouter)
 - Model Context Protocol (MCP) support for dynamic external tools
 - Playwright-based browser automation with DOM intelligence and coordinate tools
@@ -61,20 +61,20 @@ pnpm clean      # Remove node_modules and dist
 ## Quick Start (Node.js)
 
 ```ts
-import { Eko } from "@xsky/ai-agent-core";
+import { XSky } from "@xsky/ai-agent-core";
 import { BrowserAgent, FileAgent } from "@xsky/ai-agent-nodejs";
 
-const eko = new Eko({
+const xsky = new XSky({
   llms: {
     anthropic: { apiKey: process.env.ANTHROPIC_API_KEY || "" },
   },
 });
 
-eko.registerAgent(new BrowserAgent());
-eko.registerAgent(new FileAgent());
+xsky.registerAgent(new BrowserAgent());
+xsky.registerAgent(new FileAgent());
 
 (async () => {
-  await eko.run("Navigate to example.com and take a screenshot");
+  await xsky.run("Navigate to example.com and take a screenshot");
 })();
 ```
 
@@ -82,10 +82,9 @@ See `example/nodejs/` for a complete runnable sample, including Playwright brows
 
 ## Core Concepts
 
-- **Eko Orchestrator** – Plans and executes XML workflows for a natural-language task
-- **Agents** – Specialized classes (browser, file, etc.) that implement tools an Eko workflow can call
-- **Tools** – Discrete operations (navigate, click, file read/write, variable storage, etc.)
-- **Dialogue Layer** – `EkoDialogue` wraps Eko for chat-style interactions with planning and execution tools
+- **XSky Orchestrator** – Plans and executes XML workflows for a natural-language task
+- **Agents** – Specialized classes (browser, file, etc.) that implement tools an XSky workflow can call
+- **Dialogue Layer** – `XSkyDialogue` wraps XSky for chat-style interactions with planning and execution tools
 - **MCP Clients** – `SimpleSseMcpClient` and `SimpleHttpMcpClient` expose external MCP tools as agent tools
 
 ## Development
@@ -108,7 +107,7 @@ pnpm test -- src/core/eko.test.ts
 
 ## Examples
 
-- `example/nodejs/` – Minimal Node.js Eko + BrowserAgent + FileAgent setup
+- `example/nodejs/` – Minimal Node.js XSky + BrowserAgent + FileAgent setup
 - `example/web/` – In-browser agent using `ai-agent-web`
 - `example/extension/` – Chrome extension demonstrating sidebar and content-script control
 - `example/electron/` – Desktop app using `ai-agent-electron`

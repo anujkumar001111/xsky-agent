@@ -1,5 +1,5 @@
 import {
-  Eko,
+  XSky,
   Agent,
   Log,
   LLMs,
@@ -64,8 +64,8 @@ async function testPlaner() {
     new SimpleComputerAgent(),
     new SimpleFileAgent(),
   ];
-  const eko = new Eko({ llms, agents, callback });
-  const workflow = await eko.generate(
+  const xsky = new XSky({ llms, agents, callback });
+  const workflow = await xsky.generate(
     'Browser searches for information about Xie Yang, summarizes it, and writes it into a desktop file, then sends it to the WeChat "Information Sharing" group.',
     uuidv4()
   );

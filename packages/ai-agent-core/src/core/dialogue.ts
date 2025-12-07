@@ -1,12 +1,12 @@
 import Log from "../common/log";
 import {
-  EkoMessage,
+  XSkyMessage,
   ToolResult,
   DialogueTool,
   DialogueParams,
   DialogueCallback,
-  EkoDialogueConfig,
-  EkoMessageUserPart,
+  XSkyDialogueConfig,
+  XSkyMessageUserPart,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
   LanguageModelV2ToolCallPart,
@@ -18,43 +18,43 @@ import {
   convertUserContent,
   convertAssistantToolResults,
 } from "./dialogue/llm";
-import { Eko } from "./eko";
+import { XSky } from "./eko";
 import TaskPlannerTool, {
   TOOL_NAME as task_planner,
 } from "./dialogue/task_planner";
 import { RetryLanguageModel } from "../llm";
-import { EkoMemory } from "../memory/memory";
+import { XSkyMemory } from "../memory/memory";
 import ExecuteTaskTool from "./dialogue/execute_task";
 import { getDialogueSystemPrompt } from "../prompt/dialogue";
 import TaskVariableStorageTool from "./dialogue/variable_storage";
 import { convertTools, getTool, convertToolResult } from "../agent/llm";
 
 /**
- * A dialogue manager for Eko.
+ * A dialogue manager for XSky.
  */
-export class EkoDialogue {
-  protected memory: EkoMemory;
+export class XSkyDialogue {
+  protected memory: XSkyMemory;
   protected tools: DialogueTool[];
-  protected config: EkoDialogueConfig;
-  protected ekoMap: Map<string, Eko>;
+  protected config: XSkyDialogueConfig;
+  protected xskyMap: Map<string, XSky>;
   protected globalContext: Map<string, any>;
 
   /**
-   * Creates an instance of the EkoDialogue.
+   * Creates an instance of the XSkyDialogue.
    * @param config - The configuration for the dialogue.
    * @param memory - The memory to use.
    * @param tools - The tools to use.
    */
   constructor(
-    config: EkoDialogueConfig,
-    memory?: EkoMemory,
+    config: XSkyDialogueConfig,
+    memory?: XSkyMemory,
     tools?: DialogueTool[]
   ) {
     this.config = config;
     this.tools = tools ?? [];
-    this.ekoMap = new Map<string, Eko>();
+    this.xskyMap = new Map<string, XSky>();
     this.globalContext = new Map<string, any>();
-    this.memory = memory ?? new EkoMemory(getDialogueSystemPrompt());
+    this.memory = memory ?? new XSkyMemory(getDialogueSystemPrompt());
   }
 
   /**
@@ -90,7 +90,7 @@ export class EkoDialogue {
     return this.doChat(
       {
         ...params,
-        user: lastUserMessage.content as string | EkoMessageUserPart[],
+        user: lastUserMessage.content as string | XSkyMessageUserPart[],
         callback: params.callback,
         messageId: params.messageId || lastUserMessage.id,
         signal: params.signal,
@@ -140,10 +140,10 @@ export class EkoDialogue {
   }
 
   protected async addUserMessage(
-    user: string | EkoMessageUserPart[],
+    user: string | XSkyMessageUserPart[],
     messageId: string
-  ): Promise<EkoMessage> {
-    const message: EkoMessage = {
+  ): Promise<XSkyMessage> {
+    const message: XSkyMessage = {
       id: messageId,
       role: "user",
       timestamp: Date.now(),
@@ -162,21 +162,21 @@ export class EkoDialogue {
   }
 
   /**
-   * Adds an Eko instance to the dialogue.
+   * Adds an XSky instance to the dialogue.
    * @param taskId - The ID of the task.
-   * @param eko - The Eko instance to add.
+   * @param xsky - The XSky instance to add.
    */
-  public addEko(taskId: string, eko: Eko): void {
-    this.ekoMap.set(taskId, eko);
+  public addXSky(taskId: string, xsky: XSky): void {
+    this.xskyMap.set(taskId, xsky);
   }
 
   /**
-   * Gets an Eko instance from the dialogue.
+   * Gets an XSky instance from the dialogue.
    * @param taskId - The ID of the task.
-   * @returns The Eko instance, or undefined if not found.
+   * @returns The XSky instance, or undefined if not found.
    */
-  public getEko(taskId: string): Eko | undefined {
-    return this.ekoMap.get(taskId);
+  public getXSky(taskId: string): XSky | undefined {
+    return this.xskyMap.get(taskId);
   }
 
   /**
@@ -191,7 +191,7 @@ export class EkoDialogue {
    * Gets the configuration of the dialogue.
    * @returns The configuration.
    */
-  public getConfig(): EkoDialogueConfig {
+  public getConfig(): XSkyDialogueConfig {
     return this.config;
   }
 

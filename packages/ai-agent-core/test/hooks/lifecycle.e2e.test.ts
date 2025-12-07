@@ -1,4 +1,4 @@
-import { Eko, Agent, AgentContext, type AgentParams, type LLMs, type EkoConfig, type Workflow } from "../../src";
+import { XSky, Agent, AgentContext, type AgentParams, type LLMs, type XSkyConfig, type Workflow } from "../../src";
 import type { AgentHooks } from "../../src/types/hooks.types";
 
 class DummySuccessAgent extends Agent {
@@ -8,7 +8,7 @@ class DummySuccessAgent extends Agent {
 
   async run(context: any, agentChain: any): Promise<string> {
     const agentContext = new AgentContext(context, this, agentChain);
-    // Expose AgentContext so hooks and Eko.runAgent can use it
+    // Expose AgentContext so hooks and XSky.runAgent can use it
     (this as any).agentContext = agentContext;
 
     const hooks = context.config.hooks as AgentHooks | undefined;
@@ -70,9 +70,9 @@ function createSingleAgentWorkflow(taskId: string, agentName: string): Workflow 
   };
 }
 
-// E2E-style tests that exercise workflow/agent lifecycle hooks via Eko.
+// E2E-style tests that exercise workflow/agent lifecycle hooks via XSky.
 // Tool-level hooks remain covered in hooks.integration.test.ts.
-describe("Workflow/Agent Hook Lifecycle with Eko.run", () => {
+describe("Workflow/Agent Hook Lifecycle with XSky.run", () => {
   it("should trigger workflow and agent hooks for successful run", async () => {
     const events: string[] = [];
 
@@ -99,16 +99,16 @@ describe("Workflow/Agent Hook Lifecycle with Eko.run", () => {
     const llms = createDummyLlms();
     const agent = new DummySuccessAgent();
 
-    const config: EkoConfig = {
+    const config: XSkyConfig = {
       llms,
       agents: [agent as Agent],
       hooks,
     } as any;
 
-    const eko = new Eko(config);
+    const xsky = new XSky(config);
     const workflow = createSingleAgentWorkflow("task-success", "DummyAgent");
-    await eko.initContext(workflow);
-    const result = await eko.execute(workflow.taskId);
+    await xsky.initContext(workflow);
+    const result = await xsky.execute(workflow.taskId);
 
     expect(result.success).toBe(true);
     expect(result.taskId).toBe("task-success");
@@ -146,17 +146,17 @@ describe("Workflow/Agent Hook Lifecycle with Eko.run", () => {
     const llms = createDummyLlms();
     const agent = new DummyErrorAgent();
 
-    const config: EkoConfig = {
+    const config: XSkyConfig = {
       llms,
       agents: [agent as Agent],
       hooks,
     } as any;
 
-    const eko = new Eko(config);
+    const xsky = new XSky(config);
     const workflow = createSingleAgentWorkflow("task-error", "ErrorAgent");
-    await eko.initContext(workflow);
+    await xsky.initContext(workflow);
 
-    const result = await eko.execute(workflow.taskId);
+    const result = await xsky.execute(workflow.taskId);
 
     expect(result.success).toBe(false);
     expect(result.taskId).toBe("task-error");

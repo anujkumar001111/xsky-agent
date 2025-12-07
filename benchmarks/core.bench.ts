@@ -1,7 +1,7 @@
 
 import { Bench } from 'tinybench';
 import {
-  Eko,
+  XSky,
   Agent,
   Context,
   Log,
@@ -124,14 +124,14 @@ async function runBenchmarks() {
   const agents = [new MockAgent()];
 
   // 1. Benchmark Workflow Generation
-  bench.add('Eko.generate (Simple)', async () => {
-    const eko = new Eko({ llms, agents });
+  bench.add('XSky.generate (Simple)', async () => {
+    const eko = new XSky({ llms, agents });
     await eko.generate('Create a workflow');
   });
 
   // 2. Benchmark Full Run (Generate + Execute)
-  bench.add('Eko.run (Simple)', async () => {
-    const eko = new Eko({ llms, agents });
+  bench.add('XSky.run (Simple)', async () => {
+    const eko = new XSky({ llms, agents });
     await eko.run('Run a task');
   });
 
@@ -144,8 +144,8 @@ async function runBenchmarks() {
     }
   };
 
-  bench.add('Eko.run (Complex - 50 agents)', async () => {
-    const eko = new Eko({ llms: complexLlms, agents });
+  bench.add('XSky.run (Complex - 50 agents)', async () => {
+    const eko = new XSky({ llms: complexLlms, agents });
     await eko.run('Run complex task');
   });
 
@@ -176,8 +176,8 @@ async function runBenchmarks() {
     }
   };
 
-  bench.add('Eko.generate (Large Context - 1000 msgs)', async () => {
-    const eko = new Eko({ llms: largeContextLlms, agents });
+  bench.add('XSky.generate (Large Context - 1000 msgs)', async () => {
+    const eko = new XSky({ llms: largeContextLlms, agents });
     // Manually inject history into context if possible, or just pass a huge prompt
     // For this bench, we'll simulate a huge prompt which triggers internal context building
     const hugePrompt = largeHistory.map(m => m.content).join('\n');
@@ -215,8 +215,8 @@ async function runBenchmarks() {
   bench.add('Agent.run (Heavy Tools - 50 tools)', async () => {
     const context = new Context('task-id', { llms, agents: [] }, [], new Chain('task'));
     const agent = new HeavyToolAgent();
-    // We need to bypass the full Eko loop to test just the agent run overhead (tool conversion, system prompt build)
-    // But Eko.run is fine too, just adds the planner overhead
+    // We need to bypass the full XSky loop to test just the agent run overhead (tool conversion, system prompt build)
+    // But XSky.run is fine too, just adds the planner overhead
     // Let's test Agent.run directly to isolate tool overhead
     await agent.run(context, {
       agent: {
@@ -261,8 +261,8 @@ async function runBenchmarks() {
     }
   };
 
-  bench.add('Eko.generate (Large Output - 500 agents)', async () => {
-    const eko = new Eko({ llms: hugeOutputLlms, agents });
+  bench.add('XSky.generate (Large Output - 500 agents)', async () => {
+    const eko = new XSky({ llms: hugeOutputLlms, agents });
     await eko.generate('Create huge workflow');
   });
 

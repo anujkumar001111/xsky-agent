@@ -28,7 +28,7 @@ Before starting any task, read these steering documents in `.claude/steering/`:
 
 This is the XSky AI Agent monorepo (`@xsky/ai-agent-monorepo`). It contains a core agent framework plus environment-specific runtimes:
 
-- `packages/ai-agent-core`: Core Eko agent engine (planning, dialogue, tools, MCP, hooks)
+- `packages/ai-agent-core`: Core XSky agent engine (planning, dialogue, tools, MCP, hooks)
 - `packages/ai-agent-nodejs`: Node.js/Playwright runtime (`BrowserAgent`, `FileAgent`)
 - `packages/ai-agent-web`: Browser runtime for in-page automation
 - `packages/ai-agent-extension`: Browser extension runtime
@@ -59,10 +59,10 @@ Main public entry: `packages/ai-agent-core/src/index.ts`.
 
 Key building blocks:
 
-- **Eko Orchestrator** (`src/core/eko.ts`)
-  - `Eko.generate(...)` – Plan workflow for a task prompt
-  - `Eko.execute(taskId)` – Execute an existing workflow
-  - `Eko.run(taskPrompt, taskId?, contextParams?)` – Generate + execute in one call
+- **XSky Orchestrator** (`src/core/eko.ts`)
+  - `XSky.generate(...)` – Plan workflow for a task prompt
+  - `XSky.execute(taskId)` – Execute an existing workflow
+  - `XSky.run(taskPrompt, taskId?, contextParams?)` – Generate + execute in one call
   - Manages `taskMap`, pause/resume/abort, and integrates hooks
 
 - **Workflow & Chain**
@@ -81,7 +81,7 @@ Key building blocks:
     - `browser_labels.ts`, `browser_screen.ts`, `dom_intelligence.ts` – Higher-level browser control/introspection
 
 - **Dialogue Layer**
-  - `EkoDialogue` (`src/core/dialogue.ts`) – Chat-style interface over `Eko`
+  - `XSkyDialogue` (`src/core/dialogue.ts`) – Chat-style interface over `XSky`
     - Uses `RetryLanguageModel` + internal tools:
       - Task planning (`task_planner`)
       - Task execution (`execute_task`)
@@ -135,7 +135,7 @@ Each environment package wraps `ai-agent-core` with platform-specific agents and
   - Depends on `playwright` and `chromium-bidi`
   - Provides `BrowserAgent`, `FileAgent` for Node-based automation
   - Example usage: `example/nodejs/src/index.ts`
-    - Configures `LLMs`, creates `Eko`, registers `BrowserAgent` + `FileAgent`, and runs a natural-language task
+    - Configures `LLMs`, creates `XSky`, registers `BrowserAgent` + `FileAgent`, and runs a natural-language task
 
 - **Web Runtime (`packages/ai-agent-web`)**
   - Uses `html2canvas` for screenshots
@@ -171,17 +171,17 @@ pnpm test -- src/core/eko.test.ts
 
 Look at `example/` for end-to-end usage:
 
-- **Node.js**: `example/nodejs/src/index.ts` – minimal setup for `Eko` with `BrowserAgent` + `FileAgent`
+- **Node.js**: `example/nodejs/src/index.ts` – minimal setup for `XSky` with `BrowserAgent` + `FileAgent`
 - **Electron**: `example/electron/src/main/*`, `preload`, `renderer`
 - **Web**: `example/web/src/main.ts`
 - **Extension**: `example/extension/src/*`
 
-These examples are the fastest way to understand how `Eko`, `Agent`, tools, and callbacks are wired together in each environment.
+These examples are the fastest way to understand how `XSky`, `Agent`, tools, and callbacks are wired together in each environment.
 
 ## Style & Conventions
 
 - TypeScript with strict typing; 2-space indentation, single quotes, semicolons
-- Named exports from modules; default export only where it improves DX (e.g., `Eko`)
+- Named exports from modules; default export only where it improves DX (e.g., `XSky`)
 - Core types live under `src/types/` (`core.types.ts`, `llm.types.ts`, `tools.types.ts`, `hooks.types.ts`)
 - Keep new hooks, tools, and agents consistent with existing patterns in:
   - `src/agent/base.ts`, `src/agent/browser/*`

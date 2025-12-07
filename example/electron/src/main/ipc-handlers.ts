@@ -13,7 +13,7 @@ export const IPC_CHANNELS = {
 } as const;
 
 export function setupIpcHandlers(agentService: AgentService, view: WebContentsView) {
-  // Eko Agent Handlers
+  // XSky Agent Handlers
   ipcMain.handle(IPC_CHANNELS.RUN_TASK, async (_, prompt: string) => {
     if (!prompt || typeof prompt !== 'string') {
       throw new Error('Invalid prompt');

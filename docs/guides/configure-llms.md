@@ -4,7 +4,7 @@ XSky uses the Vercel AI SDK under the hood, supporting many providers.
 
 ## Configuration Object
 
-Set `LLMs.default` before initializing Eko.
+Set `LLMs.default` before initializing XSky.
 
 ```typescript
 import { LLMs } from '@xsky/ai-agent-core';

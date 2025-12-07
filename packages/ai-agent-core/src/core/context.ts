@@ -2,7 +2,7 @@ import { Agent } from "../agent";
 import { sleep, uuidv4 } from "../common/utils";
 import Chain, { AgentChain } from "./chain";
 import {
-  EkoConfig,
+  XSkyConfig,
   LanguageModelV2Prompt,
   Workflow,
   WorkflowAgent,
@@ -28,8 +28,8 @@ export interface AdaptiveWaitSignal {
 export default class Context {
   /** Unique identifier for this workflow execution */
   taskId: string;
-  /** Eko configuration containing LLM settings, agents, and production hooks */
-  config: EkoConfig;
+  /** XSky configuration containing LLM settings, agents, and production hooks */
+  config: XSkyConfig;
   /** Execution chain tracking the sequence of agent calls and results */
   chain: Chain;
   /** Available agents that can be invoked during workflow execution */
@@ -64,7 +64,7 @@ export default class Context {
    */
   constructor(
     taskId: string,
-    config: EkoConfig,
+    config: XSkyConfig,
     agents: Agent[],
     chain: Chain
   ) {
@@ -346,9 +346,9 @@ export class AgentContext {
   }
 
   getLatestSignal(type?: string): AdaptiveWaitSignal | undefined {
-      if (type) {
-          return this.adaptiveWaitSignals.filter(s => s.type === type).pop();
-      }
-      return this.adaptiveWaitSignals[this.adaptiveWaitSignals.length - 1];
+    if (type) {
+      return this.adaptiveWaitSignals.filter(s => s.type === type).pop();
+    }
+    return this.adaptiveWaitSignals[this.adaptiveWaitSignals.length - 1];
   }
 }

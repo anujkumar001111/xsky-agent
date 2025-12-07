@@ -30,7 +30,7 @@ Create `src/index.ts`:
 ```typescript
 import dotenv from 'dotenv';
 import { BrowserAgent, FileAgent } from '@xsky/ai-agent-nodejs';
-import { Eko, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
+import { XSky, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
 
 dotenv.config();
 
@@ -64,7 +64,7 @@ async function runAgent() {
   const agents = [browserAgent, new FileAgent()];
 
   // Initialize orchestration engine
-  const eko = new Eko({ llms, agents, callback });
+  const xsky = new XSky({ llms, agents, callback });
 
   // Execute a multi-step task
   const prompt = `
@@ -77,11 +77,11 @@ async function runAgent() {
   try {
     console.log('Planning task...');
     // generate() creates the XML workflow plan
-    const workflow = await eko.generate(prompt);
+    const workflow = await xsky.generate(prompt);
     console.log('Plan generated. Executing...');
 
     // execute() runs the plan
-    await eko.execute(workflow.id);
+    await xsky.execute(workflow.id);
 
     console.log('Done! Check ./output for results.');
   } catch (error) {
@@ -104,7 +104,7 @@ npx ts-node src/index.ts
 
 ## What Happened?
 
-1. **Planning**: Eko used the LLM to convert your natural language request into a structured workflow.
+1. **Planning**: XSky used the LLM to convert your natural language request into a structured workflow.
 2. **Execution**:
    - `BrowserAgent` launched Chromium, navigated to HN, took a screenshot.
    - `BrowserAgent` analyzed the DOM to find headlines.

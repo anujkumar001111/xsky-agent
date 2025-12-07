@@ -1,6 +1,6 @@
 import { JSONSchema7 } from "json-schema";
-import { Eko } from "../eko";
-import { EkoDialogue } from "../dialogue";
+import { XSky } from "../eko";
+import { XSkyDialogue } from "../dialogue";
 import { DialogueParams, DialogueTool, ToolResult } from "../../types";
 
 export const TOOL_NAME = "taskPlanner";
@@ -12,16 +12,16 @@ export default class TaskPlannerTool implements DialogueTool {
   readonly name: string = TOOL_NAME;
   readonly description: string;
   readonly parameters: JSONSchema7;
-  private ekoDialogue: EkoDialogue;
+  private xskyDialogue: XSkyDialogue;
   private params: DialogueParams;
 
   /**
    * Creates an instance of the TaskPlannerTool.
-   * @param ekoDialogue - The EkoDialogue instance to use.
+   * @param xskyDialogue - The XSkyDialogue instance to use.
    * @param params - The parameters for the dialogue.
    */
-  constructor(ekoDialogue: EkoDialogue, params: DialogueParams) {
-    const agents = ekoDialogue.getConfig().agents || [];
+  constructor(xskyDialogue: XSkyDialogue, params: DialogueParams) {
+    const agents = xskyDialogue.getConfig().agents || [];
     const agentNames = agents.map((agent) => agent.Name).join(", ");
     this.description = `Used for task planning, this tool is only responsible for generating task plans, not executing them, the following agents are available: ${agentNames}...`;
     this.parameters = {
@@ -41,7 +41,7 @@ export default class TaskPlannerTool implements DialogueTool {
       required: ["taskDescription"],
     };
     this.params = params;
-    this.ekoDialogue = ekoDialogue;
+    this.xskyDialogue = xskyDialogue;
   }
 
   /**
@@ -53,10 +53,10 @@ export default class TaskPlannerTool implements DialogueTool {
     const taskDescription = args.taskDescription as string;
     const oldTaskId = args.oldTaskId as string;
     if (oldTaskId) {
-      const eko = this.ekoDialogue.getEko(oldTaskId);
-      if (eko) {
+      const xsky = this.xskyDialogue.getXSky(oldTaskId);
+      if (xsky) {
         // modify the old action plan
-        const workflow = await eko.modify(oldTaskId, taskDescription);
+        const workflow = await xsky.modify(oldTaskId, taskDescription);
         const taskPlan = workflow.xml;
         return {
           content: [
@@ -73,16 +73,16 @@ export default class TaskPlannerTool implements DialogueTool {
     }
     // generate a new action plan
     const taskId = this.params.messageId as string;
-    const eko = new Eko({
-      ...this.ekoDialogue.getConfig(),
+    const xsky = new XSky({
+      ...this.xskyDialogue.getConfig(),
       callback: this.params.callback?.taskCallback,
     });
-    const workflow = await eko.generate(
+    const workflow = await xsky.generate(
       taskDescription,
       taskId,
-      this.ekoDialogue.getGlobalContext()
+      this.xskyDialogue.getGlobalContext()
     );
-    this.ekoDialogue.addEko(taskId, eko);
+    this.xskyDialogue.addXSky(taskId, xsky);
     const taskPlan = workflow.xml;
     return {
       content: [

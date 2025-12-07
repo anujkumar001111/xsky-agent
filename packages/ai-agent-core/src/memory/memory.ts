@@ -1,11 +1,11 @@
 import { LanguageModelV2Message } from "@ai-sdk/provider";
 import { toFile, uuidv4, getMimeType, sub } from "../common/utils";
-import { EkoMessage, LanguageModelV2Prompt } from "../types";
+import { XSkyMessage, LanguageModelV2Prompt } from "../types";
 import { defaultMessageProviderOptions } from "../agent/llm";
 import config from "../config";
 
 /**
- * Configuration options for EkoMemory instance.
+ * Configuration options for XSkyMemory instance.
  * @property maxMessages - Maximum number of messages to retain in memory.
  * @property maxTokens - Maximum estimated token count before trimming.
  * @property enableCompression - Whether to compress long messages.
@@ -26,11 +26,11 @@ export interface MemoryConfig {
  * Memory management class for maintaining conversation history with LLMs.
  * Handles message storage, capacity management, token estimation, and compression.
  */
-export class EkoMemory {
+export class XSkyMemory {
   /** The system prompt to prepend to all conversations */
   protected systemPrompt: string;
   /** Array of conversation messages */
-  protected messages: EkoMessage[];
+  protected messages: XSkyMessage[];
   /** Maximum number of messages to retain */
   private maxMessages: number;
   /** Maximum estimated token count */
@@ -45,14 +45,14 @@ export class EkoMemory {
   private maxRecentScreenshots: number;
 
   /**
-   * Creates a new EkoMemory instance.
+   * Creates a new XSkyMemory instance.
    * @param systemPrompt - The system prompt to use for conversations.
    * @param messages - Initial messages to populate the memory with.
    * @param config - Optional configuration options.
    */
   constructor(
     systemPrompt: string,
-    messages: EkoMessage[] = [],
+    messages: XSkyMessage[] = [],
     memoryConfig: MemoryConfig = {}
   ) {
     this.messages = messages;
@@ -79,7 +79,7 @@ export class EkoMemory {
    * @returns A promise that resolves when import is complete.
    */
   public async import(data: {
-    messages: EkoMessage[];
+    messages: XSkyMessage[];
     config?: MemoryConfig;
   }): Promise<void> {
     this.messages = [...data.messages];
@@ -95,7 +95,7 @@ export class EkoMemory {
    * @param messages - Array of messages to add.
    * @returns A promise that resolves when messages are added.
    */
-  public async addMessages(messages: EkoMessage[]): Promise<void> {
+  public async addMessages(messages: XSkyMessage[]): Promise<void> {
     this.messages.push(...messages);
     await this.manageCapacity();
   }
@@ -104,7 +104,7 @@ export class EkoMemory {
    * Retrieves all messages in memory.
    * @returns Array of all stored messages.
    */
-  public getMessages(): EkoMessage[] {
+  public getMessages(): XSkyMessage[] {
     return this.messages;
   }
 
@@ -113,7 +113,7 @@ export class EkoMemory {
    * @param id - The message ID to search for.
    * @returns The message if found, undefined otherwise.
    */
-  public getMessageById(id: string): EkoMessage | undefined {
+  public getMessageById(id: string): XSkyMessage | undefined {
     return this.messages.find((message) => message.id === id);
   }
 
@@ -213,7 +213,7 @@ export class EkoMemory {
    * @param messages - Current messages in memory for context analysis.
    * @returns A promise that resolves when the system prompt is updated.
    */
-  protected async dynamicSystemPrompt(messages: EkoMessage[]): Promise<void> {
+  protected async dynamicSystemPrompt(messages: XSkyMessage[]): Promise<void> {
     // RAG dynamic system prompt
   }
 
@@ -296,7 +296,7 @@ export class EkoMemory {
       }
     }
     const removeIds: string[] = [];
-    let lastMessage: EkoMessage | null = null;
+    let lastMessage: XSkyMessage | null = null;
     for (let i = 0; i < this.messages.length; i++) {
       const message = this.messages[i];
       if (
@@ -312,7 +312,7 @@ export class EkoMemory {
         lastMessage &&
         lastMessage.role == "assistant" &&
         lastMessage.content.filter((part) => part.type == "tool-call").length >
-          0 &&
+        0 &&
         message.role != "tool"
       ) {
         // add tool result message
@@ -412,7 +412,7 @@ export class EkoMemory {
    * Retrieves the first user message in the conversation.
    * @returns The first user message, or undefined if no user messages exist.
    */
-  public getFirstUserMessage(): EkoMessage | undefined {
+  public getFirstUserMessage(): XSkyMessage | undefined {
     return this.messages.filter((message) => message.role === "user")[0];
   }
 
@@ -420,7 +420,7 @@ export class EkoMemory {
    * Retrieves the most recent user message in the conversation.
    * @returns The last user message, or undefined if no user messages exist.
    */
-  public getLastUserMessage(): EkoMessage | undefined {
+  public getLastUserMessage(): XSkyMessage | undefined {
     const userMessages = this.messages.filter(
       (message) => message.role === "user"
     );
@@ -459,25 +459,25 @@ export class EkoMemory {
           content:
             typeof message.content === "string"
               ? [
-                  {
-                    type: "text",
-                    text: message.content,
-                  },
-                ]
+                {
+                  type: "text",
+                  text: message.content,
+                },
+              ]
               : message.content.map((part) => {
-                  if (part.type == "text") {
-                    return {
-                      type: "text",
-                      text: part.text,
-                    };
-                  } else {
-                    return {
-                      type: "file",
-                      data: toFile(part.data),
-                      mediaType: part.mimeType || getMimeType(part.data),
-                    };
-                  }
-                }),
+                if (part.type == "text") {
+                  return {
+                    type: "text",
+                    text: part.text,
+                  };
+                } else {
+                  return {
+                    type: "file",
+                    data: toFile(part.data),
+                    mediaType: part.mimeType || getMimeType(part.data),
+                  };
+                }
+              }),
           providerOptions: defaultMessageProviderOptions(),
         });
       } else if (message.role == "assistant") {
@@ -517,13 +517,13 @@ export class EkoMemory {
               output:
                 typeof part.result == "string"
                   ? {
-                      type: "text",
-                      value: part.result,
-                    }
+                    type: "text",
+                    value: part.result,
+                  }
                   : {
-                      type: "json",
-                      value: part.result as any,
-                    },
+                    type: "json",
+                    value: part.result as any,
+                  },
             };
           }),
         });

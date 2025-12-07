@@ -7,8 +7,8 @@ import Chain, { AgentChain } from "./chain";
 import { buildAgentTree } from "../common/tree";
 import { mergeAgents, uuidv4 } from "../common/utils";
 import {
-  EkoConfig,
-  EkoResult,
+  XSkyConfig,
+  XSkyResult,
   Workflow,
   NormalAgentNode,
 } from "../types/core.types";
@@ -17,7 +17,7 @@ import { checkTaskReplan, replanWorkflow } from "./replan";
 /**
  * The main orchestrator class for the XSky AI Agent Framework.
  *
- * Eko manages the lifecycle of AI agent workflows, coordinating multiple specialized agents
+ * XSky manages the lifecycle of AI agent workflows, coordinating multiple specialized agents
  * (BrowserAgent, FileAgent, etc.) to accomplish complex tasks. It handles workflow planning,
  * execution, error recovery, and provides hooks for production-ready features like rate limiting,
  * security sandboxing, and human-in-the-loop interactions.
@@ -31,17 +31,17 @@ import { checkTaskReplan, replanWorkflow } from "./replan";
  * - Integration with external MCP (Model Context Protocol) tools
  * - Agent-to-Agent communication for distributed workflows
  */
-export class Eko {
+export class XSky {
   /** Configuration object containing LLM settings, registered agents, and production hooks */
-  protected config: EkoConfig;
+  protected config: XSkyConfig;
   /** Map storing active task contexts indexed by task ID for concurrent workflow execution */
   protected taskMap: Map<string, Context>;
 
   /**
-   * Creates an instance of the Eko class.
-   * @param config - The configuration for the Eko instance.
+   * Creates an instance of the XSky class.
+   * @param config - The configuration for the XSky instance.
    */
-  constructor(config: EkoConfig) {
+  constructor(config: XSkyConfig) {
     this.config = config;
     this.taskMap = new Map();
   }
@@ -109,7 +109,7 @@ export class Eko {
    * @param taskId - The ID of the task to execute.
    * @returns A promise that resolves to the result of the execution.
    */
-  public async execute(taskId: string): Promise<EkoResult> {
+  public async execute(taskId: string): Promise<XSkyResult> {
     const context = this.getTask(taskId);
     if (!context) {
       throw new Error("The task does not exist");
@@ -146,7 +146,7 @@ export class Eko {
     taskPrompt: string,
     taskId: string = uuidv4(),
     contextParams?: Record<string, any>
-  ): Promise<EkoResult> {
+  ): Promise<XSkyResult> {
     await this.generate(taskPrompt, taskId, contextParams);
     return await this.execute(taskId);
   }
@@ -193,7 +193,7 @@ export class Eko {
    * @param context - The execution context containing workflow, agents, and state
    * @returns Promise resolving to execution result with success status and final output
    */
-  private async doRunWorkflow(context: Context): Promise<EkoResult> {
+  private async doRunWorkflow(context: Context): Promise<XSkyResult> {
     const hooks = this.config.hooks;
     const agents = context.agents as Agent[];
     const workflow = context.workflow as Workflow;
@@ -334,7 +334,7 @@ export class Eko {
       agentTree = agentTree.nextAgent;
     }
 
-    const ekoResult: EkoResult = {
+    const xskyResult: XSkyResult = {
       success: true,
       stopReason: "done",
       taskId: context.taskId,
@@ -344,13 +344,13 @@ export class Eko {
     // ============ ON WORKFLOW COMPLETE HOOK ============
     if (hooks?.onWorkflowComplete) {
       try {
-        await hooks.onWorkflowComplete(context, ekoResult);
+        await hooks.onWorkflowComplete(context, xskyResult);
       } catch (hookError) {
         Log.error("onWorkflowComplete hook error:", hookError);
       }
     }
 
-    return ekoResult;
+    return xskyResult;
   }
 
   /**

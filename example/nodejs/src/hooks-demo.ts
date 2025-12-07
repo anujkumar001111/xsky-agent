@@ -12,8 +12,8 @@
  */
 
 import {
-  Eko,
-  EkoConfig,
+  XSky,
+  XSkyConfig,
   AgentHooks,
   ToolHookResult,
   RateLimitConfig,
@@ -26,7 +26,7 @@ import {
 class RateLimiter {
   private operations: Map<string, number[]> = new Map();
 
-  constructor(private config: RateLimitConfig) {}
+  constructor(private config: RateLimitConfig) { }
 
   checkLimit(toolName: string): boolean {
     const limit = this.config.perTool?.[toolName] || this.config;
@@ -253,7 +253,7 @@ async function main() {
   console.log("XSky Hooks Demo\n");
 
   // This would be your actual config with LLM keys
-  const config: EkoConfig = {
+  const config: XSkyConfig = {
     llms: {
       default: {
         provider: "openai",

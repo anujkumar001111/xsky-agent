@@ -25,7 +25,7 @@ pnpm add @xsky/ai-agent-electron  # For Electron apps
 Here's the simplest way to get started with a Node.js script:
 
 ```typescript
-import { Eko, LLMs } from '@xsky/ai-agent-core';
+import { XSky, LLMs } from '@xsky/ai-agent-core';
 import { BrowserAgent } from '@xsky/ai-agent-nodejs';
 import dotenv from 'dotenv';
 
@@ -39,13 +39,13 @@ LLMs.default = {
 };
 
 async function main() {
-  // 2. Initialize Eko
-  const eko = new Eko();
+  // 2. Initialize XSky
+  const xsky = new XSky();
 
   // 3. Register Agents
   // BrowserAgent requires Playwright dependencies installed
   const browserAgent = new BrowserAgent();
-  eko.registerAgent(browserAgent);
+  xsky.registerAgent(browserAgent);
 
   // 4. Run a task
   console.log('Starting task...');

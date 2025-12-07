@@ -23,7 +23,7 @@ graph TD
 The heart of the framework. Contains no environment-specific dependencies (like Node `fs` or DOM APIs) unless abstracted.
 
 - **Responsibility**: Orchestration, Planning, Dialogue, LLM abstraction, Tool definitions, Hooks.
-- **Key Exports**: `Eko`, `Agent`, `Context`, `EkoDialogue`.
+- **Key Exports**: `XSky`, `Agent`, `Context`, `XSkyDialogue`.
 
 ### `packages/ai-agent-nodejs`
 Runtime for Node.js environments.
@@ -67,10 +67,10 @@ We use **pnpm** workspaces and **Rollup** for building.
 ## Data Flow
 
 1. **User Input** (Prompt) → **Runtime** (e.g. Node)
-2. **Runtime** passes prompt to **Core (Eko)**
-3. **Eko** uses **LLM** to generate **Workflow XML**
-4. **Eko** executes Workflow:
+2. **Runtime** passes prompt to **Core (XSky)**
+3. **XSky** uses **LLM** to generate **Workflow XML**
+4. **XSky** executes Workflow:
    - Calls **Agent** (defined in Runtime)
    - Agent calls **Tools** (defined in Runtime or Core)
-   - Agent returns result to **Eko**
-5. **Eko** returns final output to **Runtime**
+   - Agent returns result to **XSky**
+5. **XSky** returns final output to **Runtime**

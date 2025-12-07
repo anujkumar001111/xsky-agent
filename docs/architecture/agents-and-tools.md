@@ -72,7 +72,7 @@ export const myTool = {
 ### Tool Injection
 Agents automatically get tools from three sources:
 1. **Agent Tools**: Defined in `getTools()`.
-2. **System Tools**: Injected by Eko (e.g., `variable_storage`, `human_interact`).
+2. **System Tools**: Injected by XSky (e.g., `variable_storage`, `human_interact`).
 3. **MCP Tools**: Injected dynamically from connected MCP servers.
 
 ## Model Context Protocol (MCP)
@@ -80,4 +80,4 @@ Agents automatically get tools from three sources:
 XSky supports MCP to extend agents at runtime.
 
 - **Clients**: `SimpleSseMcpClient` (SSE), `SimpleHttpMcpClient` (HTTP).
-- **Integration**: Eko fetches tools from connected MCP servers and registers them with the active agent.
+- **Integration**: XSky fetches tools from connected MCP servers and registers them with the active agent.

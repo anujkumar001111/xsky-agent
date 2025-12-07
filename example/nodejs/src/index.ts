@@ -2,7 +2,7 @@
 import dotenv from "dotenv";
 // Import core framework components
 import { BrowserAgent, FileAgent } from "@xsky/ai-agent-nodejs";  // Node.js-specific agents
-import { Eko, Agent, Log, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core"; // Core framework
+import { XSky, Agent, Log, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core"; // Core framework
 
 // Initialize environment configuration
 dotenv.config();
@@ -59,33 +59,34 @@ const callback = {
  * This example shows:
  * 1. Setting up multiple agents (Browser + File)
  * 2. Configuring LLM providers with environment variables
- * 3. Creating an Eko orchestrator instance
+ * 3. Creating an XSky orchestrator instance
  * 4. Running a complex multi-step task that requires both agents
  * 
  * The task "Search for the latest news about Musk, summarize and save to desktop as Musk.md"
  * demonstrates the framework's ability to:
  * - Use BrowserAgent to search and gather web information
  * - Use FileAgent to process and save the results
- * - Coordinate between agents automatically through the Eko orchestrator
+ * - Coordinate between agents automatically through the XSky orchestrator
  */
 async function run() {
   // Enable detailed logging for debugging
   Log.setLevel(1);
-  
+
   // Initialize agents with different capabilities
   const agents: Agent[] = [
     new BrowserAgent(),  // For web search and content extraction
     new FileAgent()       // For file operations and saving results
   ];
-  
+
   // Create the main orchestrator with LLMs, agents, and callbacks
-  const eko = new Eko({ llms, agents, callback });
-  
+  const xsky = new XSky({ llms, agents, callback });
+
+  // Define the prompt for the task
+  const prompt = "Search for the latest news about Musk, summarize and save to desktop as Musk.md";
+
   // Execute a complex task that requires both browser and file capabilities
-  const result = await eko.run(
-    "Search for the latest news about Musk, summarize and save to desktop as Musk.md"
-  );
-  
+  const result = await xsky.run(prompt);
+
   // Output the final result
   console.log("result: ", result.result);
 }

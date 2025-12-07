@@ -3,20 +3,20 @@ import config from "./config";                    // Global configuration settin
 import Log from "./common/log";                   // Logging utility for consistent output
 import { Planner } from "./core/plan";           // Workflow planning engine
 import { RetryLanguageModel } from "./llm";      // LLM wrapper with retry logic
-import { EkoMemory } from "./memory/memory";     // Memory management system
-import { Eko, EkoDialogue } from "./core/index"; // Main orchestrator and dialogue interface
+import { XSkyMemory } from "./memory/memory";     // Memory management system
+import { XSky, XSkyDialogue } from "./core/index"; // Main orchestrator and dialogue interface
 import Chain, { AgentChain } from "./core/chain"; // Workflow chain management
 import Context, { AgentContext } from "./core/context"; // Execution context handling
 import { SimpleSseMcpClient, SimpleHttpMcpClient } from "./mcp"; // Model Context Protocol clients
 
-// Export the main Eko class as default for easy import
-export default Eko;
+// Export the main XSky class as default for easy import
+export default XSky;
 
 // Core framework exports - main components for building AI agents
 export {
-  Eko,                      // Main orchestrator class for workflow execution
-  EkoDialogue,             // Dialogue interface for chat-style interactions
-  EkoMemory,               // Memory management for persistent state
+  XSky,                      // Main orchestrator class for workflow execution
+  XSkyDialogue,             // Dialogue interface for chat-style interactions
+  XSkyMemory,               // Memory management for persistent state
   Log,                     // Logging utility
   config,                  // Global configuration
   Context,                 // Base context class
@@ -56,7 +56,7 @@ export {
   type LLMRequest,           // Type definition for LLM API requests
   type StreamCallback,       // Type definition for streaming response callbacks
   type HumanCallback,        // Type definition for human interaction callbacks
-  type EkoConfig,            // Type definition for Eko configuration
+  type XSkyConfig,            // Type definition for XSky configuration
   type Workflow,             // Type definition for workflow structures
   type WorkflowAgent,        // Type definition for workflow agent configurations
   type WorkflowNode,         // Type definition for workflow node structures
@@ -75,7 +75,7 @@ export type {
   StateConfig,              // Type definition for state management configuration
   ApprovalConfig,           // Type definition for approval system configuration
   RateLimitConfig,          // Type definition for rate limiting configuration
-  ProductionEkoConfig,       // Type definition for production-ready Eko configuration
+  ProductionXSkyConfig,       // Type definition for production-ready XSky configuration
 } from "./types/hooks.types";
 
 // Utility functions - helper functions for common operations

@@ -1,10 +1,10 @@
 import { BrowserWindow, WebContentsView } from 'electron';
-import { Eko, Agent, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
+import { XSky, Agent, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
 import { BrowserAgent, FileAgent, getPreloadPath } from '@xsky/ai-agent-electron';
 import * as path from 'path';
 
 export class AgentService {
-  private eko: Eko;
+  private xsky: XSky;
   private browserAgent: BrowserAgent;
   private fileAgent: FileAgent;
   private mainWindow: BrowserWindow;
@@ -22,8 +22,8 @@ export class AgentService {
 
     this.fileAgent = new FileAgent(browserView);
 
-    // Initialize Eko
-    this.eko = new Eko({
+    // Initialize XSky
+    this.xsky = new XSky({
       llms: this.getLlmConfig(),
       agents: [this.browserAgent, this.fileAgent],
       callback: {
@@ -38,7 +38,7 @@ export class AgentService {
   async runTask(prompt: string): Promise<any> {
     try {
       console.log('[AgentService] Running task:', prompt);
-      const result = await this.eko.run(prompt);
+      const result = await this.xsky.run(prompt);
       return result;
     } catch (error) {
       console.error('[AgentService] Task failed:', error);
@@ -53,18 +53,18 @@ export class AgentService {
     // Determine if we should pause or resume based on current state
     // For simplicity in this example, we'll just toggle pause
     // In a real app, you'd track state more explicitly
-    await this.eko.pauseTask(taskId, true);
+    await this.xsky.pauseTask(taskId, true);
   }
 
   /**
    * Abort a task
    */
   async abortTask(taskId: string): Promise<void> {
-    await this.eko.abortTask(taskId);
+    await this.xsky.abortTask(taskId);
   }
 
   /**
-   * Handle streaming messages from Eko
+   * Handle streaming messages from XSky
    */
   private async handleStreamMessage(message: StreamCallbackMessage): Promise<void> {
     // Forward the message to the renderer process

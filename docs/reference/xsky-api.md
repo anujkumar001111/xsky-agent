@@ -1,12 +1,12 @@
-# Eko API Reference
+# XSky API Reference
 
-## `Eko` Class
+## `XSky` Class
 
 The main orchestrator class.
 
 ```typescript
-import { Eko } from '@xsky/ai-agent-core';
-const eko = new Eko(config?);
+import { XSky } from '@xsky/ai-agent-core';
+const xsky = new XSky(config?);
 ```
 
 ### Methods

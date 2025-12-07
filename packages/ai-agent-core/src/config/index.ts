@@ -55,7 +55,7 @@ type GlobalConfig = {
  * These values can be overridden at runtime through configuration APIs.
  */
 const config: GlobalConfig = {
-  name: "Eko",
+  name: "XSky",
   platform: "mac",
   maxReactNum: 500,
   maxTokens: 16000,
@@ -70,7 +70,7 @@ const config: GlobalConfig = {
   parallelToolCalls: true,
   expertMode: false,
   expertModeTodoLoopNum: 10,
-  useDomIntelligence: false,
+  useDomIntelligence: true,
   enableCoordinateTools: true,
   maxRecentScreenshots: 0,
   screenshotScaling: {

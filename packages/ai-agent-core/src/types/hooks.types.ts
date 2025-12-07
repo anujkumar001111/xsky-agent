@@ -1,6 +1,6 @@
 import type { AgentContext } from "../core/context";
 import type { ToolResult } from "./tools.types";
-import type { Workflow, WorkflowAgent, EkoResult } from "./core.types";
+import type { Workflow, WorkflowAgent, XSkyResult } from "./core.types";
 import type Context from "../core/context";
 import type { SecurityConfig } from "./security.types";
 
@@ -397,7 +397,7 @@ export interface AgentHooks {
    */
   onWorkflowComplete?: (
     context: Context,
-    result: EkoResult
+    result: XSkyResult
   ) => Promise<void>;
 }
 
@@ -516,9 +516,9 @@ export interface RateLimitConfig {
 }
 
 /**
- * Extended EkoConfig with production-ready hooks and configuration.
+ * Extended XSkyConfig with production-ready hooks and configuration.
  */
-export interface ProductionEkoConfig {
+export interface ProductionXSkyConfig {
   /**
    * Agent lifecycle and tool execution hooks.
    */

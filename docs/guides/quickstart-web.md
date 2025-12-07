@@ -16,12 +16,12 @@ In your SPA project (e.g., Vite + React):
 pnpm add @xsky/ai-agent-core @xsky/ai-agent-web
 ```
 
-## 2. Initialize Eko in the Browser
+## 2. Initialize XSky in the Browser
 
 Create `src/agent.ts`:
 
 ```typescript
-import { Eko, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
+import { XSky, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
 import { BrowserAgent } from '@xsky/ai-agent-web';
 
 // Configure LLM via an API route or a server-side proxy.
@@ -46,14 +46,14 @@ const callback = {
   },
 };
 
-export function createWebEko() {
+export function createWebXSky() {
   const agents = [new BrowserAgent()];
-  const eko = new Eko({ llms, agents, callback });
-  return eko;
+  const xsky = new XSky({ llms, agents, callback });
+  return xsky;
 }
 ```
 
-## 3. Using Eko from a React Component
+## 3. Using XSky from a React Component
 
 `src/App.tsx`:
 

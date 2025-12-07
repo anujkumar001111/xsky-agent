@@ -1,4 +1,4 @@
-import { Eko, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core";
+import { XSky, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-core";
 import { BrowserAgent } from "@xsky/ai-agent-web";
 
 export async function auto_test_case() {
@@ -29,12 +29,12 @@ export async function auto_test_case() {
     },
   };
 
-  // Initialize eko
+  // Initialize xsky
   let agents = [new BrowserAgent()];
-  let eko = new Eko({ llms, agents, callback });
+  let xsky = new XSky({ llms, agents, callback });
 
   // Run: Generate workflow from natural language description
-  const result = await eko.run(`
+  const result = await xsky.run(`
     Current login page automation test:
     1. Correct account and password are: admin / 666666 
     2. Please randomly combine usernames and passwords for testing to verify if login validation works properly, such as: username cannot be empty, password cannot be empty, incorrect username, incorrect password

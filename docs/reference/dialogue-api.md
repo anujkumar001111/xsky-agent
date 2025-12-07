@@ -1,12 +1,12 @@
 # Dialogue API Reference
 
-## `EkoDialogue` Class
+## `XSkyDialogue` Class
 
-A conversational wrapper around Eko, designed for chat interfaces.
+A conversational wrapper around XSky, designed for chat interfaces.
 
 ```typescript
-import { EkoDialogue } from '@xsky/ai-agent-core';
-const dialogue = new EkoDialogue(eko);
+import { XSkyDialogue } from '@xsky/ai-agent-core';
+const dialogue = new XSkyDialogue(xsky);
 ```
 
 ### Methods
@@ -25,7 +25,7 @@ Resets the conversation.
 
 ### Internal Tools
 
-EkoDialogue uses specialized internal tools to control Eko:
+XSkyDialogue uses specialized internal tools to control XSky:
 
 - **`task_planner`**: Generates a workflow from the user's request.
 - **`execute_task`**: Runs the generated workflow.

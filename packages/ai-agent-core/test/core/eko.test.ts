@@ -1,8 +1,8 @@
-// Eko orchestrator integration test
+// XSky orchestrator integration test
 // Tests the core workflow execution engine with browser and file agents
 import {
-  Eko,                    // Main orchestrator class
   Agent,                  // Agent interface
+  XSky,                    // Main orchestrator class
   Log,                    // Logging utility
   LLMs,                   // LLM configuration type
   StreamCallbackMessage,  // Streaming callback message type
@@ -30,7 +30,7 @@ const llms: LLMs = {
 };
 
 /**
- * Integration test for the Eko orchestrator.
+ * Integration test for the XSky orchestrator.
  *
  * This test verifies that the core workflow execution engine can:
  * 1. Initialize with multiple agent types
@@ -59,13 +59,13 @@ async function run() {
     new SimpleBrowserAgent(),
     new SimpleFileAgent(),
   ];
-  const eko = new Eko({ llms, agents, callback });
-  const result = await eko.run("Read the desktop file list");
+  const xsky = new XSky({ llms, agents, callback });
+  const result = await xsky.run("Read the desktop file list");
   console.log("result: ", result.result);
 }
 
 const t = process.env.OPENAI_API_KEY ? test : test.skip;
 
-t("eko", async () => {
+t("xsky", async () => {
   await run();
 });

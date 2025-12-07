@@ -11,7 +11,7 @@
 ## Code Style Guidelines
 - **Language**: TypeScript with strict mode, ES2020 target, ESNext modules
 - **Formatting**: 2-space indentation, single quotes, semicolons required
-- **Imports**: Explicit named imports; default exports only for main APIs (like `Eko`)
+- **Imports**: Explicit named imports; default exports only for main APIs (like `XSky`)
 - **Naming**: lowerCamelCase for variables/functions, PascalCase for types/classes/interfaces, kebab-case for files/directories
 - **Types**: Strict typing required; place in `src/types/` (core.types.ts, llm.types.ts, tools.types.ts, hooks.types.ts)
 - **Error Handling**: Use try/catch with specific error types; throw descriptive Error objects

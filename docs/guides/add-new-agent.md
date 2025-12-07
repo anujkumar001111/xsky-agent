@@ -48,15 +48,15 @@ In your initialization code:
 
 ```typescript
 const sqlAgent = new MySqlAgent(process.env.DB_URL);
-eko.registerAgent(sqlAgent);
+xsky.registerAgent(sqlAgent);
 ```
 
 ## Step 3: Use It
 
-You can now ask Eko to use this agent:
+You can now ask XSky to use this agent:
 
 ```typescript
-await eko.run('Find the top 5 customers by revenue from last month');
+await xsky.run('Find the top 5 customers by revenue from last month');
 ```
 
-Eko's planner will see `sql_expert` in the registry and assign the task to it.
+XSky's planner will see `sql_expert` in the registry and assign the task to it.

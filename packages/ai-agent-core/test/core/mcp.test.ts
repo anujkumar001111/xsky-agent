@@ -1,5 +1,5 @@
 import {
-  Eko,
+  XSky,
   Agent,
   Log,
   LLMs,
@@ -64,8 +64,8 @@ async function runWithSse() {
       llms: Object.keys(llms),
     }),
   ];
-  let eko = new Eko({ llms, agents, callback });
-  let result = await eko.run(
+  let xsky = new XSky({ llms, agents, callback });
+  let result = await xsky.run(
     "I have 3000 RMB, please help me buy a Huawei MateBook X Pro and 1 Bluetooth earphone, 1 mobile power bank."
   );
   console.log("result: ", JSON.stringify(result));
@@ -99,8 +99,8 @@ async function runWithHttp() {
       llms: Object.keys(llms),
     }),
   ];
-  let eko = new Eko({ llms, agents, callback });
-  let result = await eko.run(
+  let xsky = new XSky({ llms, agents, callback });
+  let result = await xsky.run(
     "Execute the following JavaScript code: \n```\nconsole.log('Hello, world!');\n```"
   );
   console.log("result: ", JSON.stringify(result));

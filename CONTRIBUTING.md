@@ -1,6 +1,6 @@
-# Contributing to Eko
+# Contributing to XSky
 
-Thank you for your interest in contributing to Eko! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to XSky! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 
@@ -259,4 +259,4 @@ If you have questions or need help, please:
 2. Create a new issue for discussion
 3. Ask in the project's communication channels
 
-Thank you for contributing to Eko!
+Thank you for contributing to XSky!

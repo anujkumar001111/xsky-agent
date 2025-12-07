@@ -1,7 +1,7 @@
-import { Eko } from "@xsky/ai-agent-core";
+import { XSky } from "@xsky/ai-agent-core";
 import { main } from "./main";
 
-var eko: Eko;
+var xsky: XSky;
 
 chrome.storage.local.set({ running: false });
 
@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener(async function (
       // Click the RUN button to execute the main function (workflow)
       chrome.runtime.sendMessage({ type: "log", log: "Run..." });
       // Run workflow
-      eko = await main(request.prompt);
+      xsky = await main(request.prompt);
     } catch (e) {
       console.error(e);
       chrome.runtime.sendMessage({
@@ -26,8 +26,8 @@ chrome.runtime.onMessage.addListener(async function (
       });
     }
   } else if (request.type == "stop") {
-    eko && eko.getAllTaskId().forEach(taskId => {
-      eko.abortTask(taskId);
+    xsky && xsky.getAllTaskId().forEach(taskId => {
+      xsky.abortTask(taskId);
       chrome.runtime.sendMessage({ type: "log", log: "Abort taskId: " + taskId });
     });
     chrome.runtime.sendMessage({ type: "log", log: "Stop" });

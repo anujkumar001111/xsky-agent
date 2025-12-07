@@ -197,7 +197,7 @@ export default class WatchTriggerTool implements Tool {
         []
       );
     } catch (error) {
-      console.error("Error initializing Eko observer:", error);
+      console.error("Error initializing XSky observer:", error);
     }
   }
 
@@ -216,7 +216,7 @@ export default class WatchTriggerTool implements Tool {
       )) as string;
       return result as any;
     } catch (e) {
-      console.error("Error checking Eko change:", e);
+      console.error("Error checking XSky change:", e);
       return "undefined";
     }
   }
