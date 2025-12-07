@@ -91,8 +91,8 @@ describe("Workflow/Agent Hook Lifecycle with XSky.run", () => {
       onWorkflowStepComplete: async (ctx, agent, result) => {
         events.push(`workflowStepComplete:${agent.name}`);
       },
-      onWorkflowComplete: async (ctx, ekoResult) => {
-        events.push(`workflowComplete:${ekoResult.success}`);
+      onWorkflowComplete: async (ctx, xskyResult) => {
+        events.push(`workflowComplete:${xskyResult.success}`);
       },
     };
 
@@ -138,8 +138,8 @@ describe("Workflow/Agent Hook Lifecycle with XSky.run", () => {
         events.push(`agentError:${error.message}`);
         return "continue";
       },
-      onWorkflowComplete: async (ctx, ekoResult) => {
-        events.push(`workflowComplete:${ekoResult.success}`);
+      onWorkflowComplete: async (ctx, xskyResult) => {
+        events.push(`workflowComplete:${xskyResult.success}`);
       },
     };
 
