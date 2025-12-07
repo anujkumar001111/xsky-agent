@@ -1,10 +1,9 @@
 {
-  "name": "EKO API",
+  "name": "XSky API",
   "entryPoints": [
     "src/index.ts"
   ],
-  "exclude": ["node_modules", "test/**/*"],
-  "out": "../../../eko-docs/public/api",
+  "out": "../../../xsky-docs/public/api",
   "excludePrivate": true,
   "excludeProtected": true,
   "excludeExternals": true
