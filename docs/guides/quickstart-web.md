@@ -73,7 +73,7 @@ export function App() {
   const runTask = async () => {
     setRunning(true);
     try {
-      const res = await eko.run(prompt);
+      const res = await xsky.run(prompt);
       setResult(res);
     } finally {
       setRunning(false);

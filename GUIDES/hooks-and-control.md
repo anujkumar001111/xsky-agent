@@ -317,7 +317,7 @@ const config: XSkyConfig = {
 };
 
 // Enable automatic checkpoints every 5 minutes
-const context = await eko.initContext(workflow);
+const context = await xsky.initContext(workflow);
 context.startCheckpointing(300000);
 
 // Resume from checkpoint

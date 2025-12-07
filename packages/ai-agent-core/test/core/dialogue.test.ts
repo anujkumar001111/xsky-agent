@@ -66,7 +66,7 @@ async function run() {
       if (message.type == "tool_streaming") {
         return;
       }
-      console.log("eko message: ", JSON.stringify(message, null, 2));
+      console.log("xsky message: ", JSON.stringify(message, null, 2));
     },
   };
   const agents: Agent[] = [

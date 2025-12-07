@@ -59,7 +59,7 @@ Main public entry: `packages/ai-agent-core/src/index.ts`.
 
 Key building blocks:
 
-- **XSky Orchestrator** (`src/core/eko.ts`)
+- **XSky Orchestrator** (`src/core/xsky.ts`)
   - `XSky.generate(...)` – Plan workflow for a task prompt
   - `XSky.execute(taskId)` – Execute an existing workflow
   - `XSky.run(taskPrompt, taskId?, contextParams?)` – Generate + execute in one call
@@ -164,7 +164,7 @@ Run a single test file (example for core):
 
 ```bash
 cd packages/ai-agent-core
-pnpm test -- src/core/eko.test.ts
+pnpm test -- src/core/xsky.test.ts
 ```
 
 ## Examples & Getting Started

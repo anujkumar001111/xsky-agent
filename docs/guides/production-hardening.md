@@ -56,7 +56,7 @@ To resume:
 
 ```typescript
 const savedState = await db.checkpoints.get(id);
-await eko.execute(id, { resumeFrom: JSON.parse(savedState) });
+await xsky.execute(id, { resumeFrom: JSON.parse(savedState) });
 ```
 
 ## 4. Audit Logging

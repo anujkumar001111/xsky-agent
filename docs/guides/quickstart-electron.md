@@ -107,7 +107,7 @@ ipcMain.handle('xsky:run-task', async (_event, prompt: string) => {
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('api', {
-  runTask: (prompt: string) => ipcRenderer.invoke('eko:run-task', prompt),
+  runTask: (prompt: string) => ipcRenderer.invoke('xsky:run-task', prompt),
 });
 ```
 

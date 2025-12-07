@@ -110,7 +110,7 @@ async function runWithHttp() {
 
 // const t = process.env.TEST_MCP ? test : test.skip;
 
-test.skip("eko", async () => {
+test.skip("xsky", async () => {
   // await runWithSse();
   await runWithHttp();
 });

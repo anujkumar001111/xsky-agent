@@ -102,7 +102,7 @@ Testing example for the core package:
 
 ```bash
 cd packages/ai-agent-core
-pnpm test -- src/core/eko.test.ts
+pnpm test -- src/core/xsky.test.ts
 ```
 
 ## Examples

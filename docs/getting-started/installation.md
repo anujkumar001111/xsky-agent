@@ -49,7 +49,7 @@ async function main() {
 
   // 4. Run a task
   console.log('Starting task...');
-  const result = await eko.run('Go to google.com and search for "XSky AI framework"');
+  const result = await xsky.run('Go to google.com and search for "XSky AI framework"');
 
   console.log('Task complete:', result);
 }

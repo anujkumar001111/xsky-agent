@@ -3,7 +3,7 @@
 
   // USE CASE: Monitor competitor prices and alert when action needed
 
-  const eko = new XSky({
+  const xsky = new XSky({
     llms: { default: anthropicConfig },
     agents: [new BrowserAgent()],
     hooks: {
@@ -37,15 +37,15 @@
     webhookHandler: {
       endpoint: '/api/agent/resume',
       onResume: async (threadId, payload) => {
-        const thread = await eko.loadThread(threadId);
+        const thread = await xsky.loadThread(threadId);
         thread.events.push({ type: 'human_approval', data: payload });
-        await eko.resume(threadId);
+        await xsky.resume(threadId);
       }
     }
   });
 
   // Run daily monitoring
-  await eko.run(`
+  await xsky.run(`
     Monitor these competitor sites for product prices:
     - Amazon: ${productUrls.amazon}
     - Walmart: ${productUrls.walmart}
@@ -412,11 +412,11 @@
     webhooks: {
       '/api/deploy/approve': async (req) => {
         const { threadId, approved, approver } = req.body;
-        await eko.addEvent(threadId, {
+        await xsky.addEvent(threadId, {
           type: 'human_approval',
           data: { approved, approver, timestamp: Date.now() }
         });
-        await eko.resume(threadId);
+        await xsky.resume(threadId);
       }
     }
   });

@@ -4,7 +4,7 @@
 - **Install**: `pnpm install`
 - **Build all**: `pnpm build` (sequential across packages)
 - **Test all**: `pnpm test` (sequential across packages)
-- **Single test**: `cd packages/ai-agent-core && pnpm test -- test/core/eko.test.ts`
+- **Single test**: `cd packages/ai-agent-core && pnpm test -- test/core/xsky.test.ts`
 - **Package-specific**: `pnpm -C packages/ai-agent-core test`
 - **Clean**: `pnpm clean` (removes node_modules and dist)
 

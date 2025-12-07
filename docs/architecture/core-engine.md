@@ -4,13 +4,13 @@ The Core Engine (`packages/ai-agent-core`) is responsible for the cognitive arch
 
 ## Key Components
 
-### XSky (`src/core/eko.ts`)
+### XSky (`src/core/xsky.ts`)
 The main entry point. It orchestrates the lifecycle of a task:
 
 1. **Generate**: `xsky.generate(prompt)`
    - Uses `Planner` to convert natural language to XML workflow.
    - Returns a `Workflow` object with a unique ID.
-2. **Execute**: `eko.execute(workflowId)`
+2. **Execute**: `xsky.execute(workflowId)`
    - Initializes `Context`.
    - Iterates through workflow steps.
    - Manages concurrency and dependencies.
