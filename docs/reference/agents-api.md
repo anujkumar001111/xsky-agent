@@ -26,15 +26,36 @@ Abstract contract for browser automation.
 - `screenshot()`
 - `get_dom()`: Returns simplified DOM snapshot.
 
-## `PlaywrightBrowserAgent`
+## `BrowserAgent` (Playwright)
 
-`packages/ai-agent-nodejs`
+`packages/ai-agent-nodejs/src/browser.ts`
 
-Implementation of `BaseBrowserAgent` using Playwright.
+Implementation of `BaseBrowserAgent` using Playwright with comprehensive browser automation capabilities.
+
+### Key Methods
+
+#### `close(): Promise<void>`
+Cleanly shuts down all browser resources. **Critical for production use** to prevent resource leaks.
+
+```typescript
+const agent = new BrowserAgent();
+// ... use agent ...
+await agent.close(); // Always call when done
+```
+
+**Important**: Always call `close()` when finished with the agent to prevent:
+- Zombie browser processes
+- Memory leaks
+- Test suite hangs
+- Resource exhaustion in production
 
 ### Config
-- `headless`: boolean
-- `browser`: 'chromium' | 'firefox' | 'webkit'
+- `headless`: boolean (default: true)
+- `browser`: 'chromium' | 'firefox' | 'webkit' (default: 'chromium')
+
+### Error Handling Improvements
+- `currentPage()`: Now logs timeout warnings instead of silent failures
+- `extract_elements()`: Warns when no elements match selectors for easier debugging
 
 ## `FileAgent`
 
