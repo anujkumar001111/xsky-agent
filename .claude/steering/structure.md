@@ -32,11 +32,11 @@ Avoid new top-level directories unless they serve cross-package concerns.
 ```
 src/
 ├── core/                  # Orchestration layer
-│   ├── eko.ts             # Main Eko orchestrator
+│   ├── xsky.ts             # Main XSky orchestrator
 │   ├── context.ts         # Per-task state management
 │   ├── plan.ts            # Workflow planning
 │   ├── replan.ts          # Workflow modification
-│   ├── dialogue.ts        # EkoDialogue chat interface
+│   ├── dialogue.ts        # XSkyDialogue chat interface
 │   └── chain.ts           # Execution tracking
 ├── agent/                 # Agent implementations
 │   ├── base.ts            # Agent base class
@@ -103,7 +103,7 @@ Use `index.ts` for public exports:
 
 ```typescript
 // packages/ai-agent-core/src/index.ts
-export { Eko } from './core/eko';
+export { XSky } from './core/xsky';
 export { LLMs, RetryLanguageModel } from './llm';
 export * from './tools';
 export * from './types/core.types';
@@ -114,7 +114,7 @@ export * from './types/core.types';
 ### Within Packages
 Use relative paths:
 ```typescript
-// In packages/ai-agent-core/src/core/eko.ts
+// In packages/ai-agent-core/src/core/xsky.ts
 import { parseXml } from '../common/xml';
 import type { AgentConfig } from '../types/core.types';
 ```
@@ -123,7 +123,7 @@ import type { AgentConfig } from '../types/core.types';
 Use package names:
 ```typescript
 // In example/nodejs/src/index.ts
-import { Eko, LLMs } from '@xsky/ai-agent-core';
+import { XSky, LLMs } from '@xsky/ai-agent-core';
 import { BrowserAgent } from '@xsky/ai-agent-nodejs';
 ```
 
@@ -153,7 +153,7 @@ Mirror source structure in tests:
 
 | Source | Test |
 |--------|------|
-| `src/core/eko.ts` | `test/core/eko.test.ts` |
+| `src/core/xsky.ts` | `test/core/xsky.test.ts` |
 | `src/tools/human_interact.ts` | `test/tools/human_interact.test.ts` |
 
 ## Key Entry Points

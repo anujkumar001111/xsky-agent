@@ -1,6 +1,6 @@
 ---
 name: XSky Core Architecture
-description: This skill should be used when the user asks about "XSky architecture", "Eko class", "how XSky works", "agent execution", "workflow system", "Chain class", "Context class", or needs to understand the core framework structure and execution model.
+description: This skill should be used when the user asks about "XSky architecture", "XSky class", "how XSky works", "agent execution", "workflow system", "Chain class", "Context class", or needs to understand the core framework structure and execution model.
 version: 1.0.0
 ---
 
@@ -13,7 +13,7 @@ This skill provides deep knowledge of XSky AI Agent framework internals.
 XSky is a multi-platform AI agent framework with these core components:
 
 ```
-Eko (Orchestrator)
+XSky (Orchestrator)
 ├── Planner (Task → Workflow XML)
 ├── Chain (Execution tracking)
 ├── Context (State management)
@@ -31,7 +31,7 @@ Eko (Orchestrator)
 
 ## Key Classes
 
-### Eko (`core/eko.ts`)
+### XSky (`core/xsky.ts`)
 Main orchestrator with these methods:
 - `generate(taskPrompt)` → Creates workflow from task
 - `execute(taskId)` → Runs workflow
@@ -79,7 +79,7 @@ All agents extend base classes:
 
 | File | Purpose |
 |------|---------|
-| `packages/ai-agent-core/src/core/eko.ts` | Main orchestrator |
+| `packages/ai-agent-core/src/core/xsky.ts` | Main orchestrator |
 | `packages/ai-agent-core/src/core/plan.ts` | Workflow planner |
 | `packages/ai-agent-core/src/core/chain.ts` | Execution chain |
 | `packages/ai-agent-core/src/core/context.ts` | Context management |

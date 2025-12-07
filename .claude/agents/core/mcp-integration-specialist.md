@@ -309,25 +309,25 @@ export class SimpleStdioMcpClient implements IMcpClient {
 }
 ```
 
-## Using MCP with Eko
+## Using MCP with XSky
 
 ### Basic Setup
 ```typescript
-import { Eko } from "@xsky/ai-agent-core";
+import { XSky } from "@xsky/ai-agent-core";
 import { SimpleSseMcpClient } from "@xsky/ai-agent-core";
 
 // Create MCP client
 const mcpClient = new SimpleSseMcpClient("http://localhost:3000/mcp");
 await mcpClient.connect();
 
-// Create Eko with MCP
-const eko = new Eko({
+// Create XSky with MCP
+const xsky = new XSky({
   llms: { /* ... */ },
   defaultMcpClient: mcpClient
 });
 
 // MCP tools are now available to all agents
-const result = await eko.run("Use the calculator tool to add 5 and 3");
+const result = await xsky.run("Use the calculator tool to add 5 and 3");
 ```
 
 ### Per-Agent MCP Client
@@ -337,7 +337,7 @@ import { BrowserAgent } from "@xsky/ai-agent-electron";
 // Agent with specific MCP client
 const browserAgent = new BrowserAgent(view, customMcpClient);
 
-const eko = new Eko({
+const xsky = new XSky({
   llms: { /* ... */ },
   agents: [browserAgent]
 });

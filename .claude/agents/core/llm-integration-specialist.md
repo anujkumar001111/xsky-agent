@@ -75,7 +75,7 @@ interface LLMs {
 }
 
 // Usage
-const eko = new Eko({
+const xsky = new XSky({
   llms: {
     default: {
       provider: "openai",
@@ -213,7 +213,7 @@ Instructions:
 
 1. **Compress conversation history**
 ```typescript
-// EkoMemory automatically compresses when threshold reached
+// XSkyMemory automatically compresses when threshold reached
 config.compressThreshold = 80; // Compress after 80 messages
 ```
 
@@ -257,7 +257,7 @@ interface StreamCallbackMessage {
 
 ### Implementing Streaming
 ```typescript
-const eko = new Eko({
+const xsky = new XSky({
   llms: { /* ... */ },
   callback: {
     async onMessage(message) {

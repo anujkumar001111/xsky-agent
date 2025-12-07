@@ -8,30 +8,23 @@ import {
   SimpleHttpMcpClient,
 } from "../../src/index";
 import { TaskNodeStatusTool } from "../../src/tools";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const openaiBaseURL = process.env.OPENAI_BASE_URL;
-const openaiApiKey = process.env.OPENAI_API_KEY;
-const claudeBaseURL = process.env.ANTHROPIC_BASE_URL;
-const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+import { LLMConfig } from "../config";
 
 const llms: LLMs = {
   default: {
     provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
-    apiKey: claudeApiKey || "",
+    model: LLMConfig.anthropic.model,
+    apiKey: LLMConfig.anthropic.apiKey || "",
     config: {
-      baseURL: claudeBaseURL,
+      baseURL: LLMConfig.anthropic.baseURL,
     },
   },
   openai: {
     provider: "openai",
-    model: "gpt-5-mini",
-    apiKey: openaiApiKey || "",
+    model: LLMConfig.openai.model,
+    apiKey: LLMConfig.openai.apiKey || "",
     config: {
-      baseURL: openaiBaseURL,
+      baseURL: LLMConfig.openai.baseURL,
     },
   },
 };

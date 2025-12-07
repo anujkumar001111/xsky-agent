@@ -19,7 +19,7 @@ Use this document to maintain a consistent project structure and file organizati
   - `rollup.config.*` – Build configuration.
   - `tsconfig.*.json` – TypeScript configs.
 - Follow the core package structure in `packages/ai-agent-core/src/`:
-  - `core/` – Orchestrator, planning, context, dialogue (`eko.ts`, `plan.ts`, `replan.ts`, `context.ts`, `dialogue.ts`).
+  - `core/` – Orchestrator, planning, context, dialogue (`xsky.ts`, `plan.ts`, `replan.ts`, `context.ts`, `dialogue.ts`).
   - `agent/` – Base agent class and specialized agents (browser, dialogue, etc.).
   - `tools/` – Built-in tools and tool exports.
   - `mcp/` – MCP client implementations.
@@ -30,7 +30,7 @@ Use this document to maintain a consistent project structure and file organizati
 
 - Use **kebab-case** for filenames (e.g., `tool-execution-sandbox.ts`, `browser-agent.ts`), except where existing files use established variants; match nearby files.
 - Use **index.ts** files for public exports within packages:
-  - Example: `packages/ai-agent-core/src/index.ts` re-exports Eko, tools, LLM config, and types.
+  - Example: `packages/ai-agent-core/src/index.ts` re-exports XSky, tools, LLM config, and types.
 - Use **descriptive names** that describe the module responsibility (e.g., `default-permission-evaluator.ts` instead of `permissions.ts`).
 
 ## Imports & Module Boundaries
@@ -53,9 +53,9 @@ Use this document to maintain a consistent project structure and file organizati
 ## Tests & Examples
 
 - Mirror **source structure** in tests:
-  - For `src/core/eko.ts`, keep tests in `test/core/eko.test.ts` or a similar nested folder structure.
+  - For `src/core/xsky.ts`, keep tests in `test/core/xsky.test.ts` or a similar nested folder structure.
   - For `src/tools/*`, keep tests grouped by domain (e.g., `test/tools/*.test.ts`).
-- Use the **example apps** as the canonical reference for composing agents and Eko:
+- Use the **example apps** as the canonical reference for composing agents and XSky:
   - Node.js: `example/nodejs/src/index.ts`.
   - Web: `example/web/src/main.ts` (or equivalent entry).
   - Extension: `example/extension/src/*`.

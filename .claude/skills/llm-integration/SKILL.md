@@ -23,7 +23,7 @@ This skill provides knowledge for LLM provider integration in XSky.
 ## Configuration
 
 ```typescript
-const eko = new Eko({
+const xsky = new XSky({
   llms: {
     default: {
       provider: "openai",

@@ -6,9 +6,9 @@ This document defines the XSky AI Agent framework's purpose, core features, and 
 
 Build **production-grade AI agents** that convert natural language tasks into **deterministic, auditable workflows** across multiple environments (Node.js, browser, Electron, browser extension).
 
-Use `Eko` (core orchestrator in `packages/ai-agent-core/src/core/eko.ts`) to **plan and execute XML workflows**:
-- Use `Eko.run()` for simple generate+execute flows
-- Use `Eko.generate()` + `Eko.execute()` when workflows need inspection or modification before execution
+Use `XSky` (core orchestrator in `packages/ai-agent-core/src/core/xsky.ts`) to **plan and execute XML workflows**:
+- Use `XSky.run()` for simple generate+execute flows
+- Use `XSky.generate()` + `XSky.execute()` when workflows need inspection or modification before execution
 
 Treat XSky as an **SDK with environment runtimes**, not a single application. Design all changes to be reusable across Node.js, web, extension, and Electron packages.
 
@@ -52,7 +52,7 @@ Optimize for **developers building automation agents**, not end-users:
 ## Business Logic Rules
 
 ### Workflow Transparency
-- Ensure `Eko.generate()` returns human-readable, debuggable workflows
+- Ensure `XSky.generate()` returns human-readable, debuggable workflows
 - Avoid opaque single-call LLM prompts for multi-step tasks
 
 ### Auditability

@@ -5,7 +5,7 @@ description: |
 
   <example>
   Context: User has completed a feature implementation
-  user: "Can you review the changes I made to the Eko class?"
+  user: "Can you review the changes I made to the XSky class?"
   assistant: "I'll use the code-reviewer agent to perform a thorough review checking for quality, security, and adherence to XSky patterns."
   <commentary>
   Code review after feature completion ensures quality. This agent specializes in comprehensive code analysis.

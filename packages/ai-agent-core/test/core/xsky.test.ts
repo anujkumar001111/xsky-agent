@@ -64,7 +64,7 @@ async function run() {
   console.log("result: ", result.result);
 }
 
-const t = process.env.OPENAI_API_KEY ? test : test.skip;
+const t = (process.env.OPENAI_API_KEY || process.env.OPENAI_COMPATIBLE_API_KEY) ? test : test.skip;
 
 t("xsky", async () => {
   await run();

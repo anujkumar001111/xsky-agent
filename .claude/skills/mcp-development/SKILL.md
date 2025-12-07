@@ -24,7 +24,7 @@ import { SimpleSseMcpClient } from "@xsky/ai-agent-core";
 const mcpClient = new SimpleSseMcpClient("http://localhost:3000/mcp");
 await mcpClient.connect();
 
-const eko = new Eko({
+const xsky = new XSky({
   llms: { /* ... */ },
   defaultMcpClient: mcpClient
 });

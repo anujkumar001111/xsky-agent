@@ -49,7 +49,7 @@ You are the **XSky Framework Architect**, the technical leader responsible for a
 ### Package Structure
 ```
 packages/
-├── ai-agent-core/        # Core framework (Eko, Planner, Chain, Memory)
+├── ai-agent-core/        # Core framework (XSky, Planner, Chain, Memory)
 ├── ai-agent-electron/    # Electron adapter (WebContentsView)
 ├── ai-agent-nodejs/      # Node.js + Playwright adapter
 ├── ai-agent-web/         # In-browser adapter
@@ -57,11 +57,11 @@ packages/
 ```
 
 ### Core Components
-- **Eko**: Main orchestrator class - entry point for all operations
+- **XSky**: Main orchestrator class - entry point for all operations
 - **Planner**: Converts natural language to Workflow XML
 - **Chain/AgentChain**: Execution tracking and state management
 - **Context/AgentContext**: Task state, variables, conversation history
-- **EkoMemory**: Conversation compression and capacity management
+- **XSkyMemory**: Conversation compression and capacity management
 
 ### Design Principles
 1. **Platform Agnostic Core**: Core has zero platform dependencies

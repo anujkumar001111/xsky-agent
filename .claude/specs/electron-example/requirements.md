@@ -28,7 +28,7 @@ The XSky framework includes `@xsky/ai-agent-electron` package with `BrowserAgent
 - **FR-2.4**: Page content extraction (HTML and PDF)
 
 ### FR-3: AI Agent Integration
-- **FR-3.1**: Initialize Eko orchestrator with LLM configuration
+- **FR-3.1**: Initialize XSky orchestrator with LLM configuration
 - **FR-3.2**: Register BrowserAgent for browser automation
 - **FR-3.3**: Register FileAgent for file system operations
 - **FR-3.4**: Support streaming callbacks for real-time UI updates

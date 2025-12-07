@@ -7,9 +7,9 @@ export async function auto_test_case() {
     default: {
       provider: "openai-compatible",
       model: "qwen3-coder-flash",
-      apiKey: process.env.OPENAI_COMPATABLE_API_KEY || "sk-anything",
+      apiKey: process.env.OPENAI_COMPATIBLE_API_KEY || "sk-anything",
       config: {
-        baseURL: process.env.OPENAI_COMPATABLE_BASE_URL || "http://143.198.174.251:8317/v1",
+        baseURL: process.env.OPENAI_COMPATIBLE_BASE_URL || "http://143.198.174.251:8317/v1",
       },
     },
   };

@@ -8,8 +8,8 @@ import { XSky, Agent, Log, LLMs, StreamCallbackMessage } from "@xsky/ai-agent-co
 dotenv.config();
 
 // Extract LLM provider configurations from environment variables
-const openaiBaseURL = process.env.OPENAI_BASE_URL;
-const openaiApiKey = process.env.OPENAI_API_KEY;
+const openaiBaseURL = process.env.OPENAI_COMPATIBLE_BASE_URL;
+const openaiApiKey = process.env.OPENAI_COMPATIBLE_API_KEY;
 const claudeBaseURL = process.env.ANTHROPIC_BASE_URL;
 const claudeApiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -27,7 +27,7 @@ const llms: LLMs = {
   // Alternative LLM - OpenAI GPT for cost-effective processing
   openai: {
     provider: "openai",
-    model: "gpt-5-mini",
+    model: "qwen3-coder-plus",
     apiKey: openaiApiKey || "",
     config: {
       baseURL: openaiBaseURL,

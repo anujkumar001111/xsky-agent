@@ -47,7 +47,7 @@ Set these environment variables (never hardcode or log):
 - `OPENROUTER_API_KEY`
 
 ### LLM Configuration
-Configure providers before creating `Eko`:
+Configure providers before creating `XSky`:
 
 ```typescript
 import { LLMs } from '@xsky/ai-agent-core';
@@ -70,7 +70,7 @@ Always use `RetryLanguageModel` instead of direct provider clients.
 
 ### Exports
 - Prefer named exports
-- Default exports only for main entries (e.g., `Eko`, Next.js pages)
+- Default exports only for main entries (e.g., `XSky`, Next.js pages)
 
 ### Type Definitions
 Keep types in `packages/ai-agent-core/src/types/`:
@@ -83,10 +83,10 @@ Keep types in `packages/ai-agent-core/src/types/`:
 ## Architecture Patterns
 
 ### Orchestration
-Use `Eko` as the single orchestrator:
+Use `XSky` as the single orchestrator:
 - Extend planning via `core/plan.ts`, `core/replan.ts`
 - Extend context via `core/context.ts`
-- Never bypass Eko for workflow execution
+- Never bypass XSky for workflow execution
 
 ### Agents
 Extend `Agent` base class from `packages/ai-agent-core/src/agent/base.ts`:
@@ -132,7 +132,7 @@ Components:
 ```bash
 # From package directory
 pnpm test                           # All tests
-pnpm test -- src/core/eko.test.ts  # Single file
+pnpm test -- src/core/xsky.test.ts  # Single file
 ```
 
 ### Coverage

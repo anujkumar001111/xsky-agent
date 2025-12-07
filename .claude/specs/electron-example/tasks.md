@@ -81,7 +81,7 @@
 // Load LLM configuration from environment
 // Initialize BrowserAgent with WebContentsView
 // Initialize FileAgent
-// Create Eko instance with streaming callback
+// Create XSky instance with streaming callback
 // Implement runTask, pauseTask, abortTask methods
 // Forward events to renderer via IPC
 ```
@@ -100,9 +100,9 @@
 ```typescript
 // Define IPC channel constants
 // Implement handlers for:
-//   - eko:run-task
-//   - eko:pause-task
-//   - eko:abort-task
+//   - xsky:run-task
+//   - xsky:pause-task
+//   - xsky:abort-task
 //   - view:navigate
 //   - view:screenshot
 //   - view:go-back
@@ -128,7 +128,7 @@
 **Implementation**:
 ```typescript
 // Use contextBridge to expose secure API
-// Expose window.electronAPI.eko.* methods
+// Expose window.electronAPI.xsky.* methods
 // Expose window.electronAPI.view.* methods
 // Add TypeScript type declarations
 ```
@@ -367,7 +367,7 @@
 ```typescript
 // Main process
 import { app, BrowserWindow, WebContentsView, ipcMain } from 'electron';
-import { Eko, Agent, Log, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
+import { XSky, Agent, Log, LLMs, StreamCallbackMessage } from '@xsky/ai-agent-core';
 import { BrowserAgent, FileAgent, getPreloadPath } from '@xsky/ai-agent-electron';
 
 // Preload

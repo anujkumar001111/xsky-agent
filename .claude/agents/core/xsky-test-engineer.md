@@ -52,7 +52,7 @@ packages/
 ├── ai-agent-core/
 │   └── test/
 │       ├── core/
-│       │   ├── eko.test.ts
+│       │   ├── xsky.test.ts
 │       │   ├── chain.test.ts
 │       │   └── context.test.ts
 │       ├── agent/
@@ -94,7 +94,7 @@ pnpm test
 pnpm --filter @xsky/ai-agent-core test
 
 # Single test file
-pnpm --filter @xsky/ai-agent-core test -- test/core/eko.test.ts
+pnpm --filter @xsky/ai-agent-core test -- test/core/xsky.test.ts
 
 # With coverage
 pnpm --filter @xsky/ai-agent-core test -- --coverage
@@ -108,13 +108,13 @@ pnpm --filter @xsky/ai-agent-core test -- --watch
 ### Unit Test Structure
 ```typescript
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { Eko } from '../../src/core/eko';
+import { XSky } from '../../src/core/xsky';
 
-describe('Eko', () => {
-  let eko: Eko;
+describe('XSky', () => {
+  let xsky: XSky;
 
   beforeEach(() => {
-    eko = new Eko({
+    xsky = new XSky({
       llms: {
         default: {
           provider: 'openai',
@@ -127,7 +127,7 @@ describe('Eko', () => {
 
   describe('generate', () => {
     it('should create workflow from task prompt', async () => {
-      const workflow = await eko.generate('Search for AI news');
+      const workflow = await xsky.generate('Search for AI news');
 
       expect(workflow).toBeDefined();
       expect(workflow.agents).toHaveLength(1);
@@ -135,14 +135,14 @@ describe('Eko', () => {
     });
 
     it('should throw on empty prompt', async () => {
-      await expect(eko.generate('')).rejects.toThrow('Prompt required');
+      await expect(xsky.generate('')).rejects.toThrow('Prompt required');
     });
   });
 
   describe('execute', () => {
     it('should run workflow and return result', async () => {
-      const workflow = await eko.generate('Test task');
-      const result = await eko.execute(workflow.taskId);
+      const workflow = await xsky.generate('Test task');
+      const result = await xsky.execute(workflow.taskId);
 
       expect(result.success).toBe(true);
       expect(result.stopReason).toBe('done');
@@ -250,15 +250,15 @@ describe('extractFormFieldsTool', () => {
 
 ### Integration Tests
 ```typescript
-describe('Eko Integration', () => {
+describe('XSky Integration', () => {
   // Use real LLM for integration tests (skip in CI without API key)
   const skipWithoutApiKey = process.env.OPENAI_API_KEY ? describe : describe.skip;
 
   skipWithoutApiKey('with real LLM', () => {
-    let eko: Eko;
+    let xsky: XSky;
 
     beforeAll(() => {
-      eko = new Eko({
+      xsky = new XSky({
         llms: {
           default: {
             provider: 'openai',
@@ -270,7 +270,7 @@ describe('Eko Integration', () => {
     });
 
     it('should complete simple task', async () => {
-      const result = await eko.run('What is 2 + 2?');
+      const result = await xsky.run('What is 2 + 2?');
 
       expect(result.success).toBe(true);
       expect(result.result).toContain('4');
@@ -292,7 +292,7 @@ pnpm --filter @xsky/ai-agent-core test -- --coverage --coverageReporters=text
 
 # Output shows:
 # File         | % Stmts | % Branch | % Funcs | % Lines
-# core/eko.ts  |   85.7  |   78.5   |   90.0  |   85.7
+# core/xsky.ts  |   85.7  |   78.5   |   90.0  |   85.7
 # core/chain.ts|   92.3  |   88.0   |  100.0  |   92.3
 ```
 
@@ -336,10 +336,10 @@ pnpm --filter @xsky/ai-agent-core test -- --coverage --coverageReporters=html
 ### Common Anti-Patterns to Avoid
 ```typescript
 // BAD: Testing implementation details
-expect(eko._internalState).toBe('ready');
+expect(xsky._internalState).toBe('ready');
 
 // GOOD: Test behavior
-const result = await eko.run('task');
+const result = await xsky.run('task');
 expect(result.success).toBe(true);
 
 // BAD: Non-deterministic test

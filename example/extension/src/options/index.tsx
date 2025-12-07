@@ -62,7 +62,7 @@ const OptionsPage = () => {
     ],
     openai: [
       { value: "gpt-5", label: "gpt-5 (default)" },
-      { value: "gpt-5-mini", label: "gpt-5-mini" },
+      { value: "qwen3-coder-plus", label: "qwen3-coder-plus" },
       { value: "gpt-4.1", label: "gpt-4.1" },
       { value: "gpt-4.1-mini", label: "gpt-4.1-mini" },
       { value: "o4-mini", label: "o4-mini" },
@@ -73,7 +73,7 @@ const OptionsPage = () => {
       { value: "anthropic/claude-3.7-sonnet", label: "claude-3.7-sonnet" },
       { value: "google/gemini-2.5-pro", label: "gemini-2.5-pro" },
       { value: "openai/gpt-5", label: "gpt-5" },
-      { value: "openai/gpt-5-mini", label: "gpt-5-mini" },
+      { value: "openai/qwen3-coder-plus", label: "qwen3-coder-plus" },
       { value: "openai/gpt-4.1", label: "gpt-4.1" },
       { value: "openai/o4-mini", label: "o4-mini" },
       { value: "openai/gpt-4.1-mini", label: "gpt-4.1-mini" },

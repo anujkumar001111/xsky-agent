@@ -58,7 +58,7 @@ User Task → Planner → Workflow XML → Parser → Agent Tree → Executor
 packages/ai-agent-core/src/
 ├── core/
 │   ├── plan.ts          # Planner class
-│   ├── eko.ts           # Workflow execution
+│   ├── xsky.ts           # Workflow execution
 │   └── replan.ts        # Replanning logic
 ├── common/
 │   ├── xml.ts           # XML parsing utilities
@@ -354,9 +354,9 @@ const workflow: Workflow = {
 };
 
 // Execute manually constructed workflow
-const eko = new Eko(config);
-const context = await eko.initContext(workflow);
-const result = await eko.execute(workflow.taskId);
+const xsky = new XSky(config);
+const context = await xsky.initContext(workflow);
+const result = await xsky.execute(workflow.taskId);
 ```
 
 ## Quality Standards

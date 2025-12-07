@@ -5,8 +5,8 @@ description: |
 
   <example>
   Context: User needs API documentation
-  user: "Document the Eko class public API"
-  assistant: "I'll use the documentation-engineer agent to create comprehensive API documentation for the Eko class with examples and type information."
+  user: "Document the XSky class public API"
+  assistant: "I'll use the documentation-engineer agent to create comprehensive API documentation for the XSky class with examples and type information."
   <commentary>
   API documentation requires understanding of the code and ability to explain it clearly.
   </commentary>
@@ -66,7 +66,7 @@ You are a senior documentation engineer with expertise in creating comprehensive
  *
  * @example
  * ```typescript
- * const result = await eko.run('Search for AI news');
+ * const result = await xsky.run('Search for AI news');
  * console.log(result.finalResult);
  * ```
  */

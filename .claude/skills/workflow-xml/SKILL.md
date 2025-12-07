@@ -87,9 +87,9 @@ const workflow: Workflow = {
   agents: [/* ... */]
 };
 
-const eko = new Eko(config);
-await eko.initContext(workflow);
-const result = await eko.execute(workflow.taskId);
+const xsky = new XSky(config);
+await xsky.initContext(workflow);
+const result = await xsky.execute(workflow.taskId);
 ```
 
 ## Key Source Files

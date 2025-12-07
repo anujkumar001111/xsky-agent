@@ -40,7 +40,7 @@ Use this document to align technical changes with the existing stack, tooling, a
 ## Coding Conventions
 
 - Use **2-space indentation, single quotes, and semicolons** across all TypeScript and JavaScript files.
-- Prefer **named exports** for modules; only use default exports where existing patterns require it (e.g., `Eko` entry or Next.js pages in external apps).
+- Prefer **named exports** for modules; only use default exports where existing patterns require it (e.g., `XSky` entry or Next.js pages in external apps).
 - Use **PascalCase** for types and classes, **camelCase** for variables/functions, and **kebab-case** for file names.
 - Keep core types under `packages/ai-agent-core/src/types/` (`core.types.ts`, `llm.types.ts`, `tools.types.ts`, `hooks.types.ts`, `security.types.ts`).
 - Place new tools under `packages/ai-agent-core/src/tools/` and export them from `src/tools/index.ts` and/or the root `src/index.ts` as appropriate.
@@ -48,8 +48,8 @@ Use this document to align technical changes with the existing stack, tooling, a
 
 ## Architecture & Extension Points
 
-- Use `Eko` as the **only orchestrator** for workflows:
-  - Add new orchestration behaviours by extending planning (`core/plan.ts`, `core/replan.ts`) or context (`core/context.ts`), not by bypassing Eko.
+- Use `XSky` as the **only orchestrator** for workflows:
+  - Add new orchestration behaviours by extending planning (`core/plan.ts`, `core/replan.ts`) or context (`core/context.ts`), not by bypassing XSky.
 - Use the **Agent base class** in `packages/ai-agent-core/src/agent/base.ts` when implementing new agents to get standard prompt construction, tool integration, and error handling.
 - Use the **tools system** for side effects:
   - Implement domain-specific actions as tools with clear input/output types and constraints.

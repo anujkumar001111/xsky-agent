@@ -5,22 +5,15 @@ import {
 import { toImage } from "../../src/common/utils";
 import { RetryLanguageModel } from "../../src/llm";
 import { LLMs } from "../../src/types/llm.types";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const openaiBaseURL = process.env.OPENAI_BASE_URL;
-const openaiApiKey = process.env.OPENAI_API_KEY;
-const claudeBaseURL = process.env.ANTHROPIC_BASE_URL;
-const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+import { LLMConfig } from "../config";
 
 const llms: LLMs = {
   default: {
     provider: "openai",
-    model: "gpt-5-mini",
-    apiKey: openaiApiKey || "",
+    model: LLMConfig.openai.model,
+    apiKey: LLMConfig.openai.apiKey || "",
     config: {
-      baseURL: openaiBaseURL,
+      baseURL: LLMConfig.openai.baseURL,
     },
     fetch: (url, options) => {
       const body = JSON.parse(options?.body as string);
@@ -37,34 +30,34 @@ const llms: LLMs = {
   },
   test1: {
     provider: "anthropic",
-    model: "claude-3-7-sonnet-20250219",
+    model: LLMConfig.anthropic.model,
     apiKey: "xxx",
     config: {
-      baseURL: claudeBaseURL,
+      baseURL: LLMConfig.anthropic.baseURL,
     },
   },
   test2: {
     provider: "openai",
     model: "xxx",
-    apiKey: openaiApiKey || "",
+    apiKey: LLMConfig.openai.apiKey || "",
     config: {
-      baseURL: openaiBaseURL,
+      baseURL: LLMConfig.openai.baseURL,
     },
   },
   openai: {
     provider: "openai",
-    model: "gpt-5-mini",
-    apiKey: openaiApiKey || "",
+    model: LLMConfig.openai.model,
+    apiKey: LLMConfig.openai.apiKey || "",
     config: {
-      baseURL: openaiBaseURL,
+      baseURL: LLMConfig.openai.baseURL,
     },
   },
   claude: {
     provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
-    apiKey: claudeApiKey || "",
+    model: LLMConfig.anthropic.model,
+    apiKey: LLMConfig.anthropic.apiKey || "",
     config: {
-      baseURL: claudeBaseURL,
+      baseURL: LLMConfig.anthropic.baseURL,
     },
   },
 };
@@ -237,54 +230,54 @@ export async function testImageToolsPrompt(llm: "openai" | "claude") {
       // Only the claude model supports returning images from tool results, while openai only supports text.
       ...((llm == "claude"
         ? [
-            {
-              role: "tool",
-              content: [
-                {
-                  type: "tool-result",
-                  toolCallId: "tool_613DVw1dqWT9d33YDkZDKhFH",
-                  toolName: "random_gen_image",
-                  output: {
-                    type: "content",
-                    value: [
-                      {
-                        type: "media",
-                        data: imageBase64,
-                        mediaType: "image/jpeg",
-                      }
-                    ]
-                  },
+          {
+            role: "tool",
+            content: [
+              {
+                type: "tool-result",
+                toolCallId: "tool_613DVw1dqWT9d33YDkZDKhFH",
+                toolName: "random_gen_image",
+                output: {
+                  type: "content",
+                  value: [
+                    {
+                      type: "media",
+                      data: imageBase64,
+                      mediaType: "image/jpeg",
+                    }
+                  ]
                 },
-              ],
-            },
-          ]
+              },
+            ],
+          },
+        ]
         : [
-            {
-              role: "tool",
-              content: [
-                {
-                  type: "tool-result",
-                  toolCallId: "tool_613DVw1dqWT9d33YDkZDKhFH",
-                  toolName: "random_gen_image",
-                  output: {
-                    type: "json",
-                    value: { success: true },
-                  }
-                },
-              ],
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "file",
-                  data: toImage(imageBase64),
-                  mediaType: "image/jpeg",
-                },
-                { type: "text", text: "call `random_gen_image` tool result" },
-              ],
-            },
-          ]) as LanguageModelV2Prompt),
+          {
+            role: "tool",
+            content: [
+              {
+                type: "tool-result",
+                toolCallId: "tool_613DVw1dqWT9d33YDkZDKhFH",
+                toolName: "random_gen_image",
+                output: {
+                  type: "json",
+                  value: { success: true },
+                }
+              },
+            ],
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "file",
+                data: toImage(imageBase64),
+                mediaType: "image/jpeg",
+              },
+              { type: "text", text: "call `random_gen_image` tool result" },
+            ],
+          },
+        ]) as LanguageModelV2Prompt),
     ],
     maxTokens: 1024,
     temperature: 0.7,

@@ -5,7 +5,7 @@ Use this document to keep AI agents aligned with the actual purpose, value propo
 ## Product Purpose & Value
 
 - Build **production-grade AI agents** that turn natural language tasks into **deterministic, auditable workflows** across Node.js, browser, Electron, and browser extension environments.
-- Use `Eko` (core orchestrator in `packages/ai-agent-core/src/core/eko.ts`) to **plan and execute XML workflows**, not ad-hoc scripts. Prefer `Eko.run()` for simple flows and `Eko.generate()` + `Eko.execute()` when workflows need inspection or modification.
+- Use `XSky` (core orchestrator in `packages/ai-agent-core/src/core/xsky.ts`) to **plan and execute XML workflows**, not ad-hoc scripts. Prefer `XSky.run()` for simple flows and `XSky.generate()` + `XSky.execute()` when workflows need inspection or modification.
 - Treat XSky as an **SDK plus runtimes**, not a single app. Always design changes so they can be reused across Node.js, web, extension, and Electron packages.
 
 ## Core Features to Preserve
@@ -40,7 +40,7 @@ Use this document to keep AI agents aligned with the actual purpose, value propo
 ## Business Logic & Behavioral Rules
 
 - Always **treat workflows as first-class, inspectable artifacts**:
-  - Ensure `Eko.generate()` returns workflows that are human-readable and debuggable.
+  - Ensure `XSky.generate()` returns workflows that are human-readable and debuggable.
   - Avoid opaque, single-call LLM prompts for multi-step tasks when they should be modeled as workflows.
 - Keep **agent behavior explainable and auditable**:
   - Preserve or extend `Chain` and `Context` tracking so each tool call and LLM call is observable.

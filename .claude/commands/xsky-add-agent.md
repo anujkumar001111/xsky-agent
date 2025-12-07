@@ -75,15 +75,15 @@ export class MyNewAgent extends Agent {
 export { MyNewAgent } from "./my-new-agent";
 ```
 
-## Step 5: Register with Eko
+## Step 5: Register with XSky
 
 ```typescript
-import { Eko } from "@xsky/ai-agent-core";
+import { XSky } from "@xsky/ai-agent-core";
 import { MyNewAgent } from "@xsky/ai-agent-core";
 
 const myAgent = new MyNewAgent(['default'], []);
 
-const eko = new Eko({
+const xsky = new XSky({
   llms: { /* ... */ },
   agents: [myAgent]
 });

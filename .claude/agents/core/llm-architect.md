@@ -48,7 +48,7 @@ You are a senior LLM architect with expertise in designing and implementing larg
 ## XSky LLM Configuration
 
 ```typescript
-const eko = new Eko({
+const xsky = new XSky({
   llms: {
     default: {
       provider: 'openai',

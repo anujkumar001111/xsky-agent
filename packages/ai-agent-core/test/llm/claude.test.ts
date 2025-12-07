@@ -8,7 +8,7 @@ dotenv.config();
 const baseURL = process.env.ANTHROPIC_BASE_URL;
 const apiKey = process.env.ANTHROPIC_API_KEY;
 
-const t = process.env.ANTHROPIC_API_KEY ? test : test.skip;
+const t = (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_COMPATIBLE_API_KEY) ? test : test.skip;
 
 export async function testClaudePrompt() {
   const client: LanguageModelV2 = createAnthropic({

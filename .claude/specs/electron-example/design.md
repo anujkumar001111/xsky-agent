@@ -10,7 +10,7 @@
 │  ├── index.ts (Entry point)                                      │
 │  ├── window.ts (Window management)                               │
 │  ├── ipc-handlers.ts (IPC channel handlers)                      │
-│  └── agent-service.ts (Eko orchestration)                        │
+│  └── agent-service.ts (XSky orchestration)                        │
 ├─────────────────────────────────────────────────────────────────┤
 │  Preload                                                         │
 │  └── preload.ts (Secure API bridge)                              │
@@ -88,13 +88,13 @@ export function createMainWindow(): BrowserWindow {
 
 ```typescript
 // Manages AI agent lifecycle:
-// - Initialize Eko with LLM config
+// - Initialize XSky with LLM config
 // - Create and register agents
 // - Handle task execution
 // - Emit events to renderer
 
 export class AgentService {
-  private eko: Eko;
+  private xsky: XSky;
   private browserAgent: BrowserAgent;
   private fileAgent: FileAgent;
   private currentTaskId?: string;
@@ -106,24 +106,24 @@ export class AgentService {
     });
     this.fileAgent = new FileAgent();
 
-    // Initialize Eko
-    this.eko = new Eko({
+    // Initialize XSky
+    this.xsky = new XSky({
       llms: this.getLlmConfig(),
       agents: [this.browserAgent, this.fileAgent],
       callback: this.createCallback(mainWindow)
     });
   }
 
-  async runTask(prompt: string): Promise<EkoResult> {
-    return await this.eko.run(prompt);
+  async runTask(prompt: string): Promise<XSkyResult> {
+    return await this.xsky.run(prompt);
   }
 
   async pauseTask(taskId: string): Promise<void> {
-    await this.eko.pauseTask(taskId, true);
+    await this.xsky.pauseTask(taskId, true);
   }
 
   async abortTask(taskId: string): Promise<void> {
-    await this.eko.abortTask(taskId);
+    await this.xsky.abortTask(taskId);
   }
 }
 ```
@@ -132,21 +132,21 @@ export class AgentService {
 
 ```typescript
 // IPC channel definitions:
-// - eko:run-task - Start new task
-// - eko:pause-task - Pause/resume task
-// - eko:abort-task - Cancel task
-// - eko:get-status - Get current status
+// - xsky:run-task - Start new task
+// - xsky:pause-task - Pause/resume task
+// - xsky:abort-task - Cancel task
+// - xsky:get-status - Get current status
 // - view:navigate - Navigate browser view
 // - view:screenshot - Capture screenshot
 
 const IPC_CHANNELS = {
-  RUN_TASK: 'eko:run-task',
-  PAUSE_TASK: 'eko:pause-task',
-  ABORT_TASK: 'eko:abort-task',
-  GET_STATUS: 'eko:get-status',
+  RUN_TASK: 'xsky:run-task',
+  PAUSE_TASK: 'xsky:pause-task',
+  ABORT_TASK: 'xsky:abort-task',
+  GET_STATUS: 'xsky:get-status',
   NAVIGATE: 'view:navigate',
   SCREENSHOT: 'view:screenshot',
-  TASK_EVENT: 'eko:task-event' // For streaming to renderer
+  TASK_EVENT: 'xsky:task-event' // For streaming to renderer
 } as const;
 ```
 
@@ -154,18 +154,18 @@ const IPC_CHANNELS = {
 
 ```typescript
 // Exposes secure API to renderer:
-// - window.electronAPI.eko.* for agent operations
+// - window.electronAPI.xsky.* for agent operations
 // - window.electronAPI.view.* for browser control
 
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  eko: {
-    runTask: (prompt: string) => ipcRenderer.invoke('eko:run-task', prompt),
-    pauseTask: (taskId: string) => ipcRenderer.invoke('eko:pause-task', taskId),
-    abortTask: (taskId: string) => ipcRenderer.invoke('eko:abort-task', taskId),
+  xsky: {
+    runTask: (prompt: string) => ipcRenderer.invoke('xsky:run-task', prompt),
+    pauseTask: (taskId: string) => ipcRenderer.invoke('xsky:pause-task', taskId),
+    abortTask: (taskId: string) => ipcRenderer.invoke('xsky:abort-task', taskId),
     onTaskEvent: (callback: (event: TaskEvent) => void) => {
-      ipcRenderer.on('eko:task-event', (_, event) => callback(event));
+      ipcRenderer.on('xsky:task-event', (_, event) => callback(event));
     }
   },
   view: {
@@ -226,7 +226,7 @@ document.getElementById('send-btn')?.addEventListener('click', async () => {
     setState({ status: 'running' });
 
     try {
-      const result = await window.electronAPI.eko.runTask(prompt);
+      const result = await window.electronAPI.xsky.runTask(prompt);
       addMessage('agent', result.result);
       setState({ status: 'idle' });
     } catch (error) {
@@ -245,13 +245,13 @@ document.getElementById('send-btn')?.addEventListener('click', async () => {
 User Input (Renderer)
        │
        ▼
-[IPC: eko:run-task]
+[IPC: xsky:run-task]
        │
        ▼
 Main Process: AgentService.runTask()
        │
        ▼
-Eko.run(prompt)
+XSky.run(prompt)
        │
        ├──► Planner.plan() → Workflow XML
        │
@@ -271,7 +271,7 @@ Agent Execution Loop
 StreamCallback.onMessage()
        │
        ▼
-[IPC: eko:task-event] → Renderer
+[IPC: xsky:task-event] → Renderer
        │
        ▼
 UI Update
@@ -306,7 +306,7 @@ example/electron/
 │   │   ├── index.ts           # Entry point
 │   │   ├── window.ts          # Window management
 │   │   ├── ipc-handlers.ts    # IPC channel handlers
-│   │   └── agent-service.ts   # Eko orchestration
+│   │   └── agent-service.ts   # XSky orchestration
 │   ├── preload/
 │   │   └── preload.ts         # Secure API bridge
 │   └── renderer/
@@ -343,10 +343,10 @@ example/electron/
 
 | Channel | Direction | Validation |
 |---------|-----------|------------|
-| `eko:run-task` | Renderer → Main | String prompt, max 10KB |
-| `eko:pause-task` | Renderer → Main | Valid taskId |
-| `eko:abort-task` | Renderer → Main | Valid taskId |
-| `eko:task-event` | Main → Renderer | StreamCallbackMessage |
+| `xsky:run-task` | Renderer → Main | String prompt, max 10KB |
+| `xsky:pause-task` | Renderer → Main | Valid taskId |
+| `xsky:abort-task` | Renderer → Main | Valid taskId |
+| `xsky:task-event` | Main → Renderer | StreamCallbackMessage |
 | `view:navigate` | Renderer → Main | Valid URL |
 | `view:screenshot` | Renderer → Main | No params |
 

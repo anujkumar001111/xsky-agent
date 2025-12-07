@@ -717,7 +717,7 @@ SUGGEST: "Recommend manual review of [area] by project maintainer"
 ```
 STEP 2.0: Detect project type and invoke relevant skills
 
-1. Check for XSky markers (packages/ai-agent-*, Eko class references)
+1. Check for XSky markers (packages/ai-agent-*, XSky class references)
    → If found: Invoke `xsky-core` skill for framework understanding
 
 2. Check for Electron (electron in deps, electron/ directory)

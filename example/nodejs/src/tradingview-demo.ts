@@ -8,9 +8,9 @@ import { XSky, Agent, Log, LLMs, StreamCallbackMessage, config } from "@xsky/ai-
 dotenv.config({ path: "../../.env" });
 
 // Use custom OpenAI-compatible API endpoint
-const apiKey = process.env.OPENAI_COMPATABLE_API_KEY || "";
-const baseURL = process.env.OPENAI_COMPATABLE_BASE_URL || "";
-const model = process.env.OPENAI_COMPATABLE_MODEL || "qwen3-coder-plus";
+const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY || "";
+const baseURL = process.env.OPENAI_COMPATIBLE_BASE_URL || "";
+const model = process.env.OPENAI_COMPATIBLE_MODEL || "qwen3-coder-plus";
 
 // Configure LLMs - using custom OpenAI-compatible API
 const llms: LLMs = {

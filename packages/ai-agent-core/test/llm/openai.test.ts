@@ -3,18 +3,18 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { defaultMessageProviderOptions } from "../../src/agent/llm";
 import { LanguageModelV2, LanguageModelV2StreamPart } from "@ai-sdk/provider";
 
-dotenv.config();
+import { LLMConfig } from "../config";
 
-const baseURL = process.env.OPENAI_BASE_URL;
-const apiKey = process.env.OPENAI_API_KEY;
+const baseURL = LLMConfig.openai.baseURL;
+const apiKey = LLMConfig.openai.apiKey;
 
-const t = process.env.OPENAI_API_KEY ? test : test.skip;
+const t = (process.env.OPENAI_API_KEY || process.env.OPENAI_COMPATIBLE_API_KEY) ? test : test.skip;
 
 export async function testOpenaiPrompt() {
   const client: LanguageModelV2 = createOpenAI({
     apiKey: apiKey,
     baseURL: baseURL,
-  }).languageModel("gpt-5-mini");
+  }).languageModel(LLMConfig.openai.model);
 
   let result = await client.doGenerate({
     prompt: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
@@ -31,7 +31,7 @@ export async function testOpenaiStream() {
   const client: LanguageModelV2 = createOpenAI({
     apiKey: apiKey,
     baseURL: baseURL,
-  }).languageModel("gpt-5-mini");
+  }).languageModel(LLMConfig.openai.model);
 
   let result = await client.doStream({
     prompt: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
@@ -62,7 +62,7 @@ export async function testToolsPrompt() {
   const client: LanguageModelV2 = createOpenAI({
     apiKey: apiKey,
     baseURL: baseURL,
-  }).languageModel("gpt-5-mini");
+  }).languageModel(LLMConfig.openai.model);
 
   let result = await client.doGenerate({
     tools: [
