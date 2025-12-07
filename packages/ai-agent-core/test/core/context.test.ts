@@ -1,10 +1,10 @@
 import Context, { AgentContext } from "../../src/core/context";
 import Chain from "../../src/core/chain";
 import { Agent } from "../../src/agent";
-import { EkoConfig } from "../../src/types/core.types";
+import { XSkyConfig } from "../../src/types/core.types";
 
 describe("Context", () => {
-  const createMockConfig = (): EkoConfig => ({
+  const createMockConfig = (): XSkyConfig => ({
     llms: {
       default: {
         provider: "openai",
@@ -614,7 +614,7 @@ describe("Context", () => {
 });
 
 describe("AgentContext", () => {
-  const createMockConfig = (): EkoConfig => ({
+  const createMockConfig = (): XSkyConfig => ({
     llms: {
       default: {
         provider: "openai",

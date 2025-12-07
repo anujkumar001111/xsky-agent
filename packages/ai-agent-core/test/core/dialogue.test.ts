@@ -3,7 +3,7 @@ import {
   Log,
   LLMs,
   StreamCallbackMessage,
-  EkoDialogue,
+  XSkyDialogue,
   config,
 } from "../../src/index";
 import dotenv from "dotenv";
@@ -75,7 +75,7 @@ async function run() {
     new SimpleFileAgent(),
   ];
   const segmentedExecution: boolean = true;
-  const dialogue = new EkoDialogue({ llms, agents, segmentedExecution });
+  const dialogue = new XSkyDialogue({ llms, agents, segmentedExecution });
   const result1 = await dialogue.chat({
     user: "Hello",
     callback: {

@@ -1,5 +1,5 @@
 import { JSONSchema7 } from "json-schema";
-import { XSky } from "../eko";
+import { XSky } from "../xsky";
 import { XSkyDialogue } from "../dialogue";
 import { DialogueParams, DialogueTool, ToolResult } from "../../types";
 

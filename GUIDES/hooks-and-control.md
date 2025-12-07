@@ -195,13 +195,13 @@ const xsky = new XSky(config);
 
 ## 6. Advanced: Workflow Approval Gates
 
-For more advanced use cases, the framework provides `ProductionEkoConfig` which extends the base config with workflow-level approval gates. This is defined in `hooks.types.ts`:
+For more advanced use cases, the framework provides `ProductionXSkyConfig` which extends the base config with workflow-level approval gates. This is defined in `hooks.types.ts`:
 
 ```typescript
-import { ProductionEkoConfig } from '@xsky/ai-agent-core';
+import { ProductionXSkyConfig } from '@xsky/ai-agent-core';
 
-// Note: ProductionEkoConfig extends EkoConfig with additional features
-const config: ProductionEkoConfig = {
+// Note: ProductionXSkyConfig extends XSkyConfig with additional features
+const config: ProductionXSkyConfig = {
   llms: { /* ... */ },
   hooks: { /* ... */ },
   workflow: {
@@ -224,7 +224,7 @@ const config: ProductionEkoConfig = {
 };
 ```
 
-> **Note**: `ProductionEkoConfig` is a type definition for advanced patterns. The actual workflow execution logic for approval gates should be implemented via hooks.
+> **Note**: `ProductionXSkyConfig` is a type definition for advanced patterns. The actual workflow execution logic for approval gates should be implemented via hooks.
 
 ## 7. Built-in Utilities
 
@@ -300,7 +300,7 @@ const hooks: AgentHooks = {
 For long-running tasks, use the checkpoint system:
 
 ```typescript
-const config: EkoConfig = {
+const config: XSkyConfig = {
   llms: { /* ... */ },
   hooks: {
     onCheckpoint: async (checkpoint) => {
@@ -332,7 +332,7 @@ if (savedState) {
 Implement human-in-the-loop approval:
 
 ```typescript
-const config: EkoConfig = {
+const config: XSkyConfig = {
   llms: { /* ... */ },
   hooks: {
     beforeToolCall: async (ctx, toolName, args) => {

@@ -2,21 +2,21 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { StreamCallbackMessage } from '@xsky/ai-agent-core';
 
 const IPC_CHANNELS = {
-  RUN_TASK: 'eko:run-task',
-  PAUSE_TASK: 'eko:pause-task',
-  ABORT_TASK: 'eko:abort-task',
+  RUN_TASK: 'xsky:run-task',
+  PAUSE_TASK: 'xsky:pause-task',
+  ABORT_TASK: 'xsky:abort-task',
   NAVIGATE: 'view:navigate',
   SCREENSHOT: 'view:screenshot',
   GO_BACK: 'view:go-back',
   GO_FORWARD: 'view:go-forward',
   REFRESH: 'view:refresh',
-  TASK_EVENT: 'eko:task-event'
+  TASK_EVENT: 'xsky:task-event'
 } as const;
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
-  eko: {
+  xsky: {
     runTask: (prompt: string) => ipcRenderer.invoke(IPC_CHANNELS.RUN_TASK, prompt),
     pauseTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.PAUSE_TASK, taskId),
     abortTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.ABORT_TASK, taskId),
@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Type definitions for the exposed API
 export interface ElectronAPI {
-  eko: {
+  xsky: {
     runTask: (prompt: string) => Promise<any>;
     pauseTask: (taskId: string) => Promise<void>;
     abortTask: (taskId: string) => Promise<void>;

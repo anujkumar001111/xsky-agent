@@ -118,7 +118,7 @@ Key building blocks:
       - `onApprovalRequired` (human-in-the-loop)
       - `onCheckpoint`, `onStateChange` (persistence)
       - `onWorkflowGenerated`, `onWorkflowStepComplete`, `onWorkflowComplete`
-    - `ProductionEkoConfig` – Extended config with `hooks`, `stateConfig`, `approvalConfig`, `rateLimits`, `workflow`
+    - `ProductionXSkyConfig` – Extended config with `hooks`, `stateConfig`, `approvalConfig`, `rateLimits`, `workflow`
   - `Context` implements checkpointing and debounced state-change notifications via these hooks.
 
 - **Utilities & XML**

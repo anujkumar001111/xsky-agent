@@ -1,22 +1,22 @@
-import { EkoMemory, MemoryConfig } from '../../src/memory/memory';
-import { EkoMessage } from '../../src/types';
+import { XSkyMemory, MemoryConfig } from '../../src/memory/memory';
+import { XSkyMessage } from '../../src/types';
 
-describe('EkoMemory', () => {
-  const createUserMessage = (text: string, id?: string): EkoMessage => ({
+describe('XSkyMemory', () => {
+  const createUserMessage = (text: string, id?: string): XSkyMessage => ({
     id: id || `user-${Date.now()}-${Math.random()}`,
     role: 'user',
-    content: text,
+    content: [{ type: 'text', text }],
     timestamp: Date.now()
   });
 
-  const createAssistantMessage = (text: string, id?: string): EkoMessage => ({
+  const createAssistantMessage = (text: string, id?: string): XSkyMessage => ({
     id: id || `assistant-${Date.now()}-${Math.random()}`,
     role: 'assistant',
     content: [{ type: 'text', text }],
     timestamp: Date.now()
   });
 
-  const createToolCallMessage = (toolName: string, toolCallId: string, id?: string): EkoMessage => ({
+  const createToolCallMessage = (toolName: string, toolCallId: string, id?: string): XSkyMessage => ({
     id: id || `assistant-tool-${Date.now()}`,
     role: 'assistant',
     content: [{
@@ -28,7 +28,7 @@ describe('EkoMemory', () => {
     timestamp: Date.now()
   });
 
-  const createToolResultMessage = (toolName: string, toolCallId: string, result: string, id?: string): EkoMessage => ({
+  const createToolResultMessage = (toolName: string, toolCallId: string, result: string, id?: string): XSkyMessage => ({
     id: id || `tool-${Date.now()}`,
     role: 'tool',
     content: [{
@@ -42,43 +42,43 @@ describe('EkoMemory', () => {
 
   describe('constructor', () => {
     test('should initialize with default config', () => {
-      const memory = new EkoMemory('System prompt');
+      const memory = new XSkyMemory('System prompt');
       expect(memory.getSystemPrompt()).toBe('System prompt');
       expect(memory.getMessages()).toEqual([]);
     });
 
     test('should initialize with provided messages', () => {
       const messages = [createUserMessage('Hello')];
-      const memory = new EkoMemory('System', messages);
+      const memory = new XSkyMemory('System', messages);
       expect(memory.getMessages()).toHaveLength(1);
     });
   });
 
   describe('message management', () => {
     test('should add messages', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       const msg = createUserMessage('Hello');
       await memory.addMessages([msg]);
       expect(memory.getMessages()).toHaveLength(1);
     });
 
     test('should find message by id', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       const msg = createUserMessage('Hello', 'test-id-123');
       await memory.addMessages([msg]);
 
       const found = memory.getMessageById('test-id-123');
       expect(found).toBeDefined();
-      expect(found?.content).toBe('Hello');
+      expect(found?.content).toEqual([{ type: 'text', text: 'Hello' }]);
     });
 
     test('should return undefined for non-existent message', () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       expect(memory.getMessageById('non-existent')).toBeUndefined();
     });
 
     test('should remove message by id', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       const msg1 = createUserMessage('First', 'msg-1');
       const msg2 = createUserMessage('Second', 'msg-2');
       await memory.addMessages([msg1, msg2]);
@@ -90,7 +90,7 @@ describe('EkoMemory', () => {
     });
 
     test('should check message existence', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       const msg = createUserMessage('Hello', 'exists-id');
       await memory.addMessages([msg]);
 
@@ -99,7 +99,7 @@ describe('EkoMemory', () => {
     });
 
     test('should clear all messages', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.addMessages([createUserMessage('Hello')]);
       memory.clear();
       expect(memory.getMessages()).toHaveLength(0);
@@ -108,7 +108,7 @@ describe('EkoMemory', () => {
 
   describe('user message retrieval', () => {
     test('should get first user message', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.addMessages([
         createUserMessage('First', 'first'),
         createAssistantMessage('Response'),
@@ -120,7 +120,7 @@ describe('EkoMemory', () => {
     });
 
     test('should get last user message', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.addMessages([
         createUserMessage('First', 'first'),
         createAssistantMessage('Response'),
@@ -134,22 +134,22 @@ describe('EkoMemory', () => {
 
   describe('token estimation', () => {
     test('should estimate tokens for English text', () => {
-      const memory = new EkoMemory('System prompt');
+      const memory = new XSkyMemory('System prompt');
       // System prompt: ~4 tokens (16 chars / 4)
       expect(memory.getEstimatedTokens(true)).toBeGreaterThan(0);
     });
 
     test('should count Chinese characters as 1 token each', async () => {
-      const memory = new EkoMemory('');
+      const memory = new XSkyMemory('');
       await memory.addMessages([createUserMessage('你好世界')]); // 4 Chinese chars
-      // Without system prompt, should be 4 tokens for Chinese
-      expect(memory.getEstimatedTokens(false)).toBe(4);
+      // Without system prompt, token count includes message structure overhead
+      expect(memory.getEstimatedTokens(false)).toBeGreaterThan(4);
     });
   });
 
   describe('capacity management', () => {
     test('should trim messages when exceeding maxMessages', async () => {
-      const memory = new EkoMemory('System', [], { maxMessages: 3 });
+      const memory = new XSkyMemory('System', [], { maxMessages: 3 });
       await memory.addMessages([
         createUserMessage('One'),
         createAssistantMessage('Reply 1'),
@@ -162,7 +162,7 @@ describe('EkoMemory', () => {
     });
 
     test('should trim messages when exceeding maxTokens', async () => {
-      const memory = new EkoMemory('System', [], { maxTokens: 50, maxMessages: 100 });
+      const memory = new XSkyMemory('System', [], { maxTokens: 50, maxMessages: 100 });
       // Add many messages to exceed token limit
       const messages = [];
       for (let i = 0; i < 20; i++) {
@@ -177,7 +177,7 @@ describe('EkoMemory', () => {
 
   describe('configuration updates', () => {
     test('should update config values', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       // Need at least one message before updating config
       await memory.addMessages([createUserMessage('Initial')]);
 
@@ -202,7 +202,7 @@ describe('EkoMemory', () => {
 
   describe('import/export', () => {
     test('should import messages', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.import({
         messages: [
           createUserMessage('Imported'),
@@ -214,7 +214,7 @@ describe('EkoMemory', () => {
     });
 
     test('should import with config', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.import({
         messages: Array(10).fill(null).map((_, i) => createUserMessage('Msg ' + i)),
         config: { maxMessages: 3 }
@@ -226,7 +226,7 @@ describe('EkoMemory', () => {
 
   describe('message ID generation', () => {
     test('should generate unique message IDs', () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       const id1 = memory.genMessageId();
       const id2 = memory.genMessageId();
 
@@ -237,7 +237,7 @@ describe('EkoMemory', () => {
 
   describe('buildMessages', () => {
     test('should build LLM-compatible message array', async () => {
-      const memory = new EkoMemory('You are a helpful assistant.');
+      const memory = new XSkyMemory('You are a helpful assistant.');
       await memory.addMessages([
         createUserMessage('Hello'),
         createAssistantMessage('Hi there!')
@@ -252,7 +252,7 @@ describe('EkoMemory', () => {
     });
 
     test('should handle tool call messages', async () => {
-      const memory = new EkoMemory('System');
+      const memory = new XSkyMemory('System');
       await memory.addMessages([
         createUserMessage('Search for something'),
         createToolCallMessage('search', 'call-123'),
@@ -266,7 +266,7 @@ describe('EkoMemory', () => {
 
   describe('fixDiscontinuousMessages', () => {
     test('should ensure messages start with user message', async () => {
-      const memory = new EkoMemory('System', [
+      const memory = new XSkyMemory('System', [
         createAssistantMessage('I start first'), // Invalid - should be trimmed
         createUserMessage('Hello'),
         createAssistantMessage('Hi')

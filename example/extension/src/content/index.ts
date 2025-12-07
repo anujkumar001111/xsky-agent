@@ -1,1 +1,1 @@
-declare const eko: any;
+declare const xsky: any;

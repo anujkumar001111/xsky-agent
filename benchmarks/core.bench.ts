@@ -125,14 +125,14 @@ async function runBenchmarks() {
 
   // 1. Benchmark Workflow Generation
   bench.add('XSky.generate (Simple)', async () => {
-    const eko = new XSky({ llms, agents });
-    await eko.generate('Create a workflow');
+    const xsky = new XSky({ llms, agents });
+    await xsky.generate('Create a workflow');
   });
 
   // 2. Benchmark Full Run (Generate + Execute)
   bench.add('XSky.run (Simple)', async () => {
-    const eko = new XSky({ llms, agents });
-    await eko.run('Run a task');
+    const xsky = new XSky({ llms, agents });
+    await xsky.run('Run a task');
   });
 
   // 3. Benchmark Complex Workflow (50 agents)
@@ -145,8 +145,8 @@ async function runBenchmarks() {
   };
 
   bench.add('XSky.run (Complex - 50 agents)', async () => {
-    const eko = new XSky({ llms: complexLlms, agents });
-    await eko.run('Run complex task');
+    const xsky = new XSky({ llms: complexLlms, agents });
+    await xsky.run('Run complex task');
   });
 
   // 4. Benchmark Large Context (Prompt Construction Overhead)
@@ -177,11 +177,11 @@ async function runBenchmarks() {
   };
 
   bench.add('XSky.generate (Large Context - 1000 msgs)', async () => {
-    const eko = new XSky({ llms: largeContextLlms, agents });
+    const xsky = new XSky({ llms: largeContextLlms, agents });
     // Manually inject history into context if possible, or just pass a huge prompt
     // For this bench, we'll simulate a huge prompt which triggers internal context building
     const hugePrompt = largeHistory.map(m => m.content).join('\n');
-    await eko.generate(hugePrompt); // Pass the FULL prompt (~100k chars)
+    await xsky.generate(hugePrompt); // Pass the FULL prompt (~100k chars)
   });
 
   // 5. Benchmark Heavy Tools (50 complex tools)
@@ -262,8 +262,8 @@ async function runBenchmarks() {
   };
 
   bench.add('XSky.generate (Large Output - 500 agents)', async () => {
-    const eko = new XSky({ llms: hugeOutputLlms, agents });
-    await eko.generate('Create huge workflow');
+    const xsky = new XSky({ llms: hugeOutputLlms, agents });
+    await xsky.generate('Create huge workflow');
   });
 
   console.log("Running benchmarks...");

@@ -4,10 +4,10 @@ XSky is designed for production use, where observability and control are critica
 
 ## Production Configuration
 
-The `ProductionEkoConfig` interface extends the basic config with operational controls:
+The `ProductionXSkyConfig` interface extends the basic config with operational controls:
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   llm: { ... },
   hooks: myHooks,
   rateLimits: {

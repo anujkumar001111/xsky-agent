@@ -2,9 +2,9 @@ import { ipcMain, WebContentsView } from 'electron';
 import { AgentService } from './agent-service';
 
 export const IPC_CHANNELS = {
-  RUN_TASK: 'eko:run-task',
-  PAUSE_TASK: 'eko:pause-task',
-  ABORT_TASK: 'eko:abort-task',
+  RUN_TASK: 'xsky:run-task',
+  PAUSE_TASK: 'xsky:pause-task',
+  ABORT_TASK: 'xsky:abort-task',
   NAVIGATE: 'view:navigate',
   SCREENSHOT: 'view:screenshot',
   GO_BACK: 'view:go-back',

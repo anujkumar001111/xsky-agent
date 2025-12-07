@@ -25,7 +25,7 @@ export class SimpleHttpMcpClient implements IMcpClient {
 
   constructor(
     httpUrl: string,
-    clientName: string = "EkoMcpClient",
+    clientName: string = "XSkyMcpClient",
     headers: Record<string, string> = {}
   ) {
     this.httpUrl = httpUrl;

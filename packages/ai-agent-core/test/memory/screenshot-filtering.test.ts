@@ -1,21 +1,21 @@
 /**
- * Tests for screenshot recency filtering in EkoMemory
+ * Tests for screenshot recency filtering in XSkyMemory
  * Verifies that old screenshots are replaced with placeholders while keeping recent ones
  */
 
-import { EkoMemory, MemoryConfig } from "../../src/memory/memory";
-import { EkoMessage } from "../../src/types";
+import { XSkyMemory, MemoryConfig } from "../../src/memory/memory";
+import { XSkyMessage } from "../../src/types";
 
 describe("Screenshot Filtering", () => {
   // Helper to create a user message with an image
-  function createImageMessage(id: string, mimeType: string = "image/jpeg"): EkoMessage {
+  function createImageMessage(id: string, mimeType: string = "image/jpeg"): XSkyMessage {
     return {
       id,
       role: "user",
       timestamp: Date.now(),
       content: [
         {
-          type: "image",
+          type: "file",
           data: "base64data",
           mimeType,
         },
@@ -28,7 +28,7 @@ describe("Screenshot Filtering", () => {
   }
 
   // Helper to create a text-only message
-  function createTextMessage(id: string, role: "user" | "assistant" = "user"): EkoMessage {
+  function createTextMessage(id: string, role: "user" | "assistant" = "user"): XSkyMessage {
     if (role === "user") {
       return {
         id,
@@ -47,7 +47,7 @@ describe("Screenshot Filtering", () => {
 
   describe("filterOldScreenshots", () => {
     it("should keep N most recent screenshots and replace older ones", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         createImageMessage("2"),
         createTextMessage("3", "assistant"),
@@ -72,16 +72,16 @@ describe("Screenshot Filtering", () => {
       // Second image (id=5) should be kept (2nd to last)
       const msg5 = messages.find(m => m.id === "5");
       expect(msg5).toBeDefined();
-      expect((msg5?.content as any[])[0].type).toBe("image");
+      expect((msg5?.content as any[])[0].type).toBe("file");
 
       // Third image (id=8) should be kept (last)
       const msg8 = messages.find(m => m.id === "8");
       expect(msg8).toBeDefined();
-      expect((msg8?.content as any[])[0].type).toBe("image");
+      expect((msg8?.content as any[])[0].type).toBe("file");
     });
 
     it("should not modify anything when keepCount is 0", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         createImageMessage("2"),
         createImageMessage("3"),
@@ -93,12 +93,12 @@ describe("Screenshot Filtering", () => {
       const msg2 = messages.find(m => m.id === "2");
       const msg3 = messages.find(m => m.id === "3");
 
-      expect((msg2?.content as any[])[0].type).toBe("image");
-      expect((msg3?.content as any[])[0].type).toBe("image");
+      expect((msg2?.content as any[])[0].type).toBe("file");
+      expect((msg3?.content as any[])[0].type).toBe("file");
     });
 
     it("should not modify anything when screenshot count is within limit", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         createImageMessage("2"),
         createImageMessage("3"),
@@ -110,12 +110,12 @@ describe("Screenshot Filtering", () => {
       const msg2 = messages.find(m => m.id === "2");
       const msg3 = messages.find(m => m.id === "3");
 
-      expect((msg2?.content as any[])[0].type).toBe("image");
-      expect((msg3?.content as any[])[0].type).toBe("image");
+      expect((msg2?.content as any[])[0].type).toBe("file");
+      expect((msg3?.content as any[])[0].type).toBe("file");
     });
 
     it("should preserve text content alongside replaced screenshots", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         createImageMessage("2"),
         createImageMessage("3"),
@@ -136,18 +136,18 @@ describe("Screenshot Filtering", () => {
     });
 
     it("should handle multiple images in single message", () => {
-      const multiImageMessage: EkoMessage = {
+      const multiImageMessage: XSkyMessage = {
         id: "multi",
         role: "user",
         timestamp: Date.now(),
         content: [
-          { type: "image", data: "img1", mimeType: "image/png" },
-          { type: "image", data: "img2", mimeType: "image/jpeg" },
+          { type: "file", data: "img1", mimeType: "image/png" },
+          { type: "file", data: "img2", mimeType: "image/jpeg" },
           { type: "text", text: "Two images" },
         ],
       };
 
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         multiImageMessage,
         createImageMessage("3"),
@@ -165,11 +165,11 @@ describe("Screenshot Filtering", () => {
 
       // Last image should be kept
       const msg3 = messages.find(m => m.id === "3");
-      expect((msg3?.content as any[])[0].type).toBe("image");
+      expect((msg3?.content as any[])[0].type).toBe("file");
     });
 
     it("should ignore non-image content types", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         createTextMessage("1"),
         {
           id: "2",
@@ -193,7 +193,7 @@ describe("Screenshot Filtering", () => {
     });
 
     it("should handle string content messages gracefully", () => {
-      const memory = new EkoMemory("system prompt", [
+      const memory = new XSkyMemory("system prompt", [
         { id: "1", role: "user", timestamp: Date.now(), content: "String content" },
         createImageMessage("2"),
         createImageMessage("3"),
@@ -214,7 +214,7 @@ describe("Screenshot Filtering", () => {
         maxRecentScreenshots: 2,
       };
 
-      const memory = new EkoMemory("system prompt", [], config);
+      const memory = new XSkyMemory("system prompt", [], config);
 
       // Add messages
       await memory.addMessages([
@@ -234,8 +234,8 @@ describe("Screenshot Filtering", () => {
       // Last two images should be kept
       const msg3 = messages.find(m => m.id === "3");
       const msg4 = messages.find(m => m.id === "4");
-      expect((msg3?.content as any[])[0].type).toBe("image");
-      expect((msg4?.content as any[])[0].type).toBe("image");
+      expect((msg3?.content as any[])[0].type).toBe("file");
+      expect((msg4?.content as any[])[0].type).toBe("file");
     });
 
     it("should not filter when maxRecentScreenshots is 0 (disabled)", async () => {
@@ -243,7 +243,7 @@ describe("Screenshot Filtering", () => {
         maxRecentScreenshots: 0,
       };
 
-      const memory = new EkoMemory("system prompt", [], config);
+      const memory = new XSkyMemory("system prompt", [], config);
 
       await memory.addMessages([
         createTextMessage("1"),
@@ -256,8 +256,8 @@ describe("Screenshot Filtering", () => {
       // All images should be kept
       const msg2 = messages.find(m => m.id === "2");
       const msg3 = messages.find(m => m.id === "3");
-      expect((msg2?.content as any[])[0].type).toBe("image");
-      expect((msg3?.content as any[])[0].type).toBe("image");
+      expect((msg2?.content as any[])[0].type).toBe("file");
+      expect((msg3?.content as any[])[0].type).toBe("file");
     });
   });
 });

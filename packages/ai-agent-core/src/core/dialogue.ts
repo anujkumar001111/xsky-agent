@@ -18,7 +18,7 @@ import {
   convertUserContent,
   convertAssistantToolResults,
 } from "./dialogue/llm";
-import { XSky } from "./eko";
+import { XSky } from "./xsky";
 import TaskPlannerTool, {
   TOOL_NAME as task_planner,
 } from "./dialogue/task_planner";

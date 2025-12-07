@@ -15,7 +15,7 @@ import type { AgentContext } from "../../src/core/context";
 import type { ToolResult, Tool } from "../../src/types/tools.types";
 import Context from "../../src/core/context";
 import Chain from "../../src/core/chain";
-import type { EkoConfig } from "../../src/types/core.types";
+import type { XSkyConfig } from "../../src/types/core.types";
 
 describe("AgentHooks Integration", () => {
   // Mock tracking for hook calls
@@ -355,7 +355,7 @@ describe("AgentHooks Integration", () => {
         },
       };
 
-      const config: EkoConfig = {
+      const config: XSkyConfig = {
         llms: {
           default: { provider: "openai", model: "gpt-4" },
         },
@@ -383,7 +383,7 @@ describe("AgentHooks Integration", () => {
         },
       };
 
-      const config: EkoConfig = {
+      const config: XSkyConfig = {
         llms: {
           default: { provider: "openai", model: "gpt-4" },
         },
@@ -411,7 +411,7 @@ describe("AgentHooks Integration", () => {
     });
 
     it("should not trigger onCheckpoint if no hook is defined", async () => {
-      const config: EkoConfig = {
+      const config: XSkyConfig = {
         llms: {
           default: { provider: "openai", model: "gpt-4" },
         },
@@ -434,7 +434,7 @@ describe("AgentHooks Integration", () => {
         },
       };
 
-      const config: EkoConfig = {
+      const config: XSkyConfig = {
         llms: {
           default: { provider: "openai", model: "gpt-4" },
         },

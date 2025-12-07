@@ -84,8 +84,8 @@ async function doCompressAgentMessages(
   messages: LanguageModelV2Prompt,
   tools: LanguageModelV2FunctionTool[]
 ) {
-  const ekoConfig = agentContext.context.config;
-  const rlm = new RetryLanguageModel(ekoConfig.llms, ekoConfig.compressLlms);
+  const xskyConfig = agentContext.context.config;
+  const rlm = new RetryLanguageModel(xskyConfig.llms, xskyConfig.compressLlms);
   rlm.setContext(agentContext);
   // extract used tool
   const usedTools = extractUsedTool(messages, tools);

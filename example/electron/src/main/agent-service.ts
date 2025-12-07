@@ -69,7 +69,7 @@ export class AgentService {
   private async handleStreamMessage(message: StreamCallbackMessage): Promise<void> {
     // Forward the message to the renderer process
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('eko:task-event', message);
+      this.mainWindow.webContents.send('xsky:task-event', message);
     }
 
     // Keep track of task ID

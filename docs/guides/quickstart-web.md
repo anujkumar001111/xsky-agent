@@ -59,9 +59,11 @@ export function createWebXSky() {
 
 ```tsx
 import { useState } from 'react';
-import { createWebEko } from './agent';
+import { XSky, LLMs } from '@xsky/ai-agent-core';
+import { BrowserAgent } from '@xsky/ai-agent-web';
 
-const eko = createWebEko();
+const agents = [new BrowserAgent()];
+const xsky = new XSky({ llms, agents });
 
 export function App() {
   const [prompt, setPrompt] = useState('Scroll the page and summarize visible content');

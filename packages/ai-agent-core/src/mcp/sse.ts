@@ -36,7 +36,7 @@ export class SimpleSseMcpClient implements IMcpClient {
 
   constructor(
     sseServerUrl: string,
-    clientName: string = "EkoMcpClient",
+    clientName: string = "XSkyMcpClient",
     headers: Record<string, string> = {}
   ) {
     this.sseUrl = sseServerUrl;

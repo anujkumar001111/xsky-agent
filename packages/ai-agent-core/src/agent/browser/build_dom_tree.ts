@@ -36,7 +36,7 @@ export function run_build_dom_tree() {
   function get_clickable_elements(doHighlightElements = true, includeAttributes) {
     window.clickable_elements = {};
     computedStyleCache = new WeakMap();
-    document.querySelectorAll("[eko-user-highlight-id]").forEach(ele => ele.removeAttribute("eko-user-highlight-id"));
+    document.querySelectorAll("[xsky-user-highlight-id]").forEach(ele => ele.removeAttribute("xsky-user-highlight-id"));
     let page_tree = build_dom_tree(doHighlightElements);
     let element_tree = parse_node(page_tree);
     let selector_map = create_selector_map(element_tree);
@@ -50,7 +50,7 @@ export function run_build_dom_tree() {
    * @returns The highlighted element.
    */
   function get_highlight_element(highlightIndex) {
-    let element = document.querySelector(`[eko-user-highlight-id="eko-highlight-${highlightIndex}"]`);
+    let element = document.querySelector(`[xsky-user-highlight-id="xsky-highlight-${highlightIndex}"]`);
     return element || window.clickable_elements[highlightIndex];
   }
 
@@ -58,7 +58,7 @@ export function run_build_dom_tree() {
    * Removes the highlight from the page.
    */
   function remove_highlight() {
-    let highlight = document.getElementById('eko-highlight-container');
+    let highlight = document.getElementById('xsky-highlight-container');
     if (highlight) {
       highlight.remove();
     }
@@ -213,10 +213,10 @@ export function run_build_dom_tree() {
 
     function highlightElement(element, index, parentIframe = null) {
       // Create or get highlight container
-      let container = document.getElementById('eko-highlight-container');
+      let container = document.getElementById('xsky-highlight-container');
       if (!container) {
         container = document.createElement('div');
-        container.id = 'eko-highlight-container';
+        container.id = 'xsky-highlight-container';
         container.style.position = 'fixed';
         container.style.pointerEvents = 'none';
         container.style.top = '0';
@@ -276,7 +276,7 @@ export function run_build_dom_tree() {
 
       // Create label
       const label = document.createElement('div');
-      label.className = 'eko-highlight-label';
+      label.className = 'xsky-highlight-label';
       label.style.position = 'absolute';
       label.style.background = baseColor;
       label.style.color = 'white';
@@ -315,7 +315,7 @@ export function run_build_dom_tree() {
       container.appendChild(label);
 
       // Store reference for cleanup
-      element.setAttribute('eko-user-highlight-id', `eko-highlight-${index}`);
+      element.setAttribute('xsky-user-highlight-id', `xsky-highlight-${index}`);
 
       return index + 1;
     }

@@ -7,7 +7,7 @@ When moving from prototype to production, you need safety, observability, and co
 Prevent runaway costs or infinite loops.
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   rateLimits: {
     maxSteps: 50,        // Max agent steps per task
     maxDuration: 120000, // 2 minutes max
@@ -21,7 +21,7 @@ const config: ProductionEkoConfig = {
 Block sensitive actions until a human approves.
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   approvalConfig: {
     tools: ['delete_file', 'send_email', 'transfer_funds'],
   },
@@ -40,7 +40,7 @@ const config: ProductionEkoConfig = {
 Save state to recover from crashes.
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   hooks: {
     onCheckpoint: async (state) => {
       await db.checkpoints.save({
@@ -64,7 +64,7 @@ await eko.execute(id, { resumeFrom: JSON.parse(savedState) });
 Record every action for compliance.
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   hooks: {
     afterToolCall: async ({ toolName, args, result }) => {
       logger.info('Tool execution', { toolName, args, result });
@@ -81,7 +81,7 @@ const config: ProductionEkoConfig = {
 Never log sensitive data.
 
 ```typescript
-const config: ProductionEkoConfig = {
+const config: ProductionXSkyConfig = {
   hooks: {
     afterToolCall: async ({ result }) => {
       if (typeof result === 'string') {

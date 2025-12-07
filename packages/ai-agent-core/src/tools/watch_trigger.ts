@@ -106,7 +106,7 @@ export default class WatchTriggerTool implements Tool {
         ],
       };
     }
-    await this.init_eko_observer(agentContext);
+    await this.init_xsky_observer(agentContext);
     const image1 = await this.get_screenshot(agentContext);
     const start = new Date().getTime();
     const timeout = ((args.timeout as number) || 5) * 60000;
@@ -119,11 +119,11 @@ export default class WatchTriggerTool implements Tool {
     while (new Date().getTime() - start < timeout) {
       await agentContext.context.checkAborted();
       await new Promise((resolve) => setTimeout(resolve, frequency));
-      let changed = await this.has_eko_changed(agentContext);
+      let changed = await this.has_xsky_changed(agentContext);
       if (changed == "false") {
         continue;
       }
-      await this.init_eko_observer(agentContext);
+      await this.init_xsky_observer(agentContext);
       const image2 = await this.get_screenshot(agentContext);
       const changeResult = await this.is_dom_change(
         agentContext,
@@ -171,7 +171,7 @@ export default class WatchTriggerTool implements Tool {
     };
   }
 
-  private async init_eko_observer(agentContext: AgentContext): Promise<void> {
+  private async init_xsky_observer(agentContext: AgentContext): Promise<void> {
     try {
       const screenshot = (agentContext.agent as any)["execute_script"];
       await screenshot.call(
@@ -179,12 +179,12 @@ export default class WatchTriggerTool implements Tool {
         agentContext,
         () => {
           let _window = window as any;
-          _window.has_eko_changed = false;
-          _window.eko_observer && _window.eko_observer.disconnect();
-          let eko_observer = new MutationObserver(function (mutations) {
-            _window.has_eko_changed = true;
+          _window.has_xsky_changed = false;
+          _window.xsky_observer && _window.xsky_observer.disconnect();
+          let xsky_observer = new MutationObserver(function (mutations) {
+            _window.has_xsky_changed = true;
           });
-          eko_observer.observe(document.body, {
+          xsky_observer.observe(document.body, {
             childList: true,
             subtree: true,
             attributes: true,
@@ -192,7 +192,7 @@ export default class WatchTriggerTool implements Tool {
             characterData: true,
             characterDataOldValue: true,
           });
-          _window.eko_observer = eko_observer;
+          _window.xsky_observer = xsky_observer;
         },
         []
       );
@@ -201,7 +201,7 @@ export default class WatchTriggerTool implements Tool {
     }
   }
 
-  private async has_eko_changed(
+  private async has_xsky_changed(
     agentContext: AgentContext
   ): Promise<"true" | "false" | "undefined"> {
     try {
@@ -210,7 +210,7 @@ export default class WatchTriggerTool implements Tool {
         agentContext.agent,
         agentContext,
         () => {
-          return (window as any).has_eko_changed + "";
+          return (window as any).has_xsky_changed + "";
         },
         []
       )) as string;

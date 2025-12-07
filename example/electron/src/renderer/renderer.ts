@@ -62,7 +62,7 @@ async function submitTask() {
     stopBtn.disabled = false;
 
     try {
-        await api.eko.runTask(prompt);
+        await api.xsky.runTask(prompt);
         // Note: Task completion is handled via streaming events
     } catch (error) {
         console.error('Task failed:', error);
@@ -74,7 +74,7 @@ async function submitTask() {
 // Task Controls
 pauseBtn.addEventListener('click', async () => {
     if (!currentTaskId) return;
-    await api.eko.pauseTask(currentTaskId);
+    await api.xsky.pauseTask(currentTaskId);
     isPaused = !isPaused;
     pauseBtn.textContent = isPaused ? '▶️' : '⏸️';
     updateStatus(isPaused ? 'paused' : 'running');
@@ -82,12 +82,12 @@ pauseBtn.addEventListener('click', async () => {
 
 stopBtn.addEventListener('click', async () => {
     if (!currentTaskId) return;
-    await api.eko.abortTask(currentTaskId);
+    await api.xsky.abortTask(currentTaskId);
     updateStatus('idle');
 });
 
 // Stream Event Handling
-api.eko.onTaskEvent((event: StreamCallbackMessage) => {
+api.xsky.onTaskEvent((event: StreamCallbackMessage) => {
     console.log('Task event:', event);
 
     if (event.type === 'workflow') {
