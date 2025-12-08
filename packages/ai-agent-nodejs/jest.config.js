@@ -18,9 +18,10 @@ export default {
       tsconfig: 'tsconfig.test.json'
     }],
   },
-  // forceExit: Required for Playwright integration. Browsers are properly closed
-  // in test afterAll hooks, but Playwright maintains internal WebSocket connections
-  // and timers that prevent Jest from exiting naturally. This is the industry-standard
-  // solution recommended by Playwright documentation.
-  forceExit: true,
+  // Note: forceExit is NOT needed. Tests exit cleanly due to proper resource cleanup:
+  // - Shared browser pattern (shared-browser.ts) ensures single browser instance
+  // - afterAll hooks in all test files call releaseSharedBrowser() and cleanupTestContext()
+  // - These functions explicitly close all contexts before browser.close()
+  // - This follows Playwright best practice: close contexts first, then browser
+  // Per Playwright docs: "Explicitly close contexts with context.close() before browser.close()"
 };
