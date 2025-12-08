@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.0] - 2025-12-08
+
+### ✨ Added
+- **Security Validators**: Exported `validateUrl()`, `validateFilePath()`, and `sanitizeSessionData()` for public use
+- **Circuit Breaker**: LLM provider health tracking with automatic failover
+- **Production Telemetry**: Configurable metrics collection and monitoring hooks
+
+### 🔧 Changed
+- **Code Quality**: Migrated 16 instances of loose equality (`==`) to strict equality (`===`) in LLM module
+- **Refactoring**: Replaced `getMimeType()` if/else chain with declarative map-based lookup
+- **Refactoring**: Simplified `getTool()` from 5-line loop to single-line `Array.find()`
+- **Documentation**: Added comprehensive Unicode range documentation for CJK character detection
+
+### 🐛 Fixed
+- **Jest Configuration**: Removed unused imports from 3 jest.config.js files (0 ESLint warnings)
+- **Type Safety**: All string comparisons now use strict equality for improved type safety
+
+### ✅ Validation
+- **Tests**: 832 tests passing across all packages (ai-agent-core: 679, ai-agent-nodejs: 105, ai-agent-electron: 40, ai-agent-web: 4, ai-agent-extension: 4)
+- **Build**: All 9 build targets successful
+- **Lint**: 0 errors, 0 warnings
+- **Security**: 3 validators actively protecting against path traversal, null bytes, and dangerous URL schemes
+
+---
+
 ## [0.1.6] - 2025-12-07
 
 ### 🔒 Critical Production Fixes (P0)

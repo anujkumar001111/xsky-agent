@@ -1,6 +1,6 @@
 {
   "name": "@xsky/ai-agent-monorepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A production-ready JavaScript AI Agent framework for creating reliable agents across browser and Node.js environments.",
   "workspaces": [
     "packages/ai-agent-core",
