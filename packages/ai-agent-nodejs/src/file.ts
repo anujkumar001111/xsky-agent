@@ -1,7 +1,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { glob } from "glob";
-import { AgentContext, BaseFileAgent } from "@xsky/ai-agent-core";
+import { AgentContext, BaseFileAgent, validateFilePath } from "@xsky/ai-agent-core";
 
 /**
  * A file agent that uses the node `fs` module to interact with the file system.
@@ -25,6 +25,11 @@ export default class FileAgent extends BaseFileAgent {
       modified?: string;
     }>
   > {
+    const validation = validateFilePath(directoryPath, true);
+    if (!validation.valid) {
+      throw new Error(`Invalid directory path: ${validation.reason}`);
+    }
+
     const files = await fs.readdir(directoryPath);
     const fileDetails = await Promise.all(
       files.map(async (file) => {
@@ -52,6 +57,10 @@ export default class FileAgent extends BaseFileAgent {
     agentContext: AgentContext,
     filePath: string
   ): Promise<string> {
+    const validation = validateFilePath(filePath, true);
+    if (!validation.valid) {
+      throw new Error(`Invalid file path: ${validation.reason}`);
+    }
     return await fs.readFile(filePath, "utf-8");
   }
 
@@ -68,6 +77,10 @@ export default class FileAgent extends BaseFileAgent {
     content: string,
     append: boolean
   ): Promise<any> {
+    const validation = validateFilePath(filePath, true);
+    if (!validation.valid) {
+      throw new Error(`Invalid file path: ${validation.reason}`);
+    }
     const directory = path.dirname(filePath);
     await fs.mkdir(directory, { recursive: true });
     if (append) {
@@ -90,6 +103,10 @@ export default class FileAgent extends BaseFileAgent {
     oldStr: string,
     newStr: string
   ): Promise<any> {
+    const validation = validateFilePath(filePath, true);
+    if (!validation.valid) {
+      throw new Error(`Invalid file path: ${validation.reason}`);
+    }
     let content = await fs.readFile(filePath, "utf-8");
     const originalContent = content;
     content = content.replace(new RegExp(oldStr, "g"), newStr);
@@ -119,6 +136,11 @@ export default class FileAgent extends BaseFileAgent {
       modified?: string;
     }>
   > {
+    const validation = validateFilePath(directoryPath, true);
+    if (!validation.valid) {
+      throw new Error(`Invalid directory path: ${validation.reason}`);
+    }
+
     const pattern = path.join(directoryPath, globPattern);
     const files = await glob.glob(pattern);
     const fileDetails = await Promise.all(

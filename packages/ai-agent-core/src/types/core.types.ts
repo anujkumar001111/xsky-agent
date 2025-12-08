@@ -46,7 +46,19 @@ export type XSkyConfig = {
   rateLimits?: RateLimitConfig;
   /** Security and sandboxing configuration */
   security?: SecurityConfig;
+  /** Basic telemetry configuration for observability */
+  telemetry?: TelemetryConfig;
 };
+
+/**
+ * Configuration for basic telemetry and observability.
+ */
+export interface TelemetryConfig {
+  /** Callback for metric events */
+  onMetric?: (metric: { name: string; value: number; tags: Record<string, string> }) => void;
+  /** Callback for trace events */
+  onTrace?: (trace: { taskId: string; agentName: string; duration: number }) => void;
+}
 
 /**
  * Message types emitted during workflow execution for streaming callbacks.

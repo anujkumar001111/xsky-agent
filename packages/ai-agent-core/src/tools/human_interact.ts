@@ -4,6 +4,7 @@ import { Tool, ToolResult } from "../types/tools.types";
 import { RetryLanguageModel } from "../llm";
 import { LLMRequest } from "../types";
 import { toImage } from "../common/utils";
+import Log from "../common/log";
 
 /** Tool name identifier for human interaction operations */
 export const TOOL_NAME = "human_interact";
@@ -135,9 +136,8 @@ request_help: Request assistance from the user; for instance, when an operation 
               (args.helpType || "request_assistance") as any,
               args.prompt as string
             );
-            resultText = `request_help result: ${
-              result ? "Solved" : "Unresolved"
-            }`;
+            resultText = `request_help result: ${result ? "Solved" : "Unresolved"
+              }`;
           }
           break;
       }
@@ -222,7 +222,7 @@ request_help: Request assistance from the user; for instance, when an operation 
       let result = await rlm.call(request);
       return result.text && result.text.indexOf("LOGGED_IN") > -1;
     } catch (error) {
-      console.error("Error auto checking login status:", error);
+      Log.error("Error auto checking login status:", error);
       return false;
     }
   }

@@ -49,7 +49,7 @@ const callback = {
       return;
     }
     // Log final messages for debugging and monitoring
-    console.log("message: ", JSON.stringify(message, null, 2));
+    Log.info("message: ", JSON.stringify(message, null, 2));
   },
 };
 
@@ -88,10 +88,10 @@ async function run() {
   const result = await xsky.run(prompt);
 
   // Output the final result
-  console.log("result: ", result.result);
+  Log.info("result: ", result.result);
 }
 
 // Execute the main function with error handling
 run().catch((e) => {
-  console.log(e);
+  Log.error(e);
 });

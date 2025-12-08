@@ -110,6 +110,7 @@ export {
 export { buildAgentTree } from "./common/tree";                    // Build hierarchical agent tree structures
 export { extract_page_content } from "./agent/browser/utils";     // Extract content from web pages
 export { scaleCoordinates, scaleCoordinate } from "./common/coordinate-scaling"; // Scale coordinates between different screen resolutions
+export { validateUrl, validateFilePath, sanitizeSessionData } from "./common/security-validators"; // Security validation utilities
 
 // Production utilities - advanced features for production deployments
 export {

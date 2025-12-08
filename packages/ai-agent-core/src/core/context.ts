@@ -1,5 +1,6 @@
 import { Agent } from "../agent";
 import { sleep, uuidv4 } from "../common/utils";
+import Log from "../common/log";
 import Chain, { AgentChain } from "./chain";
 import {
   XSkyConfig,
@@ -211,7 +212,7 @@ export default class Context {
       await hooks.onCheckpoint(checkpoint);
     } catch (error) {
       // Don't fail the workflow if checkpoint fails
-      console.error("Checkpoint hook error:", error);
+      Log.error("Checkpoint hook error:", error);
     }
 
     return checkpoint;
@@ -301,7 +302,7 @@ export default class Context {
       try {
         await hooks.onStateChange(this, key, value);
       } catch (error) {
-        console.error("onStateChange hook error:", error);
+        Log.error("onStateChange hook error:", error);
       }
     }
 

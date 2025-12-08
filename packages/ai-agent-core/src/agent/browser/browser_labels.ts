@@ -1,8 +1,10 @@
 import config from "../../config";
+import Log from "../../common/log";
 import { AgentContext } from "../../core/context";
 import { run_build_dom_tree } from "./build_dom_tree";
 import { BaseBrowserAgent, AGENT_NAME } from "./browser_base";
 import { DomIntelligenceAgent, DomElementIntelligence } from "./dom_intelligence";
+import { validateUrl } from "../../common/security-validators";
 import {
   LanguageModelV2Prompt,
   LanguageModelV2FilePart,
@@ -110,9 +112,9 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
    * Initialize DOM intelligence if enabled and not already initialized
    */
   protected ensureDomIntelligence(agentContext: AgentContext) {
-      if (this.useDomIntelligence && !this.domIntelligence) {
-          this.domIntelligence = new DomIntelligenceAgent(agentContext);
-      }
+    if (this.useDomIntelligence && !this.domIntelligence) {
+      this.domIntelligence = new DomIntelligenceAgent(agentContext);
+    }
   }
 
   /**
@@ -278,43 +280,43 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
 
       // Inject and setup mutation observer if enabled
       if (this.useDomIntelligence && this.domIntelligence) {
-          try {
-             // We need to inject the observer script
-             // This assumes runExtractorsParallel can be reused or we use execute_script directly
-             const executor = async (script: Function) => {
-                  return await this.execute_script(agentContext, script as any, []);
-             };
-             // Just run the setup_mutation_observer.js using the agent's loading mechanism
-             // We can do this by asking DomIntelligenceAgent to run it
-             await this.domIntelligence.runExtractorsParallel(executor, ['setup_mutation_observer.js']);
+        try {
+          // We need to inject the observer script
+          // This assumes runExtractorsParallel can be reused or we use execute_script directly
+          const executor = async (script: Function) => {
+            return await this.execute_script(agentContext, script as any, []);
+          };
+          // Just run the setup_mutation_observer.js using the agent's loading mechanism
+          // We can do this by asking DomIntelligenceAgent to run it
+          await this.domIntelligence.runExtractorsParallel(executor, ['setup_mutation_observer.js']);
 
-             // Now fetch signals
-             const signals = await this.execute_script(agentContext, () => {
-                 return (window as any).getDomSignals ? (window as any).getDomSignals() : [];
-             }, []) as any[];
+          // Now fetch signals
+          const signals = await this.execute_script(agentContext, () => {
+            return (window as any).getDomSignals ? (window as any).getDomSignals() : [];
+          }, []) as any[];
 
-             if (Array.isArray(signals)) {
-                 signals.forEach(s => agentContext.addAdaptiveWaitSignal(s));
-             }
-
-          } catch(e) {
-              console.warn("Failed to setup/read DOM mutation observer:", e);
+          if (Array.isArray(signals)) {
+            signals.forEach(s => agentContext.addAdaptiveWaitSignal(s));
           }
+
+        } catch (e) {
+          Log.warn("Failed to setup/read DOM mutation observer:", e);
+        }
       }
 
       // Adaptive wait (Requirement 2.3)
       if (this.useDomIntelligence && agentContext.domIntelligenceCache) {
-          // Check for recent mutations to decide if we need to wait
-          const latestSignal = agentContext.getLatestSignal('mutation');
-          if (latestSignal && (Date.now() - latestSignal.timestamp < 1000)) {
-              await sleep(500); // Dynamic wait
-          } else {
-              // Minimal wait if stable
-              await sleep(100);
-          }
+        // Check for recent mutations to decide if we need to wait
+        const latestSignal = agentContext.getLatestSignal('mutation');
+        if (latestSignal && (Date.now() - latestSignal.timestamp < 1000)) {
+          await sleep(500); // Dynamic wait
+        } else {
+          // Minimal wait if stable
+          await sleep(100);
+        }
       } else {
-          // Legacy wait
-          await sleep(200);
+        // Legacy wait
+        await sleep(200);
       }
 
       let element_result = null;
@@ -339,24 +341,24 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
 
       // If DOM Intelligence is enabled, try to fetch it parallel to other ops or here
       if (this.useDomIntelligence && this.domIntelligence) {
-          try {
-              // We need to execute the script in the browser context
-              // define executor using agent's execute_script
-              const executor = async (script: Function) => {
-                  // We need to pass the script content.
-                  // BaseBrowserAgent.execute_script usually takes a function or string.
-                  // If string, it evaluates it.
-                  return await this.execute_script(agentContext, script as any, []);
-              };
+        try {
+          // We need to execute the script in the browser context
+          // define executor using agent's execute_script
+          const executor = async (script: Function) => {
+            // We need to pass the script content.
+            // BaseBrowserAgent.execute_script usually takes a function or string.
+            // If string, it evaluates it.
+            return await this.execute_script(agentContext, script as any, []);
+          };
 
-              const intelligence = await this.domIntelligence.getIntelligence(executor);
-              agentContext.domIntelligenceCache = intelligence;
+          const intelligence = await this.domIntelligence.getIntelligence(executor);
+          agentContext.domIntelligenceCache = intelligence;
 
-              // Here we could potentially merge DOM intelligence into pseudoHtml or selector_map
-              // For now, we just cache it as per requirements, to be used for targeting
-          } catch (e) {
-              console.error("DOM Intelligence extraction failed, falling back to vision only:", e);
-          }
+          // Here we could potentially merge DOM intelligence into pseudoHtml or selector_map
+          // For now, we just cache it as per requirements, to be used for targeting
+        } catch (e) {
+          Log.error("DOM Intelligence extraction failed, falling back to vision only:", e);
+        }
       }
 
       await sleep(100);
@@ -377,7 +379,7 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
           },
           []
         );
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -435,8 +437,13 @@ export default abstract class BaseBrowserLabelsAgent extends BaseBrowserAgent {
           args: Record<string, unknown>,
           agentContext: AgentContext
         ): Promise<ToolResult> => {
+          const url = args.url as string;
+          const validation = validateUrl(url);
+          if (!validation.valid) {
+            throw new Error(`Invalid URL: ${validation.reason}`);
+          }
           return await this.callInnerTool(() =>
-            this.navigate_to(agentContext, args.url as string)
+            this.navigate_to(agentContext, url)
           );
         },
       },

@@ -1,9 +1,18 @@
 import config from "../config";
 import Log from "../common/log";
-import * as memory from "../memory";
 import { RetryLanguageModel } from "../llm";
 import { AgentContext } from "../core/context";
 import { uuidv4, sleep, toFile, getMimeType } from "../common/utils";
+
+// Lazy import for memory module to break circular dependency
+// (memory imports callAgentLLM from this file)
+let memoryModule: typeof import("../memory") | null = null;
+async function getMemoryModule() {
+  if (!memoryModule) {
+    memoryModule = await import("../memory");
+  }
+  return memoryModule;
+}
 import {
   Tool,
   LLMRequest,
@@ -26,42 +35,11 @@ import {
   LanguageModelV2ToolResultOutput,
 } from "@ai-sdk/provider";
 
-/**
- * Returns the default provider options for the language model.
- * @returns The default provider options.
- */
-export function defaultLLMProviderOptions(): SharedV2ProviderOptions {
-  return {
-    openai: {
-      stream_options: {
-        include_usage: true,
-      },
-    },
-    openrouter: {
-      reasoning: {
-        max_tokens: 10,
-      },
-    },
-  };
-}
-
-/**
- * Returns the default provider options for messages.
- * @returns The default provider options.
- */
-export function defaultMessageProviderOptions(): SharedV2ProviderOptions {
-  return {
-    anthropic: {
-      cacheControl: { type: "ephemeral" },
-    },
-    bedrock: {
-      cachePoint: { type: "default" },
-    },
-    openrouter: {
-      cacheControl: { type: "ephemeral" },
-    },
-  };
-}
+// Re-export from shared module for backward compatibility
+export {
+  defaultLLMProviderOptions,
+  defaultMessageProviderOptions,
+} from "../llm/provider-options";
 
 /**
  * Converts internal tool definitions to LLM provider format.
@@ -161,7 +139,7 @@ export function convertToolResult(
           type: "json",
           value: result,
         };
-      } catch (e) {}
+      } catch (e) { }
     }
   } else {
     result = {
@@ -245,7 +223,8 @@ export async function callAgentLLM(
     !noCompress &&
     (messages.length >= config.compressThreshold || (messages.length >= 10 && estimatePromptTokens(messages, tools) >= config.compressTokensThreshold))
   ) {
-    // Compress messages
+    // Compress messages (lazy import to break circular dependency)
+    const memory = await getMemoryModule();
     await memory.compressAgentMessages(agentContext, messages, tools);
   }
   if (!toolChoice) {
@@ -257,8 +236,8 @@ export async function callAgentLLM(
   const agentNode = agentChain.agent;
   const streamCallback = callback ||
     context.config.callback || {
-      onMessage: async () => {},
-    };
+    onMessage: async () => { },
+  };
   const stepController = new AbortController();
   const signal = AbortSignal.any([
     context.controller.signal,
@@ -511,6 +490,7 @@ export async function callAgentLLM(
             !noCompress &&
             retryNum < config.maxRetryNum
           ) {
+            const memory = await getMemoryModule();
             await memory.compressAgentMessages(
               agentContext,
               messages,
@@ -555,7 +535,7 @@ export async function callAgentLLM(
                 totalTokens:
                   chunk.usage.totalTokens ||
                   (chunk.usage.inputTokens || 0) +
-                    (chunk.usage.outputTokens || 0),
+                  (chunk.usage.outputTokens || 0),
               },
             },
             agentContext
@@ -569,6 +549,7 @@ export async function callAgentLLM(
     if (retryNum < config.maxRetryNum) {
       await sleep(300 * (retryNum + 1) * (retryNum + 1));
       if ((e + "").indexOf("is too long") > -1) {
+        const memory = await getMemoryModule();
         await memory.compressAgentMessages(agentContext, messages, tools);
       }
       return callAgentLLM(
@@ -590,9 +571,9 @@ export async function callAgentLLM(
   agentChain.agentResult = streamText;
   return streamText
     ? [
-        { type: "text", text: streamText } as LanguageModelV2TextPart,
-        ...toolParts,
-      ]
+      { type: "text", text: streamText } as LanguageModelV2TextPart,
+      ...toolParts,
+    ]
     : toolParts;
 }
 
