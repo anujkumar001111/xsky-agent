@@ -135,43 +135,49 @@ export function toFile(mediaData: string, type: "base64|url" | "binary|url" = "b
 }
 
 /**
+ * Mapping of file extensions to MIME types for common file formats.
+ */
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.pdf': 'application/pdf',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.json': 'application/json',
+  '.xml': 'application/xml',
+  '.csv': 'text/csv',
+};
+
+/**
  * Gets the MIME type of a data string.
  * @param data - The data string to get the MIME type of.
  * @returns The MIME type of the data string.
  */
 export function getMimeType(data: string | undefined | null): string {
-  let mediaType = "image/png";
+  const defaultType = "image/png";
   if (!data) {
-    return mediaType;
+    return defaultType;
   }
+
+  // Extract MIME type from data URI
   if (data.startsWith("data:")) {
-    mediaType = data.split(";")[0].split(":")[1];
-  } else if (data.indexOf(".") > -1) {
-    if (data.indexOf(".png") > -1) {
-      mediaType = "image/png";
-    } else if (data.indexOf(".jpg") > -1 || data.indexOf(".jpeg") > -1) {
-      mediaType = "image/jpeg";
-    } else if (data.indexOf(".pdf") > -1) {
-      mediaType = "application/pdf";
-    } else if (data.indexOf(".docx") > -1) {
-      mediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    } else if (data.indexOf(".xlsx") > -1) {
-      mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    } else if (data.indexOf(".pptx") > -1) {
-      mediaType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-    } else if (data.indexOf(".txt") > -1) {
-      mediaType = "text/plain";
-    } else if (data.indexOf(".md") > -1) {
-      mediaType = "text/markdown";
-    } else if (data.indexOf(".json") > -1) {
-      mediaType = "application/json";
-    } else if (data.indexOf(".xml") > -1) {
-      mediaType = "application/xml";
-    } else if (data.indexOf(".csv") > -1) {
-      mediaType = "text/csv";
+    return data.split(";")[0].split(":")[1] || defaultType;
+  }
+
+  // Check for file extension in the data string
+  if (data.indexOf(".") > -1) {
+    for (const [ext, mimeType] of Object.entries(EXTENSION_MIME_TYPES)) {
+      if (data.indexOf(ext) > -1) {
+        return mimeType;
+      }
     }
   }
-  return mediaType;
+
+  return defaultType;
 }
 
 /**
@@ -271,10 +277,10 @@ export function fixJson(code: string) {
   }
   try {
     return JSON.parse(code);
-  } catch (e) {}
+  } catch (e) { }
   try {
     return JSON.parse(code + "\"}");
-  } catch (e) {}
+  } catch (e) { }
   const stack: string[] = [];
   for (let i = 0; i < code.length; i++) {
     let s = code[i];

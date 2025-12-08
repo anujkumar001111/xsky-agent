@@ -79,12 +79,7 @@ export function getTool<T extends Tool | DialogueTool>(
   tools: T[],
   name: string
 ): T | null {
-  for (let i = 0; i < tools.length; i++) {
-    if (tools[i].name == name) {
-      return tools[i];
-    }
-  }
-  return null;
+  return tools.find(tool => tool.name === name) ?? null;
 }
 
 /**
@@ -641,6 +636,30 @@ export function estimatePromptTokens(
 }
 
 /**
+ * Checks if a character code is a CJK or East Asian character.
+ * These characters typically require more tokens in LLM tokenizers.
+ * 
+ * @param code - The character code to check
+ * @returns True if the character is CJK or East Asian
+ * 
+ * Unicode ranges covered:
+ * - 0x4E00-0x9FFF: CJK Unified Ideographs (Chinese, Japanese Kanji, Korean Hanja)
+ * - 0x3400-0x4DBF: CJK Extension A
+ * - 0x3040-0x309F: Hiragana (Japanese)
+ * - 0x30A0-0x30FF: Katakana (Japanese)
+ * - 0xAC00-0xD7AF: Hangul Syllables (Korean)
+ */
+function isCJKOrEastAsian(code: number): boolean {
+  return (
+    (code >= 0x4E00 && code <= 0x9FFF) ||  // CJK Unified Ideographs
+    (code >= 0x3400 && code <= 0x4DBF) ||  // CJK Extension A
+    (code >= 0x3040 && code <= 0x309F) ||  // Hiragana
+    (code >= 0x30A0 && code <= 0x30FF) ||  // Katakana
+    (code >= 0xAC00 && code <= 0xD7AF)     // Hangul Syllables
+  );
+}
+
+/**
  * Estimates the number of tokens in a string.
  * @param text - The string to estimate the number of tokens in.
  * @returns The estimated number of tokens.
@@ -653,13 +672,7 @@ export function estimateTokens(text: string) {
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     const code = char.charCodeAt(0);
-    if (
-      (code >= 0x4e00 && code <= 0x9fff) ||
-      (code >= 0x3400 && code <= 0x4dbf) ||
-      (code >= 0x3040 && code <= 0x309f) ||
-      (code >= 0x30a0 && code <= 0x30ff) ||
-      (code >= 0xac00 && code <= 0xd7af)
-    ) {
+    if (isCJKOrEastAsian(code)) {
       tokenCount += 2;
     } else if (/\s/.test(char)) {
       continue;
