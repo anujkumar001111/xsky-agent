@@ -2,6 +2,7 @@ import Context, { AgentContext } from "../../src/core/context";
 import Chain from "../../src/core/chain";
 import { Agent } from "../../src/agent";
 import { XSkyConfig } from "../../src/types/core.types";
+import Log from "../../src/common/log";
 
 describe("Context", () => {
   const createMockConfig = (): XSkyConfig => ({
@@ -409,15 +410,15 @@ describe("Context", () => {
         },
       };
 
-      const context = new Context("task-1", config, [], new Chain("Test"));
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const context = new Context("test-task", config, [], new Chain());
+      const logSpy = jest.spyOn(Log, 'error').mockImplementation(() => { });
 
       const checkpoint = await context.createCheckpoint();
 
       expect(checkpoint).toBeDefined(); // Should still return checkpoint
-      expect(consoleSpy).toHaveBeenCalledWith("Checkpoint hook error:", checkpointError);
+      expect(logSpy).toHaveBeenCalledWith("Checkpoint hook error:", checkpointError);
 
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 
@@ -567,17 +568,17 @@ describe("Context", () => {
         },
       };
 
-      const context = new Context("task-1", config, [], new Chain("Test"));
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const context = new Context("test-task", config, [], new Chain());
+      const logSpy = jest.spyOn(Log, 'error').mockImplementation(() => { });
 
       context.setVariable("key", "value");
 
       // Wait for debounce
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      expect(consoleSpy).toHaveBeenCalledWith("onStateChange hook error:", stateChangeError);
+      expect(logSpy).toHaveBeenCalledWith("onStateChange hook error:", stateChangeError);
 
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 

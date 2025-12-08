@@ -324,6 +324,11 @@ export class Agent {
 
     // Main ReAct (Reasoning + Acting) loop - continues until task completion or iteration limit
     while (loopNum < maxReactNum) {
+      // Warn if approaching limit (80%)
+      if (loopNum === Math.floor(maxReactNum * 0.8)) {
+        Log.warn(`Agent ${this.name} approaching max reaction limit: ${loopNum}/${maxReactNum}. Consider increasing maxReactNum if this is expected.`);
+      }
+
       await context.checkAborted(); // Check for user cancellation requests
       if (mcpClient) {
         const controlMcp = await this.controlMcpTools(
@@ -387,7 +392,11 @@ export class Agent {
       }
       return finalResult;
     }
-    return "Unfinished";
+
+    // Improved error message when limit is hit
+    const errorMsg = `Agent exceeded maxReactNum limit (${maxReactNum}). This task may be too complex or stuck in a loop. Override with: new XSky({ config: { maxReactNum: 100 } })`;
+    Log.error(errorMsg);
+    return errorMsg;
   }
 
   /**

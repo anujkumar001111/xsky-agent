@@ -1,9 +1,18 @@
 import config from "../config";
 import Log from "../common/log";
-import * as memory from "../memory";
 import { RetryLanguageModel } from "../llm";
 import { AgentContext } from "../core/context";
 import { uuidv4, sleep, toFile, getMimeType } from "../common/utils";
+
+// Lazy import for memory module to break circular dependency
+// (memory imports callAgentLLM from this file)
+let memoryModule: typeof import("../memory") | null = null;
+async function getMemoryModule() {
+  if (!memoryModule) {
+    memoryModule = await import("../memory");
+  }
+  return memoryModule;
+}
 import {
   Tool,
   LLMRequest,
@@ -26,42 +35,11 @@ import {
   LanguageModelV2ToolResultOutput,
 } from "@ai-sdk/provider";
 
-/**
- * Returns the default provider options for the language model.
- * @returns The default provider options.
- */
-export function defaultLLMProviderOptions(): SharedV2ProviderOptions {
-  return {
-    openai: {
-      stream_options: {
-        include_usage: true,
-      },
-    },
-    openrouter: {
-      reasoning: {
-        max_tokens: 10,
-      },
-    },
-  };
-}
-
-/**
- * Returns the default provider options for messages.
- * @returns The default provider options.
- */
-export function defaultMessageProviderOptions(): SharedV2ProviderOptions {
-  return {
-    anthropic: {
-      cacheControl: { type: "ephemeral" },
-    },
-    bedrock: {
-      cachePoint: { type: "default" },
-    },
-    openrouter: {
-      cacheControl: { type: "ephemeral" },
-    },
-  };
-}
+// Re-export from shared module for backward compatibility
+export {
+  defaultLLMProviderOptions,
+  defaultMessageProviderOptions,
+} from "../llm/provider-options";
 
 /**
  * Converts internal tool definitions to LLM provider format.
@@ -101,12 +79,7 @@ export function getTool<T extends Tool | DialogueTool>(
   tools: T[],
   name: string
 ): T | null {
-  for (let i = 0; i < tools.length; i++) {
-    if (tools[i].name == name) {
-      return tools[i];
-    }
-  }
-  return null;
+  return tools.find(tool => tool.name === name) ?? null;
 }
 
 /**
@@ -128,22 +101,22 @@ export function convertToolResult(
       value: "Error",
     };
   } else if (
-    toolResult.content.length == 1 &&
-    toolResult.content[0].type == "text"
+    toolResult.content.length === 1 &&
+    toolResult.content[0].type === "text"
   ) {
     let text = toolResult.content[0].text;
     result = {
       type: "text",
       value: text,
     };
-    let isError = toolResult.isError == true;
+    let isError = toolResult.isError === true;
     if (isError && !text.startsWith("Error")) {
       text = "Error: " + text;
       result = {
         type: "error-text",
         value: text,
       };
-    } else if (!isError && text.length == 0) {
+    } else if (!isError && text.length === 0) {
       text = "Successful";
       result = {
         type: "text",
@@ -161,7 +134,7 @@ export function convertToolResult(
           type: "json",
           value: result,
         };
-      } catch (e) {}
+      } catch (e) { }
     }
   } else {
     result = {
@@ -170,7 +143,7 @@ export function convertToolResult(
     };
     for (let i = 0; i < toolResult.content.length; i++) {
       let content = toolResult.content[i];
-      if (content.type == "text") {
+      if (content.type === "text") {
         result.value.push({
           type: "text",
           text: content.text,
@@ -245,7 +218,8 @@ export async function callAgentLLM(
     !noCompress &&
     (messages.length >= config.compressThreshold || (messages.length >= 10 && estimatePromptTokens(messages, tools) >= config.compressTokensThreshold))
   ) {
-    // Compress messages
+    // Compress messages (lazy import to break circular dependency)
+    const memory = await getMemoryModule();
     await memory.compressAgentMessages(agentContext, messages, tools);
   }
   if (!toolChoice) {
@@ -257,8 +231,8 @@ export async function callAgentLLM(
   const agentNode = agentChain.agent;
   const streamCallback = callback ||
     context.config.callback || {
-      onMessage: async () => {},
-    };
+    onMessage: async () => { },
+  };
   const stepController = new AbortController();
   const signal = AbortSignal.any([
     context.controller.signal,
@@ -387,7 +361,7 @@ export async function callAgentLLM(
           break;
         }
         case "tool-input-start": {
-          if (toolPart && toolPart.toolCallId == chunk.id) {
+          if (toolPart && toolPart.toolCallId === chunk.id) {
             toolPart.toolName = chunk.toolName;
           } else {
             toolPart = {
@@ -444,7 +418,7 @@ export async function callAgentLLM(
             params: args,
           };
           await streamCallback.onMessage(message, agentContext);
-          if (toolPart == null) {
+          if (toolPart === null) {
             toolParts.push({
               type: "tool-call",
               toolCallId: chunk.toolCallId,
@@ -511,6 +485,7 @@ export async function callAgentLLM(
             !noCompress &&
             retryNum < config.maxRetryNum
           ) {
+            const memory = await getMemoryModule();
             await memory.compressAgentMessages(
               agentContext,
               messages,
@@ -555,7 +530,7 @@ export async function callAgentLLM(
                 totalTokens:
                   chunk.usage.totalTokens ||
                   (chunk.usage.inputTokens || 0) +
-                    (chunk.usage.outputTokens || 0),
+                  (chunk.usage.outputTokens || 0),
               },
             },
             agentContext
@@ -569,6 +544,7 @@ export async function callAgentLLM(
     if (retryNum < config.maxRetryNum) {
       await sleep(300 * (retryNum + 1) * (retryNum + 1));
       if ((e + "").indexOf("is too long") > -1) {
+        const memory = await getMemoryModule();
         await memory.compressAgentMessages(agentContext, messages, tools);
       }
       return callAgentLLM(
@@ -590,9 +566,9 @@ export async function callAgentLLM(
   agentChain.agentResult = streamText;
   return streamText
     ? [
-        { type: "text", text: streamText } as LanguageModelV2TextPart,
-        ...toolParts,
-      ]
+      { type: "text", text: streamText } as LanguageModelV2TextPart,
+      ...toolParts,
+    ]
     : toolParts;
 }
 
@@ -607,31 +583,31 @@ export function estimatePromptTokens(
   tools?: LanguageModelV2FunctionTool[]
 ) {
   let tokens = messages.reduce((total, message) => {
-    if (message.role == "system") {
+    if (message.role === "system") {
       return total + estimateTokens(message.content);
-    } else if (message.role == "user") {
+    } else if (message.role === "user") {
       return (
         total +
         estimateTokens(
           message.content
-            .filter((part) => part.type == "text")
+            .filter((part) => part.type === "text")
             .map((part) => part.text)
             .join("\n")
         )
       );
-    } else if (message.role == "assistant") {
+    } else if (message.role === "assistant") {
       return (
         total +
         estimateTokens(
           message.content
             .map((part) => {
-              if (part.type == "text") {
+              if (part.type === "text") {
                 return part.text;
-              } else if (part.type == "reasoning") {
+              } else if (part.type === "reasoning") {
                 return part.text;
-              } else if (part.type == "tool-call") {
+              } else if (part.type === "tool-call") {
                 return part.toolName + JSON.stringify(part.input || {});
-              } else if (part.type == "tool-result") {
+              } else if (part.type === "tool-result") {
                 return part.toolName + JSON.stringify(part.output || {});
               }
               return "";
@@ -639,7 +615,7 @@ export function estimatePromptTokens(
             .join("")
         )
       );
-    } else if (message.role == "tool") {
+    } else if (message.role === "tool") {
       return (
         total +
         estimateTokens(
@@ -660,6 +636,30 @@ export function estimatePromptTokens(
 }
 
 /**
+ * Checks if a character code is a CJK or East Asian character.
+ * These characters typically require more tokens in LLM tokenizers.
+ * 
+ * @param code - The character code to check
+ * @returns True if the character is CJK or East Asian
+ * 
+ * Unicode ranges covered:
+ * - 0x4E00-0x9FFF: CJK Unified Ideographs (Chinese, Japanese Kanji, Korean Hanja)
+ * - 0x3400-0x4DBF: CJK Extension A
+ * - 0x3040-0x309F: Hiragana (Japanese)
+ * - 0x30A0-0x30FF: Katakana (Japanese)
+ * - 0xAC00-0xD7AF: Hangul Syllables (Korean)
+ */
+function isCJKOrEastAsian(code: number): boolean {
+  return (
+    (code >= 0x4E00 && code <= 0x9FFF) ||  // CJK Unified Ideographs
+    (code >= 0x3400 && code <= 0x4DBF) ||  // CJK Extension A
+    (code >= 0x3040 && code <= 0x309F) ||  // Hiragana
+    (code >= 0x30A0 && code <= 0x30FF) ||  // Katakana
+    (code >= 0xAC00 && code <= 0xD7AF)     // Hangul Syllables
+  );
+}
+
+/**
  * Estimates the number of tokens in a string.
  * @param text - The string to estimate the number of tokens in.
  * @returns The estimated number of tokens.
@@ -672,13 +672,7 @@ export function estimateTokens(text: string) {
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     const code = char.charCodeAt(0);
-    if (
-      (code >= 0x4e00 && code <= 0x9fff) ||
-      (code >= 0x3400 && code <= 0x4dbf) ||
-      (code >= 0x3040 && code <= 0x309f) ||
-      (code >= 0x30a0 && code <= 0x30ff) ||
-      (code >= 0xac00 && code <= 0xd7af)
-    ) {
+    if (isCJKOrEastAsian(code)) {
       tokenCount += 2;
     } else if (/\s/.test(char)) {
       continue;

@@ -4,6 +4,7 @@ import {
   NormalAgentNode,
   ParallelAgentNode,
 } from "../types/core.types";
+import Log from "./log";
 
 /**
  * Builds an agent tree from a list of agents.
@@ -81,11 +82,11 @@ export function buildAgentTree(agents: WorkflowAgent[]): AgentNode {
     } else {
       const parallelNodes: NormalAgentNode[] = currentAgents.map(
         (agent) =>
-          ({
-            type: "normal",
-            agent: agent,
-            nextAgent: undefined,
-          } as NormalAgentNode)
+        ({
+          type: "normal",
+          agent: agent,
+          nextAgent: undefined,
+        } as NormalAgentNode)
       );
       return {
         type: "parallel",
@@ -152,7 +153,7 @@ function detectAndBreakCycles(agents: WorkflowAgent[]): WorkflowAgent[] {
   }
 
   if (processedNodes < agents.length) {
-    console.warn(
+    Log.warn(
       "Detected a circular dependency, automatically disconnecting the circular link..."
     );
     const cyclicNodes = new Set<string>();
@@ -184,7 +185,7 @@ function detectAndBreakCycles(agents: WorkflowAgent[]): WorkflowAgent[] {
         fixedAgents.push(agent);
 
         if (filteredDependsOn.length !== agent.dependsOn.length) {
-          console.warn(
+          Log.warn(
             `The partial cyclic dependency of agent ${agent.id} has been disconnected.`
           );
         }

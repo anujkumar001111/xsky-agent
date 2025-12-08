@@ -24,8 +24,8 @@ export const LLMConfig = {
 
         // Default models based on environment
         model: isDev
-            ? process.env.OPENAI_COMPATIBLE_MODEL || "qwen3-coder-plus"
-            : "gpt-4o-mini",
+            ? process.env.OPENAI_COMPATIBLE_MODEL || "gpt-4.1"
+            : "gpt-4.1",
     },
 
     anthropic: {

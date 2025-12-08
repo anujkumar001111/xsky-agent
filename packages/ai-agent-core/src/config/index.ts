@@ -56,8 +56,16 @@ type GlobalConfig = {
  */
 const config: GlobalConfig = {
   name: "XSky",
-  platform: "mac",
-  maxReactNum: 500,
+  platform: (() => {
+    if (typeof process !== 'undefined' && process.platform) {
+      const p = process.platform;
+      if (p === 'darwin') return 'mac';
+      if (p === 'win32') return 'windows';
+      return 'linux';
+    }
+    return 'mac';
+  })(),
+  maxReactNum: 50,  // CHANGED: Reduced from 500 to prevent runaway loops
   maxTokens: 16000,
   maxRetryNum: 3,
   agentParallel: false,

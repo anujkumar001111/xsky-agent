@@ -1,4 +1,5 @@
 import { AgentContext } from '../../core/context';
+import Log from '../../common/log';
 import { EXTRACTORS } from './extractors';
 
 /**
@@ -197,14 +198,14 @@ export class DomIntelligenceAgent {
     const promises = extractorNames.map(async (name) => {
       const script = this.extractors.get(name);
       if (!script) {
-        console.warn(`Extractor ${name} not found`);
+        Log.warn(`Extractor ${name} not found`);
         return;
       }
       try {
         const result = await executor(script);
         results[name] = result;
       } catch (error) {
-        console.error(`Error executing extractor ${name}:`, error);
+        Log.error(`Error executing extractor ${name}:`, error);
         results[name] = { error: String(error) };
       }
     });
@@ -222,71 +223,91 @@ export class DomIntelligenceAgent {
    * @throws Error if the comprehensive element extractor fails.
    */
   async getIntelligence(
-      executor: (script: Function) => Promise<any>,
-      useCache: boolean = true
+    executor: (script: Function) => Promise<any>,
+    useCache: boolean = true
   ): Promise<DomIntelligenceCache> {
-      if (useCache && this.cache && (Date.now() - this.cache.timestamp < 5000)) { // 5s TTL for demo
-          return this.cache;
-      }
+    // Check if we have fresh cached data (30s TTL)
+    const cachedData = this.getCachedIntelligence();
+    if (useCache && cachedData) {
+      return cachedData;
+    }
 
-      // Run all extractors in parallel
-      const results = await this.runExtractorsParallel(executor);
+    // Run all extractors in parallel
+    const results = await this.runExtractorsParallel(executor);
 
-      const comprehensive = results['comprehensive_element_extractor.js'];
-      const structure = results['extract_structure.js'];
-      const styles = results['extract_styles.js'];
-      const events = results['extract_events.js'];
-      const animations = results['extract_animations.js'];
-      // Assets and related files are page-level, need handling
+    const comprehensive = results['comprehensive_element_extractor.js'];
+    const structure = results['extract_structure.js'];
+    const styles = results['extract_styles.js'];
+    const events = results['extract_events.js'];
+    const animations = results['extract_animations.js'];
+    // Assets and related files are page-level, need handling
 
-      if (!comprehensive || comprehensive.error) {
-          throw new Error('Failed to get DOM intelligence');
-      }
+    if (!comprehensive || comprehensive.error) {
+      throw new Error('Failed to get DOM intelligence');
+    }
 
-      // Parse and structure the data
-      const elements: Record<string, DomElementIntelligence> = {};
+    // Parse and structure the data
+    const elements: Record<string, DomElementIntelligence> = {};
 
-      // We need to map the raw array to our structure
-      // The comprehensive extractor returns an array of objects.
-      if (Array.isArray(comprehensive)) {
-          comprehensive.forEach((el: any, index: number) => {
-              // Generate a stable ID if not present
-              const elementId = el.id || `gen_id_${index}`;
-              const path = el.path;
+    // We need to map the raw array to our structure
+    // The comprehensive extractor returns an array of objects.
+    if (Array.isArray(comprehensive)) {
+      comprehensive.forEach((el: any, index: number) => {
+        // Generate a stable ID if not present
+        const elementId = el.id || `gen_id_${index}`;
+        const path = el.path;
 
-              // Find matching data from other extractors using path or id
-              const structData = Array.isArray(structure) ? structure.find((s: any) => s.path === path) : null;
-              const styleData = Array.isArray(styles) ? styles.find((s: any) => s.path === path) : null;
-              const eventData = Array.isArray(events) ? events.find((e: any) => e.path === path) : null;
-              const animData = Array.isArray(animations) ? animations.find((a: any) => a.path === path) : null;
+        // Find matching data from other extractors using path or id
+        const structData = Array.isArray(structure) ? structure.find((s: any) => s.path === path) : null;
+        const styleData = Array.isArray(styles) ? styles.find((s: any) => s.path === path) : null;
+        const eventData = Array.isArray(events) ? events.find((e: any) => e.path === path) : null;
+        const animData = Array.isArray(animations) ? animations.find((a: any) => a.path === path) : null;
 
-              elements[elementId] = {
-                  elementId: elementId,
-                  tagName: el.tagName,
-                  id: el.id,
-                  className: el.className,
-                  attributes: el.attributes || {},
-                  boundingRect: el.rect,
-                  computedStyles: { ...(el.styles || {}), ...(styleData?.computedStyles || {}) },
-                  eventHandlers: eventData?.eventHandlers || el.events || [],
-                  children: structData?.children || [],
-                  scrollInfo: structData?.scroll || {
-                      scrollTop: 0, scrollLeft: 0, scrollHeight: 0, scrollWidth: 0, clientHeight: 0, clientWidth: 0
-                  },
-                  animations: animData ? [animData.animation, animData.transition].filter(Boolean) : [],
-                  relatedAssets: [], // To be populated from global assets if linked
-                  path: el.path
-              };
-          });
-      }
+        elements[elementId] = {
+          elementId: elementId,
+          tagName: el.tagName,
+          id: el.id,
+          className: el.className,
+          attributes: el.attributes || {},
+          boundingRect: el.rect,
+          computedStyles: { ...(el.styles || {}), ...(styleData?.computedStyles || {}) },
+          eventHandlers: eventData?.eventHandlers || el.events || [],
+          children: structData?.children || [],
+          scrollInfo: structData?.scroll || {
+            scrollTop: 0, scrollLeft: 0, scrollHeight: 0, scrollWidth: 0, clientHeight: 0, clientWidth: 0
+          },
+          animations: animData ? [animData.animation, animData.transition].filter(Boolean) : [],
+          relatedAssets: [], // To be populated from global assets if linked
+          path: el.path
+        };
+      });
+    }
 
-      this.cache = {
-          elements: elements,
-          timestamp: Date.now(),
-          pageUrl: '', // Need to get this from somewhere
-          mutations: []
-      };
+    this.cache = {
+      elements: elements,
+      timestamp: Date.now(),
+      pageUrl: '', // Need to get this from somewhere
+      mutations: []
+    };
 
+    return this.cache;
+  }
+
+  /**
+   * Clears the DOM intelligence cache.
+   * Should be called when navigating to a new page or when DOM significantly changes.
+   */
+  clear() {
+    this.cache = null;
+  }
+
+  /**
+   * Gets the current intelligence data if available and fresh.
+   */
+  getCachedIntelligence(): DomIntelligenceCache | null {
+    if (this.cache && (Date.now() - this.cache.timestamp < 30000)) { // 30s TTL
       return this.cache;
+    }
+    return null;
   }
 }

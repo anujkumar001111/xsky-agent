@@ -20,7 +20,9 @@ import {
   GenerateResult,
 } from "../types/llm.types";
 import Context, { AgentContext } from "../core/context";
-import { defaultLLMProviderOptions } from "../agent/llm";
+import { defaultLLMProviderOptions } from "./provider-options";
+
+import { CircuitBreaker } from "./circuit-breaker";
 
 /**
  * A language model that retries on failure.
@@ -32,6 +34,7 @@ export class RetryLanguageModel {
   private stream_token_timeout: number;
   private context?: Context;
   private agentContext?: AgentContext;
+  private circuitBreaker: CircuitBreaker;
 
   /**
    * Creates an instance of the RetryLanguageModel.
@@ -56,6 +59,7 @@ export class RetryLanguageModel {
     if (this.names.indexOf("default") == -1) {
       this.names.push("default");
     }
+    this.circuitBreaker = new CircuitBreaker();
   }
 
   /**
@@ -103,8 +107,19 @@ export class RetryLanguageModel {
     const providerOptions = options.providerOptions;
     const names = [...this.names, ...this.names];
     let lastError;
+    // Track if we skipped any providers due to open circuit
+    let skippedProviders = 0;
+
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
+
+      // key for circuit breaker includes provider name
+      if (this.circuitBreaker.isOpen(name)) {
+        Log.warn(`Circuit breaker open for LLM provider: ${name}, skipping`);
+        skippedProviders++;
+        continue;
+      }
+
       const llmConfig = this.llms[name];
       const llm = await this.getLLM(name);
       if (!llm) {
@@ -133,12 +148,19 @@ export class RetryLanguageModel {
         result.llm = name;
         result.llmConfig = llmConfig;
         result.text = result.content.find((c) => c.type === "text")?.text;
+
+        // Success! Record it
+        this.circuitBreaker.recordSuccess(name);
         return result;
       } catch (e: any) {
         if (e?.name === "AbortError") {
-          throw e;
+          throw e; // Abort errors shouldn't trip circuit breaker
         }
         lastError = e;
+
+        // Record failure
+        this.circuitBreaker.recordFailure(name);
+
         if (Log.isEnableInfo()) {
           Log.info(`LLM nonstream request, name: ${name} => `, {
             tools: _options.tools,
@@ -148,6 +170,12 @@ export class RetryLanguageModel {
         Log.error(`LLM error, name: ${name} => `, e);
       }
     }
+
+    // If we skipped providers and failed to get a result, mention it in error
+    if (skippedProviders > 0 && !lastError) {
+      return Promise.reject(new Error(`All safe LLM providers are currently unavailable (Circuit Breaker Open)`));
+    }
+
     return Promise.reject(
       lastError ? lastError : new Error("No LLM available")
     );
@@ -182,8 +210,17 @@ export class RetryLanguageModel {
     const providerOptions = options.providerOptions;
     const names = [...this.names, ...this.names];
     let lastError;
+    let skippedProviders = 0;
+
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
+
+      if (this.circuitBreaker.isOpen(name)) {
+        Log.warn(`Circuit breaker open for LLM provider: ${name}, skipping`);
+        skippedProviders++;
+        continue;
+      }
+
       const llmConfig = this.llms[name];
       const llm = await this.getLLM(name);
       if (!llm) {
@@ -236,17 +273,25 @@ export class RetryLanguageModel {
         if (chunk.type == "error") {
           Log.error(`LLM stream error, name: ${name}`, chunk);
           reader.releaseLock();
+          this.circuitBreaker.recordFailure(name);
           continue;
         }
         result.llm = name;
         result.llmConfig = llmConfig;
         result.stream = this.streamWrapper([chunk], reader, controller);
+
+        // Success
+        this.circuitBreaker.recordSuccess(name);
         return result;
       } catch (e: any) {
         if (e?.name === "AbortError") {
           throw e;
         }
         lastError = e;
+
+        // Record failure
+        this.circuitBreaker.recordFailure(name);
+
         if (Log.isEnableInfo()) {
           Log.info(`LLM stream request, name: ${name} => `, {
             tools: _options.tools,
@@ -256,6 +301,11 @@ export class RetryLanguageModel {
         Log.error(`LLM error, name: ${name} => `, e);
       }
     }
+
+    if (skippedProviders > 0 && !lastError) {
+      return Promise.reject(new Error(`All safe LLM providers are currently unavailable (Circuit Breaker Open)`));
+    }
+
     return Promise.reject(
       lastError ? lastError : new Error("No LLM available")
     );

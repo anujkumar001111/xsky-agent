@@ -33,17 +33,26 @@ import { checkTaskReplan, replanWorkflow } from "./replan";
  */
 export class XSky {
   /** Configuration object containing LLM settings, registered agents, and production hooks */
-  protected config: XSkyConfig;
+  private _config!: XSkyConfig;
   /** Map storing active task contexts indexed by task ID for concurrent workflow execution */
-  protected taskMap: Map<string, Context>;
+  private taskMap: Map<string, Context> = new Map();
+  private cleanupTimeouts: Map<string, NodeJS.Timeout> = new Map(); // Track cleanup timeouts for cancellation
+  private agentMap: Map<string, Agent> = new Map();
 
   /**
    * Creates an instance of the XSky class.
    * @param config - The configuration for the XSky instance.
    */
   constructor(config: XSkyConfig) {
-    this.config = config;
+    this._config = config;
     this.taskMap = new Map();
+  }
+
+  /**
+   * Gets the configuration object.
+   */
+  public get config(): XSkyConfig {
+    return this._config;
   }
 
   /**
@@ -121,10 +130,26 @@ export class XSky {
       context.reset();
     }
     context.conversation = [];
+    const startTime = Date.now();
     try {
-      return await this.doRunWorkflow(context);
+      const result = await this.doRunWorkflow(context);
+
+      this.config.telemetry?.onMetric?.({
+        name: 'xsky.task.duration',
+        value: Date.now() - startTime,
+        tags: { status: 'success', taskId }
+      });
+
+      return result;
     } catch (e: any) {
       Log.error("execute error", e);
+
+      this.config.telemetry?.onMetric?.({
+        name: 'xsky.task.duration',
+        value: Date.now() - startTime,
+        tags: { status: 'failure', taskId, error: e?.name || 'UnknownError' }
+      });
+
       return {
         taskId,
         success: false,
@@ -132,6 +157,9 @@ export class XSky {
         result: e ? e.name + ": " + e.message : "Error",
         error: e,
       };
+    } finally {
+      // Schedule automatic cleanup for this task
+      this.cleanupTask(taskId);
     }
   }
 
@@ -507,18 +535,27 @@ export class XSky {
   }
 
   /**
-   * Deletes a task by its ID.
+   * Deletes a task from memory.
    * @param taskId - The ID of the task to delete.
-   * @returns True if the task was deleted, false otherwise.
+   * @returns True if the task was deleted, false if it did not exist.
    */
   public deleteTask(taskId: string): boolean {
-    this.abortTask(taskId);
     const context = this.taskMap.get(taskId);
     if (context) {
-      context.variables.clear();
       context.reset();
+      this.taskMap.delete(taskId);
+
+      // Cancel any scheduled cleanup for this task
+      const timeoutId = this.cleanupTimeouts.get(taskId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        this.cleanupTimeouts.delete(taskId);
+      }
+
+      return true;
+    } else {
+      return false;
     }
-    return this.taskMap.delete(taskId);
   }
 
   /**
@@ -598,5 +635,27 @@ export class XSky {
         await onTaskStatus.call(agent, status, reason);
       }
     }
+  }
+
+  /**
+   * Schedules automatic cleanup of a completed task after a delay.
+   * Only deletes tasks that are actually complete (not paused or running).
+   * @param taskId - The ID of the task to clean up.
+   * @param delayMs - Time to wait before deletion (default: 5 minutes).
+   */
+  private cleanupTask(taskId: string, delayMs: number = 300000) {
+    const timeoutId = setTimeout(() => {
+      const context = this.taskMap.get(taskId);
+      // Only delete if task is actually complete (not paused or still running)
+      if (context && (!context.pause || context.controller.signal.aborted)) {
+        this.deleteTask(taskId);
+        Log.info(`Auto-deleted completed task: ${taskId}`);
+      }
+      // Remove timeout ID from tracking map
+      this.cleanupTimeouts.delete(taskId);
+    }, delayMs);
+
+    // Store timeout ID so we can cancel it if task is manually deleted
+    this.cleanupTimeouts.set(taskId, timeoutId);
   }
 }
