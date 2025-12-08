@@ -32,15 +32,11 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Build packages
-      run: pnpm build
-
-    # Run linting if script available
-    # - name: Lint
-    #   run: pnpm lint
+    - name: Build core packages
+      run: pnpm -r --filter "./packages/*" build
 
     - name: Run tests
-      run: pnpm test
+      run: pnpm -r --filter "./packages/*" test
       env:
         CI: true
         # Use dummy keys for tests that need them to start but are skipped
