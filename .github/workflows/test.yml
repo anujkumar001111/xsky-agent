@@ -39,6 +39,4 @@ jobs:
       run: pnpm -r --filter "./packages/*" test
       env:
         CI: true
-        # Use dummy keys for tests that need them to start but are skipped
-        OPENAI_API_KEY: sk-dummy
-        ANTHROPIC_API_KEY: sk-dummy
+        # Tests that require real API keys will skip automatically
