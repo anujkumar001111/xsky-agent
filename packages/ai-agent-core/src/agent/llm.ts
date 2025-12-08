@@ -101,22 +101,22 @@ export function convertToolResult(
       value: "Error",
     };
   } else if (
-    toolResult.content.length == 1 &&
-    toolResult.content[0].type == "text"
+    toolResult.content.length === 1 &&
+    toolResult.content[0].type === "text"
   ) {
     let text = toolResult.content[0].text;
     result = {
       type: "text",
       value: text,
     };
-    let isError = toolResult.isError == true;
+    let isError = toolResult.isError === true;
     if (isError && !text.startsWith("Error")) {
       text = "Error: " + text;
       result = {
         type: "error-text",
         value: text,
       };
-    } else if (!isError && text.length == 0) {
+    } else if (!isError && text.length === 0) {
       text = "Successful";
       result = {
         type: "text",
@@ -143,7 +143,7 @@ export function convertToolResult(
     };
     for (let i = 0; i < toolResult.content.length; i++) {
       let content = toolResult.content[i];
-      if (content.type == "text") {
+      if (content.type === "text") {
         result.value.push({
           type: "text",
           text: content.text,
@@ -361,7 +361,7 @@ export async function callAgentLLM(
           break;
         }
         case "tool-input-start": {
-          if (toolPart && toolPart.toolCallId == chunk.id) {
+          if (toolPart && toolPart.toolCallId === chunk.id) {
             toolPart.toolName = chunk.toolName;
           } else {
             toolPart = {
@@ -418,7 +418,7 @@ export async function callAgentLLM(
             params: args,
           };
           await streamCallback.onMessage(message, agentContext);
-          if (toolPart == null) {
+          if (toolPart === null) {
             toolParts.push({
               type: "tool-call",
               toolCallId: chunk.toolCallId,
@@ -583,31 +583,31 @@ export function estimatePromptTokens(
   tools?: LanguageModelV2FunctionTool[]
 ) {
   let tokens = messages.reduce((total, message) => {
-    if (message.role == "system") {
+    if (message.role === "system") {
       return total + estimateTokens(message.content);
-    } else if (message.role == "user") {
+    } else if (message.role === "user") {
       return (
         total +
         estimateTokens(
           message.content
-            .filter((part) => part.type == "text")
+            .filter((part) => part.type === "text")
             .map((part) => part.text)
             .join("\n")
         )
       );
-    } else if (message.role == "assistant") {
+    } else if (message.role === "assistant") {
       return (
         total +
         estimateTokens(
           message.content
             .map((part) => {
-              if (part.type == "text") {
+              if (part.type === "text") {
                 return part.text;
-              } else if (part.type == "reasoning") {
+              } else if (part.type === "reasoning") {
                 return part.text;
-              } else if (part.type == "tool-call") {
+              } else if (part.type === "tool-call") {
                 return part.toolName + JSON.stringify(part.input || {});
-              } else if (part.type == "tool-result") {
+              } else if (part.type === "tool-result") {
                 return part.toolName + JSON.stringify(part.output || {});
               }
               return "";
@@ -615,7 +615,7 @@ export function estimatePromptTokens(
             .join("")
         )
       );
-    } else if (message.role == "tool") {
+    } else if (message.role === "tool") {
       return (
         total +
         estimateTokens(
