@@ -1,176 +1,149 @@
-# Tech Steering
+# Tech Stack
 
-This document defines the technology stack, build system, and development conventions for the XSky AI Agent monorepo.
+## Primary Technologies
 
-## Tech Stack
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| TypeScript | 5.8+ | Primary language, strict typing |
+| Node.js | 20+ | Runtime for nodejs package and tooling |
+| pnpm | 10.18+ | Package manager with workspaces |
+| Rollup | 4.40+ | Build bundler for all packages |
+| Jest + ts-jest | 29.x | Testing framework |
 
-| Technology | Purpose | Location |
-|------------|---------|----------|
-| TypeScript | Primary language, strict typing | All packages |
-| pnpm | Package manager with workspaces | Repo root |
-| Rollup | Build bundler | `packages/*/rollup.config.*` |
-| Jest + ts-jest | Testing framework | `packages/*/jest.config.js` |
-| Playwright + chromium-bidi | Browser automation | `packages/ai-agent-nodejs` |
-| Electron | Desktop runtime | `packages/ai-agent-electron` |
-| html2canvas | Screenshot capture | `packages/ai-agent-web` |
-| Chrome APIs | Extension integration | `packages/ai-agent-extension` |
-| AI SDK providers | LLM integration | `packages/ai-agent-core/src/llm/` |
+## Key Dependencies
 
-## Commands
+### Core LLM Providers (`ai-agent-core`)
+| Package | Purpose |
+|---------|---------|
+| `@ai-sdk/anthropic` | Claude models |
+| `@ai-sdk/openai` | OpenAI/GPT models |
+| `@ai-sdk/google` | Gemini models |
+| `@ai-sdk/amazon-bedrock` | AWS Bedrock Claude |
+| `@ai-sdk/deepseek` | DeepSeek models |
+| `@openrouter/ai-sdk-provider` | OpenRouter multi-model |
+| `@ai-sdk/openai-compatible` | Any OpenAI-compatible API |
 
-Run from repository root:
+### Core Utilities
+| Package | Purpose |
+|---------|---------|
+| `@xmldom/xmldom` | Workflow XML parsing |
+| `zod` | Schema validation for tools |
+| `secure-json-parse` | Safe JSON parsing for untrusted input |
+
+### Runtime-Specific
+| Package | Runtime | Purpose |
+|---------|---------|---------|
+| `playwright` | nodejs | Browser automation |
+| `chromium-bidi` | nodejs | Browser DevTools protocol |
+| `html2canvas` | web | Screenshot capture |
+| `electron` | electron | Desktop runtime |
+| `@types/chrome` | extension | Chrome extension APIs |
+
+## Build System
+
+- **Build tool**: Rollup with TypeScript plugin
+- **Package manager**: pnpm workspaces
+- **Test framework**: Jest with ts-jest preset
+- **Module format**: Dual ESM (`index.esm.js`) + CJS (`index.cjs`)
+
+## Common Commands
 
 ```bash
-pnpm install          # Install all workspace dependencies
-pnpm build            # Build all packages (sequential)
-pnpm test             # Run all tests (sequential)
-pnpm bench            # Run benchmarks
-pnpm clean            # Remove node_modules and dist
+# Development
+pnpm install              # Install all workspace dependencies
+pnpm build                # Build all packages (sequential)
+pnpm build-core           # Build only ai-agent-core
+
+# Testing
+pnpm test                 # Run all package tests
+pnpm -w --filter @xsky/ai-agent-core test  # Test specific package
+cd packages/ai-agent-core && pnpm test -- path/to/file.test.ts  # Single test
+
+# Maintenance
+pnpm clean                # Remove node_modules and dist everywhere
+pnpm bench                # Run benchmarks (npx tsx benchmarks/core.bench.ts)
 ```
 
-Run from individual package directory:
+## Project-Specific Conventions
 
-```bash
-pnpm build            # Build single package
-pnpm test             # Run package tests
-pnpm test -- path.test.ts  # Run single test file
-```
-
-## Environment Configuration
-
-### API Keys
-Set these environment variables (never hardcode or log):
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
-- `GOOGLE_API_KEY`
-- `DEEPSEEK_API_KEY`
-- `OPENROUTER_API_KEY`
-
-### LLM Configuration
-Configure providers before creating `XSky`:
-
-```typescript
-import { LLMs } from '@xsky/ai-agent-core';
-LLMs.default = { provider: 'anthropic', model: 'claude-3-5-sonnet-20240620' };
-```
-
-Always use `RetryLanguageModel` instead of direct provider clients.
-
-## Coding Conventions
-
-### Formatting
+### Code Style
 - 2-space indentation
-- Single quotes
+- Single quotes for strings
 - Semicolons required
-
-### Naming
-- **PascalCase**: Types, classes, interfaces
-- **camelCase**: Variables, functions, methods
-- **kebab-case**: File names, directory names
+- Strict TypeScript (`strict: true`)
 
 ### Exports
-- Prefer named exports
-- Default exports only for main entries (e.g., `XSky`, Next.js pages)
+- Prefer **named exports** from modules
+- Default export only for main entries (`XSky`, `BrowserAgent`)
+- Re-export public API from `src/index.ts`
+
+### File Naming
+- **kebab-case** for all files: `browser-agent.ts`, `tool-sandbox.ts`
+- Types in `src/types/` with `.types.ts` suffix
+- Tests mirror source: `src/core/xsky.ts` → `test/core/xsky.test.ts`
+
+### Agent Development
+- Extend base classes: `Agent`, `BaseBrowserAgent`, `BaseBrowserLabelsAgent`
+- Implement abstract methods for platform-specific behavior
+- Register tools in constructor, not dynamically
+
+### Tool Development
+- One tool per file in `src/tools/`
+- Use Zod for parameter schemas
+- Export from `src/tools/index.ts`
+- Set `noPlan: true` for tools that shouldn't be auto-scheduled
 
 ### Type Definitions
-Keep types in `packages/ai-agent-core/src/types/`:
-- `core.types.ts` - Core framework types
-- `llm.types.ts` - LLM configuration types
-- `tools.types.ts` - Tool definition types
-- `hooks.types.ts` - Hook interface types
-- `security.types.ts` - Security system types
+Keep types organized in `src/types/`:
+- `core.types.ts` - XSky, Workflow, Context types
+- `llm.types.ts` - LLM configuration, request/response
+- `tools.types.ts` - Tool, ToolResult, ToolSchema
+- `hooks.types.ts` - AgentHooks, ProductionXSkyConfig
+- `security.types.ts` - Permissions, sandbox, audit
 
-## Architecture Patterns
+## Testing Strategy
 
-### Orchestration
-Use `XSky` as the single orchestrator:
-- Extend planning via `core/plan.ts`, `core/replan.ts`
-- Extend context via `core/context.ts`
-- Never bypass XSky for workflow execution
+- **Unit tests**: Core functions, utilities, parsers (`test/common/`, `test/tools/`)
+- **Agent tests**: Mock agents for orchestrator testing (`test/core/agents.ts`)
+- **Integration tests**: Real LLM calls when API keys available (conditional)
+- **Browser tests**: Shared Playwright instance (`test/shared-browser.ts`)
 
-### Agents
-Extend `Agent` base class from `packages/ai-agent-core/src/agent/base.ts`:
-- Gets standard prompt construction
-- Gets tool integration
-- Gets error handling
-
-### Tools
-Implement domain actions as tools:
-- One tool per file in `src/tools/`
-- Clear input/output types with Zod validation
-- Export from `src/tools/index.ts`
-- Avoid embedding I/O in agent logic
-
-### MCP Integration
-Use MCP clients from `packages/ai-agent-core/src/mcp/`:
-- `SimpleSseMcpClient` for SSE transport
-- `SimpleHttpMcpClient` for HTTP transport
-
-## Security Implementation
-
-Use security layer from `packages/ai-agent-core/src/security/`:
-
+### Test Patterns
 ```typescript
-// Wrap risky tool execution
-const sandbox = new ToolExecutionSandbox(evaluator, logger);
-const result = await sandbox.execute(tool, args);
+// Conditional test execution (skip without API keys)
+const t = process.env.OPENAI_API_KEY ? test : test.skip;
+
+// Shared browser pattern
+const browser = await getSharedBrowser();
+const page = await createTestPage(browser);
+// ... test ...
+await cleanupTestContext(page);
+await releaseSharedBrowser();
 ```
 
-Components:
-- `ToolExecutionSandbox` - Sandboxed execution wrapper
-- `DefaultPermissionEvaluator` - Permission rule evaluation
-- `InMemoryAuditLogger` - Tamper-proof audit logging
+## Error Handling
 
-## Testing
+- Use `try/catch` with specific error types
+- Hooks receive errors: `onToolError`, `onAgentError` with recovery policies
+- Circuit breaker for LLM providers (3 failures → 60s cooldown)
+- `AbortController` for task cancellation
 
-### Test Location
-- Tests in `test/` or `__tests__/` directories
-- Use `.test.ts` extension
-- Mirror source structure in test folders
+## Environment Variables
 
-### Test Commands
 ```bash
-# From package directory
-pnpm test                           # All tests
-pnpm test -- src/core/xsky.test.ts  # Single file
-```
+# LLM API Keys (at least one required for agent execution)
+ANTHROPIC_API_KEY=           # Claude models
+OPENAI_API_KEY=              # OpenAI models
+GOOGLE_API_KEY=              # Gemini models
+DEEPSEEK_API_KEY=            # DeepSeek models
+OPENROUTER_API_KEY=          # OpenRouter
 
-### Coverage
-- Add tests when fixing bugs (fail without fix, pass with fix)
-- Maintain or improve existing coverage
-- Never disable existing tests without justification
+# AWS Bedrock (if using)
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=
 
-## Examples vs Anti-Patterns
-
-### Good
-```typescript
-// New tool in src/tools/browser_scroll.ts
-export const browserScrollTool = {
-  name: 'browser_scroll',
-  parameters: z.object({ direction: z.enum(['up', 'down']) }),
-  execute: async (params) => { /* implementation */ }
-};
-// Export from src/tools/index.ts
-```
-
-### Bad
-```typescript
-// Calling Playwright directly without tool wrapper
-await page.scroll(); // Don't do this in app code
-```
-
-### Good
-```typescript
-// Extending security for new resource type
-const evaluator = new DefaultPermissionEvaluator({
-  clipboard: { level: 'require_approval' }
-});
-```
-
-### Bad
-```typescript
-// Ad-hoc security bypass
-if (process.env.ALLOW_DANGEROUS) {
-  // Skip permission check - never do this
-}
+# Development
+OPENAI_COMPATIBLE_API_KEY=   # For testing with proxies
+OPENAI_COMPATIBLE_BASE_URL=  # Custom endpoint
 ```

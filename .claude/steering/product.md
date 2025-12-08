@@ -1,86 +1,58 @@
-# Product Steering
+# Product Overview
 
-This document defines the XSky AI Agent framework's purpose, core features, and business logic rules.
-
-## Product Purpose
-
-Build **production-grade AI agents** that convert natural language tasks into **deterministic, auditable workflows** across multiple environments (Node.js, browser, Electron, browser extension).
-
-Use `XSky` (core orchestrator in `packages/ai-agent-core/src/core/xsky.ts`) to **plan and execute XML workflows**:
-- Use `XSky.run()` for simple generate+execute flows
-- Use `XSky.generate()` + `XSky.execute()` when workflows need inspection or modification before execution
-
-Treat XSky as an **SDK with environment runtimes**, not a single application. Design all changes to be reusable across Node.js, web, extension, and Electron packages.
+XSky is a **production-ready AI agent framework** that converts natural language tasks into deterministic, auditable XML workflows, executing them across multiple environments (Node.js, Browser, Electron, Browser Extension).
 
 ## Core Features
 
-### XML Workflow System
-Preserve XML as the central workflow abstraction:
-- Use `<agent>`, `<forEach>`, `<watch>` elements defined in `packages/ai-agent-core/src/core/plan.ts`, `replan.ts`, and `common/xml.ts`
-- Extend the existing XML schema rather than introducing parallel formats
-- Avoid custom workflow formats that bypass the XML system
+- **XML Workflow System**: Natural language → structured XML workflows with `<agent>`, `<forEach>`, `<watch>` elements for transparent, debuggable automation
+- **Multi-LLM Support**: Provider-agnostic via Anthropic, OpenAI, Google, Bedrock, DeepSeek, OpenRouter with automatic retry and circuit breaker
+- **Multi-Environment Runtimes**: Single core engine with platform-specific adapters for Node.js/Playwright, Browser SPA, Chrome Extension, and Electron desktop
+- **Tool-Centric Execution**: All agent actions through composable tools with security sandbox, permission evaluation, and audit logging
+- **MCP Integration**: Dynamic tool discovery via Model Context Protocol (SSE, HTTP, Stdio clients)
+- **Production Hooks**: Complete lifecycle hooks for approvals, checkpointing, state persistence, rate limiting, and telemetry
 
-### Multi-LLM Support
-Maintain provider-agnostic LLM configuration via `LLMs` from `packages/ai-agent-core/src/index.ts`:
-- Support Anthropic, OpenAI, Google, DeepSeek, OpenRouter through `RetryLanguageModel` in `src/llm/index.ts`
-- Never hardcode a single provider or model in shared code
+## User Value Proposition
 
-### Tool-Centric Execution
-Use tools in `packages/ai-agent-core/src/tools/` as the primary mechanism for agent actions:
-- Create new tools under `src/tools/` with exports from `src/tools/index.ts`
-- Avoid embedding side effects directly inside agent logic
+**For developers building AI automation agents**: XSky provides a structured, auditable approach to AI agent development. Instead of opaque LLM calls, tasks become transparent XML workflows that can be inspected, modified, and debugged before execution.
 
-### Environment Runtimes
-Keep runtime-specific code in the appropriate package:
-- **Node.js**: `packages/ai-agent-nodejs` (`BrowserAgent`, `FileAgent` with Playwright)
-- **Web**: `packages/ai-agent-web` (in-page automation with `html2canvas`)
-- **Extension**: `packages/ai-agent-extension` (Chrome APIs, sidebars, content scripts)
-- **Electron**: `packages/ai-agent-electron` (desktop IPC, windows)
+**Key Benefits**:
+- Predictable agent behavior through explicit workflow planning
+- Security by default with permission evaluation and sandboxed execution
+- Cross-platform deployment with single core codebase
+- Production-ready with hooks for enterprise concerns (approval flows, audit trails, state recovery)
 
-## User Workflows
-
-Optimize for **developers building automation agents**, not end-users:
-- Assume TypeScript integration into custom applications
-- Provide clear extension points (agents, tools, hooks, MCP servers)
-
-### Canonical Workflows
-- **Node.js automation**: `BrowserAgent` + `FileAgent` for headless browser tasks
-- **Web in-page**: Control DOM and capture screenshots within browser sandbox
-- **Browser extension**: Content-script and sidebar agents for active tab automation
-- **Electron desktop**: Agents integrated into desktop apps with embedded browsers
-
-## Business Logic Rules
+## Key Business Logic Rules
 
 ### Workflow Transparency
-- Ensure `XSky.generate()` returns human-readable, debuggable workflows
-- Avoid opaque single-call LLM prompts for multi-step tasks
+- `XSky.generate()` MUST return human-readable, debuggable XML workflows
+- NEVER use opaque single-call LLM prompts for multi-step tasks
+- All planned agents and dependencies must be visible in workflow output
 
 ### Auditability
-- Preserve `Chain` and `Context` tracking for tool and LLM call observability
-- Integrate new agents/tools into the existing chain/state system
+- ALL tool executions MUST be tracked via `Chain` and `ToolChain`
+- LLM requests, tool calls, and agent execution timelines MUST be preserved
+- New agents/tools MUST integrate with existing chain/state system
 
 ### Security as Requirement
-Route dangerous operations through the security layer in `packages/ai-agent-core/src/security/`:
-- `ToolExecutionSandbox` for sandboxed execution
-- `DefaultPermissionEvaluator` with permission levels: `allow`, `require_approval`, `sandbox`, `deny`
-- `InMemoryAuditLogger` for audit trails
-- Apply tool constraints: `rate_limit`, `timeout`, `size_limit`
+- Route dangerous operations through `ToolExecutionSandbox`
+- Apply `DefaultPermissionEvaluator` with levels: `allow`, `require_approval`, `sandbox`, `deny`
+- Use `InMemoryAuditLogger` (or custom backend) for audit trails
+- Tool constraints (`rate_limit`, `timeout`, `size_limit`) MUST be enforced
 
-### Input Validation
-- Validate tool arguments with Zod schemas in `packages/ai-agent-core/src/types/tools.types.ts`
-- Use `secure-json-parse` for untrusted JSON
-- Never create tools with arbitrary shell/file access without permission evaluation
+### Environment Isolation
+- Runtime-specific code stays in appropriate package (nodejs, web, extension, electron)
+- Core package (`ai-agent-core`) MUST remain platform-agnostic
+- NO Node-only APIs (`fs`, `path`, `child_process`) in core package
 
-### MCP Integration
-- Register MCP servers through `packages/ai-agent-core/src/mcp/`
-- Ensure MCP tools respect permission evaluation and audit logging
+### Tool Design
+- One tool per file in `src/tools/`
+- Clear input/output types with Zod validation
+- Export from `src/tools/index.ts`
+- NEVER embed I/O logic directly in agent code
 
-## Good vs Bad Changes
+## Success Metrics
 
-### Prefer
-- Extending XML workflow support with a new tag (e.g., `<retry>`) in `common/xml.ts` and `core/plan.ts`
-- Adding tools like `download_file.ts` under `src/tools/` with `require_approval` for untrusted URLs
-
-### Avoid
-- Adding separate JSON-only workflow modes hardcoded in a single runtime
-- Embedding file download logic inside `BrowserAgent` without permission checks
+- **Workflow Completion Rate**: % of tasks that execute to completion without human intervention
+- **Agent Reusability**: Same agents work across all 4 runtime environments
+- **Audit Coverage**: 100% of tool executions logged with timing and approval data
+- **Security Compliance**: Zero tool executions bypass permission evaluation when security enabled

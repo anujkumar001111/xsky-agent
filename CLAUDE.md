@@ -189,3 +189,283 @@ These examples are the fastest way to understand how `XSky`, `Agent`, tools, and
   - `src/core/*` (planning, dialogue, context)
 
 When adding new features, prefer extending the core primitives (Agent, Tool, Hooks, MCP clients) rather than introducing ad-hoc orchestration logic in environment packages.
+
+## Implementation Guide
+
+- **AGENTS.md**: Environment setup and implementation guidelines for Jules AI agent
+
+---
+
+## Quick Start
+
+### Normal Development
+Just code! No special commands needed.
+
+### Structured AI Workflow
+1. Run `/steering` first (creates/updates this file + steering docs)
+2. Run `/spec <feature>` to plan features (lightweight, runs locally)
+3. Run `/jules <feature>` to implement (heavy lifting, runs in cloud)
+4. Run `/reviewer` to review PRs
+
+---
+
+## Workflow Instructions
+
+### Spec Development (LOCAL - Lightweight)
+- **Command**: `/spec <feature-name>`
+- **Creates**: `.claude/specs/{feature}/` with requirements.md, design.md, tasks.md
+- **Where**: Runs on your machine (lightweight text generation)
+- **Approval**: Each phase requires your approval before proceeding
+
+### Jules Implementation (CLOUD - Heavy Lifting)
+- **Command**: `/jules <feature>` or `/jules "<task description>"`
+- **What**: Coding, testing, building, fixing
+- **Where**: Cloud VMs (offloads heavy work from your machine)
+- **Output**: Pull Request
+- **Status**: `/jules status` to check all accounts and sessions
+
+### Review (LOCAL or CLOUD)
+- **Command**: `/reviewer <PR-url>` or `/reviewer local`
+- **Quick reviews**: Run locally
+- **Deep reviews**: Can delegate heavy analysis to Jules
+
+---
+
+## Jules Handoff Protocol
+
+**Before calling /jules:**
+1. Spec files committed and pushed to remote
+2. All phases approved (requirements, design, tasks)
+3. Check session availability: `/jules status`
+
+**Jules reads these files:**
+- `AGENTS.md` - Setup and conventions
+- `.claude/steering/*` - Project rules
+- `.claude/specs/{feature}/*` - What to build
+
+---
+
+## Resource Division
+
+| Task Type | Where | Reason |
+|-----------|-------|--------|
+| Spec creation | LOCAL | Lightweight text, needs human review |
+| Steering docs | LOCAL | Project setup, one-time |
+| Session coordination | LOCAL | Orchestration logic |
+| Heavy coding | JULES | CPU-intensive, parallel capable |
+| Test execution | JULES | May need full env setup |
+| Complex/parallel work | JULES | Offload from local machine |
+| PR review | EITHER | Local for quick, Jules for deep |
+
+---
+
+# Lessons
+
+## User Specified Lessons
+[To be filled by user]
+
+## AI Learned Lessons
+[To be accumulated over time]
+
+---
+
+# Scratchpad
+
+[Task planning area]
+
+---
+
+<re_instructions>
+
+### Workflow Initialization
+
+Before starting any task:
+1. Read ALL files in `.claude/steering/` directory
+2. Read this `CLAUDE.md` file completely
+3. Understand project conventions and constraints
+4. Follow the rules mentioned in steering documents
+
+### Spec Workflow Execution
+
+To start a new feature specification:
+
+1. **Load Workflow System**
+   - Read `.claude/system-prompts/spec-workflow-starter.md` for complete instructions
+   - Adopt the persona and follow instructions exactly
+
+2. **Follow Sequence**: Requirements → Design → Tasks (as defined in loaded instructions)
+
+### Jules Handoff Protocol
+
+**CRITICAL**: After finalizing spec files (requirements.md, design.md, tasks.md):
+
+**Step 1: Commit and Push Specs**
+- Commit all spec files to git
+- Push to remote repository
+- MUST complete before Jules handoff
+
+**Step 2: Pre-flight Checks**
+```bash
+# Verify clean state
+git status
+
+# Get repository info
+git config --get remote.origin.url
+```
+
+**Step 3: Session Management**
+- Check for existing sessions:
+  - Look for `sessionId` in `.claude/specs/{feature}/feature_status.md`
+  - OR search via `list_sessions` for matching source + prompt
+- Reuse existing session if found via `get_session`
+
+**Step 4: Create Jules Session** (if no existing session)
+
+Use Google Jules MCP server with `create_session`:
+
+```javascript
+{
+  source: "sources/github/<org>/<repo>",  // From git remote
+  prompt: `
+CONTEXT DOCUMENTS:
+- Requirements: .claude/specs/{feature}/requirements.md
+- Design: .claude/specs/{feature}/design.md
+- Tasks: .claude/specs/{feature}/tasks.md
+
+PROJECT CONVENTIONS:
+- Read ALL files in .claude/steering/ directory first
+- Follow conventions in tech.md strictly
+- Respect architecture in structure.md
+
+EXECUTION PROTOCOL:
+1. Analysis Phase
+   - Read steering documents completely
+   - Read all spec documents (requirements, design, tasks)
+   - Understand task dependencies from tasks.md diagram
+
+2. Implementation Phase
+   - Execute tasks in dependency order
+   - After each milestone: Update .claude/specs/{feature}/feature_status.md
+   - Every 3 tasks: Update CLAUDE.md Scratchpad section
+
+3. Quality Gates
+   - Run tests after each task
+   - Verify against requirements before marking complete
+   - Follow code conventions from tech.md
+
+4. Loop Detection
+   - If >5 modifications to same file without progress: STOP
+   - Create draft PR with current state
+   - Report: "Loop detected on [file]. Manual review needed."
+
+5. Completion
+   - Create PR with descriptive title
+   - Include summary of implemented features
+   - Link to feature_status.md for details
+
+STATE TRACKING FORMAT:
+feature_status.md:
+---
+| Task ID | Status | Timestamp | Notes |
+|---------|--------|-----------|-------|
+| 1       | done   | [ISO]     | [Brief note] |
+| 2.1     | in_progress | [ISO] | [Current work] |
+---
+
+CLAUDE.md Scratchpad:
+---
+## [Feature Name] - [Status] - [Date]
+- [x] Task 1
+- [ ] Task 2
+- Current: [What's being worked on]
+---
+
+OUTPUT: Pull Request URL
+  `,
+  requirePlanApproval: false
+}
+```
+
+### Review Protocol
+
+When Jules PR is submitted:
+
+1. **Fetch Changes**
+   ```bash
+   git fetch origin
+   git checkout [pr-branch]
+   ```
+
+2. **Verification Checklist**
+   - [ ] Implementation matches requirements.md
+   - [ ] Code follows conventions in tech.md
+   - [ ] All tests pass
+   - [ ] No security vulnerabilities introduced
+   - [ ] feature_status.md is complete
+
+3. **Security & Quality Checks**
+   - Review for security vulnerabilities
+   - Verify code style and patterns
+   - Check for logic errors
+   - Validate test coverage
+
+4. **Decision Flow**
+   ```
+   If heavy refactor/fixes needed:
+     → Delegate back to Jules with specific feedback
+
+   If minimal issues:
+     → Fix locally and test
+
+   If satisfactory:
+     → Merge to main
+     → Clean up branches
+     → Move to next feature
+   ```
+
+### File Creation Policy
+
+**ALLOWED** (Essential files for system operation):
+- Setup: `requirements.txt`, `package.json`, `README.md` (if critical)
+- Configuration: `.env.example`, `config.yaml`
+- Agent configs: `CLAUDE.md`, `AGENTS.md`, `.claude/` contents
+- Tests: Only when explicitly needed for functionality
+
+**FORBIDDEN** (Non-functional content):
+- Analytical or summary documents (unless requested)
+- Status reports, progress summaries
+- Documentation for documentation's sake
+
+### Memory Management
+
+**Lessons Section** (Update when you learn):
+```markdown
+## User Specified Lessons
+- [Lesson from user feedback]
+
+## AI Learned Lessons
+- [Library version that worked: library@version]
+- [Fix for recurring issue: problem → solution]
+```
+
+**Scratchpad Usage** (Task planning and tracking):
+```markdown
+## Current Task: [Task Name]
+
+### Understanding
+[Explain the task in your own words]
+
+### Plan
+- [ ] Step 1
+- [ ] Step 2
+- [x] Step 3 (completed)
+
+### Progress Notes
+- [Timestamp]: [What was accomplished]
+- [Timestamp]: [Blocker encountered and resolution]
+
+### Next Steps
+[What to do next]
+```
+
+</re_instructions>
