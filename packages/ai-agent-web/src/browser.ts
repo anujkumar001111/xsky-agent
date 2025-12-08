@@ -135,7 +135,7 @@ export default class BrowserAgent extends BaseBrowserLabelsAgent {
     agentContext: AgentContext,
     tabId: number
   ): Promise<{ tabId: number; url: string; title: string }> {
-    return await this.get_all_tabs(agentContext)[0];
+    return (await this.get_all_tabs(agentContext))[0];
   }
 }
 

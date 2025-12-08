@@ -10,14 +10,14 @@ jobs:
   test:
     name: Build & Test
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [18.x, 20.x]
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install pnpm
       uses: pnpm/action-setup@v3
       with:
@@ -32,11 +32,21 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Install Playwright browsers
+      run: pnpm exec playwright install --with-deps chromium
+
     - name: Build core packages
       run: pnpm -r --filter "./packages/*" build
 
-    - name: Run tests
-      run: pnpm -r --filter "./packages/*" test
+    - name: Run core package tests with coverage threshold
+      run: |
+        cd packages/ai-agent-core
+        pnpm test -- --coverage --coverageReporters=text-summary --coverageThreshold='{"global":{"statements":45,"branches":35,"functions":45,"lines":45}}'
       env:
         CI: true
         # Tests that require real API keys will skip automatically
+
+    - name: Run other package tests
+      run: pnpm -r --filter "./packages/*" --filter "!@xsky/ai-agent-core" test
+      env:
+        CI: true

@@ -12,7 +12,8 @@ jest.mock('electron', () => ({
       navigationHistory: {
         canGoBack: jest.fn().mockReturnValue(true),
         goBack: jest.fn()
-      }
+      },
+      send: jest.fn()
     },
     getBounds: jest.fn().mockReturnValue({ width: 800, height: 600 })
   })),
@@ -24,6 +25,9 @@ jest.mock('electron', () => ({
   },
   contextBridge: {
     exposeInMainWorld: jest.fn()
+  },
+  app: {
+    isPackaged: false
   }
 }));
 
